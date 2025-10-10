@@ -1,0 +1,305 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String?  @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Subscription information
+  subscription   Subscription?
+  subscriptionId String?
+
+  // User preferences
+  preferences UserPreferences?
+
+  // Followed cryptocurrencies
+  followedCoins FollowedCoin[]
+
+  // User alerts and notifications
+  alerts        Alert[]
+  notifications Notification[]
+
+  // User sessions
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  tier      SubscriptionTier
+  status    SubscriptionStatus
+  stripeId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Notification settings
+  emailNotifications     Boolean @default(true)
+  pushNotifications      Boolean @default(true)
+  discordNotifications   Boolean @default(false)
+  telegramNotifications  Boolean @default(false)
+
+  // Alert settings
+  sentimentThreshold Float   @default(0.7)
+  priceChangeThreshold Float @default(0.1)
+  volumeThreshold    Float   @default(0.5)
+
+  // UI preferences
+  theme              String  @default("dark")
+  currency           String  @default("USD")
+  timezone           String  @default("UTC")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Cryptocurrency {
+  id       String  @id @default(cuid())
+  symbol   String  @unique
+  name     String
+  logoUrl  String?
+  marketCap Float?
+  rank     Int?
+
+  // Relationships
+  followedBy    FollowedCoin[]
+  alerts        Alert[]
+  sentimentData SentimentAnalysis[]
+  priceData     PriceData[]
+
+  @@map("cryptocurrencies")
+}
+
+model FollowedCoin {
+  id     String @id @default(cuid())
+  userId String
+  cryptoId String
+
+  createdAt DateTime @default(now())
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cryptoId])
+  @@map("followed_coins")
+}
+
+model SentimentAnalysis {
+  id       String @id @default(cuid())
+  cryptoId String
+  
+  // Sentiment data
+  score    Float
+  label    SentimentLabel
+  confidence Float
+
+  // Source information
+  sources  NewsSource[]
+  whaleActivity WhaleActivity[]
+
+  // AI analysis
+  aiSummary   String
+  aiReasoning String
+  modelUsed   String
+
+  createdAt DateTime @default(now())
+
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id])
+
+  @@map("sentiment_analysis")
+}
+
+model NewsSource {
+  id          String @id @default(cuid())
+  title       String
+  content     String
+  url         String
+  publishedAt DateTime
+  source      String
+  relevanceScore Float
+
+  sentimentAnalysisId String
+  sentimentAnalysis   SentimentAnalysis @relation(fields: [sentimentAnalysisId], references: [id])
+
+  @@map("news_sources")
+}
+
+model WhaleActivity {
+  id        String @id @default(cuid())
+  amount    Float
+  fromAddr  String?
+  toAddr    String?
+  txHash    String  @unique
+  timestamp DateTime
+
+  sentimentAnalysisId String
+  sentimentAnalysis   SentimentAnalysis @relation(fields: [sentimentAnalysisId], references: [id])
+
+  @@map("whale_activity")
+}
+
+model PriceData {
+  id        String @id @default(cuid())
+  cryptoId  String
+  price     Float
+  volume24h Float
+  change24h Float
+  marketCap Float
+  timestamp DateTime @default(now())
+
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id])
+
+  @@map("price_data")
+}
+
+model Alert {
+  id       String    @id @default(cuid())
+  userId   String
+  cryptoId String
+  type     AlertType
+  
+  // Alert configuration
+  condition String // JSON string with alert conditions
+  isActive  Boolean @default(true)
+  
+  // Trigger information
+  lastTriggered DateTime?
+  triggerCount  Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id])
+
+  @@map("alerts")
+}
+
+model Notification {
+  id      String           @id @default(cuid())
+  userId  String
+  type    NotificationType
+  title   String
+  content String
+  isRead  Boolean          @default(false)
+
+  // Optional alert reference
+  alertId String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  key         String   @unique
+  permissions String[] // Array of allowed endpoints
+  isActive    Boolean  @default(true)
+  
+  // Usage tracking
+  requestCount    Int      @default(0)
+  lastUsed        DateTime?
+  rateLimitTier   String   @default("basic")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_keys")
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+}
+
+enum SentimentLabel {
+  VERY_BULLISH
+  BULLISH
+  NEUTRAL
+  BEARISH
+  VERY_BEARISH
+}
+
+enum AlertType {
+  SENTIMENT_CHANGE
+  PRICE_CHANGE
+  VOLUME_SPIKE
+  WHALE_ACTIVITY
+  NEWS_MENTION
+}
+
+enum NotificationType {
+  ALERT_TRIGGERED
+  SUBSCRIPTION_UPDATE
+  SYSTEM_ANNOUNCEMENT
+  SECURITY_NOTICE
+}
