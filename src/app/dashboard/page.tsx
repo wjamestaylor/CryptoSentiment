@@ -48,7 +48,7 @@ export default function CryptoDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {topCryptos?.data?.map((crypto: any) => (
           <Card key={crypto.id} className="p-4 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
                 <img 
                   src={crypto.image} 
@@ -70,6 +70,25 @@ export default function CryptoDashboard() {
                   {crypto.price_change_percentage_24h?.toFixed(2)}%
                 </p>
               </div>
+            </div>
+            
+            {/* Quick Actions */}
+            <div className="flex gap-2 mb-3">
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="flex-1"
+                onClick={() => window.open(`/sentiment?crypto=${crypto.id}`, '_blank')}
+              >
+                🤖 AI Analysis
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {/* TODO: Add to watchlist */}}
+              >
+                ⭐
+              </Button>
             </div>
             
             <div className="space-y-1 text-sm text-gray-600">
