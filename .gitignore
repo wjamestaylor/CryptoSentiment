@@ -150,7 +150,12 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public  # Commented out - we need public directory for Next.js
+
+# Next.js public directory - ignore some but not all
+public/.vercel/
+public/sw.js
+public/workbox-*.js
 
 # Vuepress build output
 .vuepress/dist
