@@ -3,8 +3,10 @@
 import { api } from '@/lib/trpc/provider';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 
 export default function CryptoDashboard() {
+  const { data: session } = useSession();
   const { data: topCryptos, isLoading, error } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
 
   if (isLoading) {
@@ -85,9 +87,16 @@ export default function CryptoDashboard() {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => {/* TODO: Add to watchlist */}}
+                onClick={() => {
+                  if (session) {
+                    // TODO: Add to watchlist functionality
+                    window.open('/watchlist', '_blank');
+                  } else {
+                    window.open('/api/auth/signin', '_blank');
+                  }
+                }}
               >
-                ⭐
+                {session ? "⭐" : "🔐"}
               </Button>
             </div>
             

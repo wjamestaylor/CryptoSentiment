@@ -33,6 +33,10 @@ export const authOptions: NextAuthOptions = {
         id: user.id,
       },
     }),
+    async signIn({ user, account, profile, email, credentials }) {
+      // Allow all sign-ins for now - we can add restrictions later
+      return true;
+    },
   },
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -44,18 +48,26 @@ export const authOptions: NextAuthOptions = {
       server: {
         host: process.env.EMAIL_SERVER_HOST,
         port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+        secure: false, // true for 465, false for other ports
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
         },
       },
       from: process.env.EMAIL_FROM,
+      maxAge: 24 * 60 * 60, // 24 hours
     }),
   ],
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+    verifyRequest: '/auth/verify-request',
+  },
   session: {
     strategy: 'database',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 }
 
 export const getServerAuthSession = (ctx: {

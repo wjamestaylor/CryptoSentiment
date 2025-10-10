@@ -24,6 +24,11 @@ export function Navbar() {
             <Link href="/sentiment" className="text-gray-600 hover:text-blue-600 font-medium">
               AI Analysis
             </Link>
+            {session && (
+              <Link href="/watchlist" className="text-gray-600 hover:text-blue-600 font-medium">
+                Watchlist
+              </Link>
+            )}
             <Link href="/alerts" className="text-gray-600 hover:text-blue-600 font-medium">
               Alerts
             </Link>
@@ -51,19 +56,19 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center space-x-2">
+                              <Link href="/auth/signin">
                 <Button
-                  onClick={() => signIn()}
                   variant="outline"
-                  size="sm"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
                 >
                   Sign In
                 </Button>
-                <Button
-                  onClick={() => signIn()}
-                  size="sm"
-                >
+              </Link>
+                              <Link href="/auth/signup">
+                <Button className="bg-blue-600 hover:bg-blue-700">
                   Get Started
                 </Button>
+              </Link>
               </div>
             )}
           </div>
@@ -77,6 +82,11 @@ export function Navbar() {
           <Link href="/sentiment" className="text-gray-600 hover:text-blue-600">
             AI Analysis
           </Link>
+          {session && (
+            <Link href="/watchlist" className="text-gray-600 hover:text-blue-600">
+              Watchlist
+            </Link>
+          )}
           <Link href="/alerts" className="text-gray-600 hover:text-blue-600">
             Alerts
           </Link>

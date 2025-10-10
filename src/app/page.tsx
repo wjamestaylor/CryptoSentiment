@@ -21,7 +21,7 @@ export default function Home() {
                 Try AI Analysis
               </Button>
             </Link>
-            <Link href="/api/auth/signin">
+            <Link href="/auth/signup">
               <Button variant="outline" size="lg">
                 Get Started
               </Button>
