@@ -20,6 +20,7 @@ export function formatNumber(number: number): string {
 }
 
 export function formatPercentage(value: number): string {
+  if (value === 0) return '0.00%'
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`
 }
 
