@@ -1,0 +1,30 @@
+# Commit Message Template
+# 
+# Type(scope): Brief description
+#
+# Longer description if needed
+#
+# Types:
+# feat: A new feature
+# fix: A bug fix  
+# docs: Documentation only changes
+# style: Changes that do not affect the meaning of the code
+# refactor: A code change that neither fixes a bug nor adds a feature
+# perf: A code change that improves performance
+# test: Adding missing tests or correcting existing tests
+# chore: Changes to the build process or auxiliary tools
+# security: Security improvements
+# ci: CI/CD related changes
+#
+# Examples:
+# feat(auth): add JWT token authentication
+# fix(api): handle null response from CoinGecko API
+# docs(readme): update installation instructions
+# security(env): add comprehensive .gitignore for secrets
+#
+# Breaking changes:
+# Add BREAKING CHANGE: in the footer
+#
+# References:
+# Closes #123
+# Refs #456

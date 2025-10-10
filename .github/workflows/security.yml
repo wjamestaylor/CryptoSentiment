@@ -1,0 +1,110 @@
+name: Security and Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dependency security audit
+        run: npm audit --audit-level high
+
+      - name: Check for leaked secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build application
+        run: npm run build
+
+  env-check:
+    name: Environment Variables Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for .env files in repository
+        run: |
+          if find . -name ".env*" -not -name ".env.template" -not -name ".env.example" | grep -q .; then
+            echo "❌ ERROR: Found .env files in repository!"
+            echo "Found files:"
+            find . -name ".env*" -not -name ".env.template" -not -name ".env.example"
+            echo "These files should be in .gitignore and never committed."
+            exit 1
+          else
+            echo "✅ No .env files found in repository (good!)"
+          fi
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Check for common secret patterns
+          SECRET_PATTERNS=(
+            "sk-[a-zA-Z0-9]{48}"  # OpenAI/OpenRouter API keys
+            "pk_test_[a-zA-Z0-9]{24}"  # Stripe test keys
+            "sk_test_[a-zA-Z0-9]{24}"  # Stripe test keys
+            "pk_live_[a-zA-Z0-9]{24}"  # Stripe live keys
+            "sk_live_[a-zA-Z0-9]{24}"  # Stripe live keys
+            "[0-9]{10}:[a-zA-Z0-9_-]{35}"  # Telegram bot tokens
+            "xoxb-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}"  # Slack bot tokens
+          )
+          
+          FOUND_SECRETS=false
+          for pattern in "${SECRET_PATTERNS[@]}"; do
+            if grep -r -E "$pattern" --exclude-dir=node_modules --exclude-dir=.git --exclude="*.md" . ; then
+              echo "❌ Found potential secret pattern: $pattern"
+              FOUND_SECRETS=true
+            fi
+          done
+          
+          if [ "$FOUND_SECRETS" = true ]; then
+            echo "❌ ERROR: Potential secrets found in code!"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets found"
+          fi
