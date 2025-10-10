@@ -1,30 +1,30 @@
 # CryptoSentiment AI Development Assistant
 
 ## Project Overview
-**CryptoSentiment** is a production-ready cryptocurrency sentiment analysis platform built with Next.js 15, TypeScript, and PostgreSQL. The platform combines AI-powered sentiment analysis with real-time crypto data to provide actionable trading insights.
+**CryptoSentiment** is a production-ready cryptocurrency sentiment analysis platform that prioritizes **live data accuracy** and **type safety**. The platform combines AI-powered sentiment analysis with real-time crypto data to provide actionable trading insights.
 
 **Tech Stack**: Next.js 15 + App Router, TypeScript, Prisma, PostgreSQL, tRPC, Tailwind CSS + shadcn/ui, Jest, Turbopack  
+**Key Principle**: Never use sample/fake data - all information must come from live APIs
 
-## Architecture & Patterns
+## Architecture & Critical Patterns
 
-### Service Layer Architecture
+### Service Layer (Key: `/src/services/crypto/price.service.ts`, `/src/lib/api/openrouter.ts`)
+**Why**: Centralized API management with consistent error handling and rate limiting
 ```
-App Router Pages → tRPC Procedures → Service Classes → External APIs
-                ↘ Prisma ORM → PostgreSQL Database
+App Router → tRPC → Service Classes → External APIs
+          ↘ Prisma → PostgreSQL
 ```
 
-**Key Service Classes** (follow these patterns):
-- **`CoinGeckoService`**: API client with error handling, optional API key, rate limiting awareness
-- **`OpenRouterService`**: AI service with Zod validation, comprehensive prompt building
-- **Service Pattern**: Private `request()` method, public domain methods, singleton export
+**Required Pattern**: All external APIs use service classes with:
+- Private `request()` method for error handling
+- Optional API keys (supports free tiers)
+- Zod validation for responses
+- Comprehensive logging
 
 ```typescript
+// Follow this pattern from CoinGeckoService
 export class ApiService {
-  private baseUrl = 'https://api.example.com';
-  private apiKey?: string;
-  
   private async request<T>(endpoint: string): Promise<T> {
-    // Standard error handling with logging
     if (!response.ok) {
       console.error(`API error: ${response.status} ${response.statusText}`);
       throw new Error(`API error: ${response.statusText}`);
@@ -33,40 +33,28 @@ export class ApiService {
 }
 ```
 
-### tRPC Router Patterns
-All API routes use tRPC for type safety. Pattern: `input` validation → `query`/`mutation` → database operations.
+### tRPC Integration (Key: `/src/server/api/routers/`)
+**Why**: End-to-end type safety from database to UI components
+- Pattern: `input` validation → `query`/`mutation` → Prisma operations
+- Use `publicProcedure` for data fetching, `protectedProcedure` for user actions
+- Always include error handling in procedures
 
-```typescript
-export const routerName = createTRPCRouter({
-  methodName: publicProcedure
-    .input(z.object({ param: z.string() }))
-    .query(async ({ ctx, input }) => {
-      return ctx.prisma.model.findMany({ where: input });
-    }),
-});
-```
+### Testing Strategy (Key: `/src/__tests__/services/`)
+**Why**: 45.38% coverage ensures reliability; services have 95%+ coverage as reference
 
-### Testing Patterns
-**Established Mock Patterns**:
+**Critical Pattern**: Global fetch mocking for all service tests
 ```typescript
-// Service testing with global fetch mock
+// Standard in all service tests
 global.fetch = jest.fn();
 const mockFetch = fetch as jest.Mock;
 
 describe('ServiceName', () => {
   beforeEach(() => jest.clearAllMocks());
-  
-  it('should handle success cases', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(mockData)
-    });
-    // Test implementation
-  });
+  // Always test both success AND error cases
 });
 ```
 
-**Test Structure**: `/src/__tests__/` mirrors `/src/` structure. Use `jest-mock-extended` for Prisma mocking.
+**Database Testing**: Use `jest-mock-extended` for Prisma (see `/src/__tests__/database/prisma.test.ts`)
 
 ## Development Workflows
 
@@ -98,32 +86,26 @@ npm run type-check        # TypeScript compilation check
 - `OPENROUTER_API_KEY`: AI sentiment analysis (optional for development)
 - `COINGECKO_API_KEY`: Crypto data (optional, free tier available)
 
-## Key File Patterns
+## Critical File Patterns
 
-### External API Integration
-**Location**: `/src/lib/api/` and `/src/services/`
-- Use service classes with error handling
-- Optional API keys for free tier support
-- Zod schemas for response validation
-- Comprehensive test coverage (CoinGecko: 95%, OpenRouter: 92%)
+### API Integration (Key: Follow `CoinGeckoService` pattern)
+**Location**: `/src/services/` for business logic, `/src/lib/api/` for clients
+- Service classes with private `request()` method
+- Optional API keys (free tier support crucial)
+- Zod validation for ALL external responses
+- Error logging with URL and status codes
 
-### Database Schema (Prisma)
-**11 models** including User, Cryptocurrency, SentimentAnalysis, Alert, etc.
-- Use `upsert` for crypto data (handles duplicates)
-- Proper foreign key relationships
-- Enum types for sentiment labels and alert types
+### Database Operations (Key: Follow Prisma patterns in `/src/server/api/routers/`)
+**Why**: 11 models with complex relationships require careful handling
+- Use `upsert` for cryptocurrency data (prevents duplicates)
+- Include related data with `include` for UI needs
+- Protect user operations with `protectedProcedure`
 
-### Component Architecture
-**shadcn/ui base** + custom extensions in `/src/components/ui/`
-- Server/client component separation (Next.js App Router)
-- Tailwind CSS with responsive design
-- TypeScript interfaces for all props
-
-### Authentication
-**NextAuth.js** with database sessions:
-- Email and Google providers configured
-- Database adapter with Prisma
-- Protected tRPC procedures with middleware
+### Component Architecture (Key: shadcn/ui + project customs)
+**Location**: `/src/components/ui/` for base, `/src/components/` for features
+- Server components for data fetching, client for interactions
+- TypeScript interfaces for ALL props
+- Responsive design with Tailwind classes
 
 ## Testing Strategy
 
@@ -166,4 +148,3 @@ When generating code:
 6. **Test edge cases** including network failures and invalid responses
 
 The codebase is production-ready with live data integration, comprehensive service layer testing, and type-safe APIs throughout the stack.
-
