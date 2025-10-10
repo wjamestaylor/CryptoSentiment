@@ -95,12 +95,8 @@ export default function SentimentPage() {
               <CardDescription>
                 AI analysis for {cryptocurrency}
                 {analysis.dataSource && (
-                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                    analysis.dataSource === 'live' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {analysis.dataSource === 'live' ? '🔴 LIVE DATA' : '⚠️ SAMPLE DATA'}
+                  <span className="ml-2 px-2 py-1 rounded text-xs bg-green-100 text-green-700">
+                    🔴 LIVE DATA
                   </span>
                 )}
               </CardDescription>

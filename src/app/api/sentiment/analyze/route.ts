@@ -37,26 +37,39 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (coinGeckoError) {
-      console.warn(`Failed to get real data for ${cryptocurrency}, using sample data:`, coinGeckoError);
+      console.error(`Failed to get price data for ${cryptocurrency}:`, coinGeckoError);
+      return NextResponse.json(
+        { 
+          error: 'Failed to retrieve cryptocurrency data',
+          details: 'Unable to connect to price data service'
+        },
+        { status: 503 }
+      );
     }
 
-    // Fallback to sample data if CoinGecko fails
+    // Ensure we have real data before proceeding
+    if (!realPriceData) {
+      return NextResponse.json(
+        { 
+          error: 'Cryptocurrency not found',
+          details: `No price data available for "${cryptocurrency}". Please check the cryptocurrency ID.`
+        },
+        { status: 404 }
+      );
+    }
+
     const analysisData = {
       cryptocurrency,
-      priceData: realPriceData || {
-        current_price: 45000, // Fallback data
-        price_change_24h: 2.5,
-        volume_24h: 25000000000
-      }
+      priceData: realPriceData
     };
 
     const openRouterService = new OpenRouterService();
     const analysis = await openRouterService.analyzeSentiment(analysisData);
     
-    // Add a flag to indicate if we used real data
+    // Return analysis with live data confirmation
     return NextResponse.json({
       ...analysis,
-      dataSource: realPriceData ? 'live' : 'sample',
+      dataSource: 'live',
       priceData: analysisData.priceData,
       timestamp: new Date().toISOString(),
       requestId: Math.random().toString(36).substring(7)
