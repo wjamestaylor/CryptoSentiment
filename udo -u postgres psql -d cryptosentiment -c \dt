@@ -1,0 +1,20 @@
+                List of relations
+ Schema |        Name        | Type  |   Owner    
+--------+--------------------+-------+------------
+ public | _prisma_migrations | table | willtaylor
+ public | accounts           | table | willtaylor
+ public | alerts             | table | willtaylor
+ public | api_keys           | table | willtaylor
+ public | cryptocurrencies   | table | willtaylor
+ public | followed_coins     | table | willtaylor
+ public | news_sources       | table | willtaylor
+ public | notifications      | table | willtaylor
+ public | price_data         | table | willtaylor
+ public | sentiment_analysis | table | willtaylor
+ public | sessions           | table | willtaylor
+ public | subscriptions      | table | willtaylor
+ public | user_preferences   | table | willtaylor
+ public | users              | table | willtaylor
+ public | whale_activity     | table | willtaylor
+(15 rows)
+

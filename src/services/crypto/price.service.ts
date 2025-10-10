@@ -21,16 +21,25 @@ export class CoinGeckoService {
   private async request<T>(endpoint: string): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      'Accept': 'application/json',
     }
 
+    // Only add API key if it exists (free tier doesn't need it)
     if (this.apiKey) {
       headers['x-cg-demo-api-key'] = this.apiKey
     }
 
-    const response = await fetch(url, { headers })
+    const response = await fetch(url, { 
+      headers,
+      // Add rate limiting delay for free tier
+      cache: 'no-store',
+    })
 
     if (!response.ok) {
+      // Log the error for debugging
+      console.error(`CoinGecko API error: ${response.status} ${response.statusText}`)
+      console.error(`URL: ${url}`)
+      
       throw new Error(`CoinGecko API error: ${response.statusText}`)
     }
 
