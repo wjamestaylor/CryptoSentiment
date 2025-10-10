@@ -4,10 +4,73 @@ import { api } from '@/lib/trpc/provider';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 export default function CryptoDashboard() {
   const { data: session } = useSession();
+  const [addingToWatchlist, setAddingToWatchlist] = useState<string | null>(null);
+  
+  // Get top cryptocurrencies
   const { data: topCryptos, isLoading, error } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
+  
+  // Get user's followed cryptocurrencies
+  const { data: followedCryptos, refetch: refetchFollowed } = api.crypto.getFollowedCryptos.useQuery(undefined, {
+    enabled: !!session
+  });
+
+  // Mutations for following/unfollowing
+  const followMutation = api.crypto.followCrypto.useMutation({
+    onSuccess: () => {
+      refetchFollowed();
+      setAddingToWatchlist(null);
+    },
+    onError: (error: any) => {
+      console.error('Failed to follow crypto:', error);
+      setAddingToWatchlist(null);
+    }
+  });
+
+  const unfollowMutation = api.crypto.unfollowCrypto.useMutation({
+    onSuccess: () => {
+      refetchFollowed();
+      setAddingToWatchlist(null);
+    },
+    onError: (error: any) => {
+      console.error('Failed to unfollow crypto:', error);
+      setAddingToWatchlist(null);
+    }
+  });
+
+  // Check if a crypto is in the watchlist
+  const isInWatchlist = (cryptoSymbol: string) => {
+    return followedCryptos?.data?.some((followed: any) => 
+      followed.symbol.toLowerCase() === cryptoSymbol.toLowerCase()
+    ) || false;
+  };
+
+  // Handle watchlist toggle
+  const handleWatchlistToggle = async (crypto: any) => {
+    if (!session) {
+      window.open('/auth/signin', '_blank');
+      return;
+    }
+
+    const cryptoSymbol = crypto.symbol;
+    setAddingToWatchlist(cryptoSymbol);
+
+    try {
+      if (isInWatchlist(cryptoSymbol)) {
+        await unfollowMutation.mutateAsync({ symbol: cryptoSymbol });
+      } else {
+        await followMutation.mutateAsync({ 
+          symbol: cryptoSymbol,
+          name: crypto.name 
+        });
+      }
+    } catch (error) {
+      console.error('Watchlist operation failed:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -86,17 +149,16 @@ export default function CryptoDashboard() {
               </Button>
               <Button 
                 size="sm" 
-                variant="outline"
-                onClick={() => {
-                  if (session) {
-                    // TODO: Add to watchlist functionality
-                    window.open('/watchlist', '_blank');
-                  } else {
-                    window.open('/api/auth/signin', '_blank');
-                  }
-                }}
+                variant={isInWatchlist(crypto.symbol) ? "default" : "outline"}
+                onClick={() => handleWatchlistToggle(crypto)}
+                disabled={addingToWatchlist === crypto.symbol}
+                className={isInWatchlist(crypto.symbol) ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}
               >
-                {session ? "⭐" : "🔐"}
+                {addingToWatchlist === crypto.symbol ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                ) : session ? (
+                  isInWatchlist(crypto.symbol) ? "⭐" : "☆"
+                ) : "🔐"}
               </Button>
             </div>
             

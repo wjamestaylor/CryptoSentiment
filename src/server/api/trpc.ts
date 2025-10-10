@@ -1,8 +1,11 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { type Session } from 'next-auth'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/db/prisma'
 import superjson from 'superjson'
 import { ZodError } from 'zod'
+import { type FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch'
 
 type CreateContextOptions = {
   session: Session | null
@@ -15,9 +18,12 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   }
 }
 
-export const createTRPCContext = async () => {
+export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
+  // Get session from request headers using the new App Router method
+  const session = await getServerSession(authOptions)
+  
   return createInnerTRPCContext({
-    session: null, // TODO: Get session in App Router context
+    session,
   })
 }
 

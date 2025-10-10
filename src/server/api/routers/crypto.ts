@@ -63,9 +63,14 @@ export const cryptoRouter = createTRPCRouter({
 
   // Public endpoint to search cryptocurrencies
   searchCryptos: publicProcedure
-    .input(z.object({ query: z.string().min(1) }))
+    .input(z.object({ query: z.string().min(1, "Search query must be at least 1 character long") }))
     .query(async ({ input }) => {
       try {
+        // Validate the query is not empty or just whitespace
+        if (!input.query || input.query.trim().length === 0) {
+          throw new Error("Search query cannot be empty");
+        }
+
         // Use public CoinGecko API
         const response = await fetch(
           `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(input.query)}`

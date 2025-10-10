@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 export default function SentimentPage() {
-  const [cryptocurrency, setCryptocurrency] = useState('bitcoin');
+  const searchParams = useSearchParams();
+  const cryptoParam = searchParams.get('crypto');
+  
+  const [cryptocurrency, setCryptocurrency] = useState(cryptoParam || 'bitcoin');
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +40,17 @@ export default function SentimentPage() {
       setLoading(false);
     }
   };
+
+  // Auto-run analysis if crypto parameter is provided
+  useEffect(() => {
+    if (cryptoParam && cryptoParam.trim()) {
+      setCryptocurrency(cryptoParam);
+      // Auto-run analysis after a short delay to ensure state is set
+      setTimeout(() => {
+        analyzeSentiment();
+      }, 100);
+    }
+  }, [cryptoParam]);
 
   return (
     <div className="container mx-auto py-8 px-4">
