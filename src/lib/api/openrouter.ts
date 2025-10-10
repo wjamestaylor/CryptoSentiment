@@ -35,6 +35,8 @@ export const SentimentAnalysisSchema = z.object({
     description: z.string(),
     impact: z.enum(['positive', 'negative', 'neutral']),
     weight: z.number().min(0).max(1),
+    source: z.string().optional(),
+    sourceUrl: z.string().url().optional(),
   })),
 });
 
@@ -215,7 +217,31 @@ export class OpenRouterService {
       });
     }
 
-    prompt += `Please analyze this data and provide a comprehensive sentiment analysis with confidence scores.`;
+    prompt += `Please analyze this data and provide a comprehensive sentiment analysis with confidence scores.
+
+For each factor, include relevant sources when possible:
+- For market factors: Reference CoinGecko, TradingView, or other market data sources
+- For technical factors: Reference specific technical indicators or chart patterns
+- For news factors: Reference major crypto news outlets (CoinDesk, CryptoSlate, Decrypt, etc.)
+- For whale activity: Reference WhaleAlert or blockchain explorers
+
+Respond with valid JSON matching this schema:
+{
+  "sentiment": "BULLISH|BEARISH|NEUTRAL",
+  "confidence": 0.0-1.0,
+  "score": -1.0 to 1.0,
+  "reasoning": "detailed explanation",
+  "factors": [
+    {
+      "type": "market|technical|news|whale_activity",
+      "description": "factor description",
+      "impact": "positive|negative|neutral",
+      "weight": 0.0-1.0,
+      "source": "source name (optional)",
+      "sourceUrl": "https://example.com (optional)"
+    }
+  ]
+}`;
 
     return prompt;
   }

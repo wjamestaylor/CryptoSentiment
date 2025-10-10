@@ -159,20 +159,57 @@ export default function SentimentPage() {
                 {analysis.factors && analysis.factors.length > 0 && (
                   <div>
                     <div className="text-sm text-gray-600 font-medium mb-2">Key Factors</div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                       {analysis.factors.map((factor: any, index: number) => (
-                        <span 
+                        <div 
                           key={index}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`p-3 rounded-lg border-l-4 ${
                             factor.impact === 'positive' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-50 border-green-400'
                               : factor.impact === 'negative'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-red-50 border-red-400'
+                              : 'bg-blue-50 border-blue-400'
                           }`}
                         >
-                          {factor.description || factor}
-                        </span>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className={`text-sm font-medium ${
+                                factor.impact === 'positive' 
+                                  ? 'text-green-800'
+                                  : factor.impact === 'negative'
+                                  ? 'text-red-800'
+                                  : 'text-blue-800'
+                              }`}>
+                                {factor.description}
+                              </div>
+                              {factor.source && (
+                                <div className="mt-1 text-xs text-gray-600">
+                                  Source: {factor.sourceUrl ? (
+                                    <a 
+                                      href={factor.sourceUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                      {factor.source}
+                                    </a>
+                                  ) : (
+                                    <span>{factor.source}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                              factor.impact === 'positive' 
+                                ? 'bg-green-100 text-green-700'
+                                : factor.impact === 'negative'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {factor.type.replace('_', ' ').toUpperCase()}
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
