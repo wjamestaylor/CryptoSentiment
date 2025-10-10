@@ -2,7 +2,11 @@
 
 A comprehensive cryptocurrency sentiment analysis platform that leverages AI-powered analysis, real-time data, and intelligent notifications to help traders and enthusiasts make informed decisions.
 
-![Screenshot](public/CryptoSentiment.png)
+## 📸 Platform Preview
+
+| Dashboard | Watchlist | AI Analysis |
+|-----------|-----------|-------------|
+| ![Dashboard](public/CryptoSentiment.png) | Real-time crypto tracking | AI-powered sentiment analysis |
 
 ## 🌟 Features
 
