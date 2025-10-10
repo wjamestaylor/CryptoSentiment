@@ -43,6 +43,57 @@ jest.mock('next/navigation', () => ({
   },
 }))
 
+// Mock Next.js server components
+Object.defineProperty(globalThis, 'Request', {
+  value: class Request {
+    constructor(input, init) {
+      Object.defineProperty(this, 'url', {
+        value: input,
+        writable: false,
+        configurable: true
+      });
+      this.method = init?.method || 'GET';
+      this.headers = new Map();
+      Object.entries(init?.headers || {}).forEach(([key, value]) => {
+        this.headers.set(key, value);
+      });
+    }
+  },
+  writable: true,
+});
+
+Object.defineProperty(globalThis, 'Response', {
+  value: class Response {
+    constructor(body, init) {
+      this.body = body;
+      this.status = init?.status || 200;
+      this.statusText = init?.statusText || 'OK';
+      this.ok = this.status >= 200 && this.status < 300;
+      this.headers = new Map();
+      Object.entries(init?.headers || {}).forEach(([key, value]) => {
+        this.headers.set(key, value);
+      });
+    }
+    
+    async json() {
+      return JSON.parse(this.body);
+    }
+    
+    static json(object, init) {
+      return new Response(JSON.stringify(object), {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(init?.headers || {}),
+        },
+      });
+    }
+  },
+  writable: true,
+});
+
 // Mock environment variables
 process.env.NEXTAUTH_SECRET = 'test-secret'
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
+process.env.OPENROUTER_API_KEY = 'test-api-key'
+process.env.COINGECKO_API_KEY = 'test-api-key'

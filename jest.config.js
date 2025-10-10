@@ -33,6 +33,20 @@ const customJestConfig = {
     },
   },
   coverageReporters: ['text', 'html', 'lcov'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(superjson|@trpc|@next|next)/)'
+  ],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
+  },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
