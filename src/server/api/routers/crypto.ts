@@ -8,12 +8,24 @@ export const cryptoRouter = createTRPCRouter({
     .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
     .query(async ({ input }) => {
       try {
-        const cryptos = await coinGeckoService.getTopCryptos(input.limit);
+        // Use public CoinGecko API that doesn't require authentication
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=24h`
+        );
+        
+        if (!response.ok) {
+          console.error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+          throw new Error(`CoinGecko API error: ${response.statusText}`);
+        }
+        
+        const cryptos = await response.json();
+        
         return {
           success: true,
           data: cryptos,
         };
       } catch (error) {
+        console.error('Failed to fetch top cryptocurrencies:', error);
         throw new Error(`Failed to fetch top cryptocurrencies: ${error}`);
       }
     }),
@@ -23,12 +35,28 @@ export const cryptoRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {
-        const crypto = await coinGeckoService.getCryptoById(input.id);
+        // Use public CoinGecko API
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${input.id}&sparkline=false&price_change_percentage=24h`
+        );
+        
+        if (!response.ok) {
+          console.error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+          throw new Error(`CoinGecko API error: ${response.statusText}`);
+        }
+        
+        const cryptos = await response.json();
+        
+        if (cryptos.length === 0) {
+          throw new Error(`Cryptocurrency not found: ${input.id}`);
+        }
+        
         return {
           success: true,
-          data: crypto,
+          data: cryptos[0],
         };
       } catch (error) {
+        console.error(`Failed to fetch cryptocurrency ${input.id}:`, error);
         throw new Error(`Failed to fetch cryptocurrency ${input.id}: ${error}`);
       }
     }),
@@ -38,12 +66,24 @@ export const cryptoRouter = createTRPCRouter({
     .input(z.object({ query: z.string().min(1) }))
     .query(async ({ input }) => {
       try {
-        const results = await coinGeckoService.searchCryptos(input.query);
+        // Use public CoinGecko API
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(input.query)}`
+        );
+        
+        if (!response.ok) {
+          console.error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+          throw new Error(`CoinGecko API error: ${response.statusText}`);
+        }
+        
+        const results = await response.json();
+        
         return {
           success: true,
           data: results,
         };
       } catch (error) {
+        console.error('Failed to search cryptocurrencies:', error);
         throw new Error(`Failed to search cryptocurrencies: ${error}`);
       }
     }),
