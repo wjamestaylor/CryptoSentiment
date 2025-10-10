@@ -1,69 +1,60 @@
-# CryptoSentiment Development Assistant
-
-## Role & Context
-You are an expert development assistant for **CryptoSentiment**, a production-ready cryptocurrency sentiment analysis platform. Help developers build high-quality, secure, and scalable features following established patterns and best practices.
+# CryptoSentiment AI Development Assistant
 
 ## Project Overview
-**Tech Stack**: Next.js 14, TypeScript, Prisma, PostgreSQL, tRPC, Tailwind CSS, Jest  
-**Architecture**: Layered service architecture with comprehensive testing (current: 45.38% coverage, target: 80%)  
-**Mission**: AI-powered crypto sentiment analysis combining multiple data sources (OpenRouter AI, WhaleAlert, NewsData.io, CoinGecko)
+**CryptoSentiment** is a production-ready cryptocurrency sentiment analysis platform built with Next.js 15, TypeScript, and PostgreSQL. The platform combines AI-powered sentiment analysis with real-time crypto data to provide actionable trading insights.
 
-## Core Development Principles
+**Tech Stack**: Next.js 15 + App Router, TypeScript, Prisma, PostgreSQL, tRPC, Tailwind CSS + shadcn/ui, Jest, Turbopack  
 
-### 🎯 Code Quality Standards
-- **TypeScript First**: Use strict typing for all code, leverage Zod for runtime validation
-- **Test-Driven Development**: Maintain 80%+ test coverage, write tests before implementation
-- **Service Layer Pattern**: Separate concerns between UI, business logic, and data access
-- **Error Handling**: Implement comprehensive error boundaries and graceful degradation
-- **Performance**: Target <200ms API responses, optimize bundle size and database queries
+## Architecture & Patterns
 
-### 🏗 Architecture Patterns
+### Service Layer Architecture
 ```
-Components (UI) → Hooks (State) → Services (Business Logic) → Prisma (Data)
+App Router Pages → tRPC Procedures → Service Classes → External APIs
+                ↘ Prisma ORM → PostgreSQL Database
 ```
 
-**Established Patterns**:
-- Service classes with comprehensive error handling (see `CoinGeckoService`, `OpenRouterService`)
-- Jest testing with proper mocking strategies
-- tRPC for type-safe API routes
-- Prisma for database operations with connection pooling
+**Key Service Classes** (follow these patterns):
+- **`CoinGeckoService`**: API client with error handling, optional API key, rate limiting awareness
+- **`OpenRouterService`**: AI service with Zod validation, comprehensive prompt building
+- **Service Pattern**: Private `request()` method, public domain methods, singleton export
 
-## File Organization
-
-### 📁 Key Directories
-```
-src/
-├── app/                    # Next.js App Router (pages, layouts, API routes)
-├── components/             # Reusable React components
-│   └── ui/                # shadcn/ui base components
-├── lib/                   # Configuration and utilities
-│   ├── api/               # External API clients (OpenRouter, CoinGecko)
-│   ├── auth/              # NextAuth.js configuration
-│   ├── db/                # Prisma client and utilities
-│   └── utils/             # Helper functions (100% test coverage)
-├── services/              # Business logic services
-│   └── crypto/            # Price and market data services (95% coverage)
-├── types/                 # TypeScript definitions (100% coverage)
-├── hooks/                 # Custom React hooks
-├── stores/                # Zustand state management
-└── __tests__/             # Test suites (117 tests passing)
-```
-
-## Development Guidelines
-
-### 🧪 Testing Requirements
-**Current Status**: 45.38% statement coverage (target: 80%)
-
-**Testing Patterns**:
 ```typescript
-// Service testing with mocking
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+export class ApiService {
+  private baseUrl = 'https://api.example.com';
+  private apiKey?: string;
+  
+  private async request<T>(endpoint: string): Promise<T> {
+    // Standard error handling with logging
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      throw new Error(`API error: ${response.statusText}`);
+    }
+  }
+}
+```
+
+### tRPC Router Patterns
+All API routes use tRPC for type safety. Pattern: `input` validation → `query`/`mutation` → database operations.
+
+```typescript
+export const routerName = createTRPCRouter({
+  methodName: publicProcedure
+    .input(z.object({ param: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.model.findMany({ where: input });
+    }),
+});
+```
+
+### Testing Patterns
+**Established Mock Patterns**:
+```typescript
+// Service testing with global fetch mock
+global.fetch = jest.fn();
+const mockFetch = fetch as jest.Mock;
 
 describe('ServiceName', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  beforeEach(() => jest.clearAllMocks());
   
   it('should handle success cases', async () => {
     mockFetch.mockResolvedValueOnce({
@@ -72,174 +63,107 @@ describe('ServiceName', () => {
     });
     // Test implementation
   });
-  
-  it('should handle errors gracefully', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      statusText: 'Too Many Requests'
-    });
-    await expect(service.method()).rejects.toThrow();
-  });
 });
 ```
 
-### 🔧 API Integration Patterns
-**Established Services**: CoinGecko (price data), OpenRouter (AI analysis)
+**Test Structure**: `/src/__tests__/` mirrors `/src/` structure. Use `jest-mock-extended` for Prisma mocking.
 
-```typescript
-export class ApiService {
-  private baseUrl = 'https://api.example.com';
-  private apiKey?: string;
+## Development Workflows
 
-  private async request<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
-      throw new Error(`API error: ${response.statusText}`);
-    }
-    
-    return response.json();
-  }
-}
+### Essential Commands
+```bash
+# Development with Turbopack
+npm run dev                 # Start dev server (Next.js 15 + Turbopack)
+
+# Database operations
+npm run db:generate        # Generate Prisma client
+npm run db:push           # Push schema to DB (development)
+npm run db:migrate        # Run migrations (production)
+npm run db:studio         # Open Prisma Studio
+
+# Testing
+npm test                  # Run Jest tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # Generate coverage report
+
+# Code quality
+npm run lint              # ESLint with auto-fix
+npm run type-check        # TypeScript compilation check
 ```
 
-### 🔒 Security & Validation
-- **Environment Variables**: Use for all API keys, validate at runtime
-- **Input Validation**: Zod schemas for all API boundaries
-- **Rate Limiting**: Implement both client and server-side limits
-- **HTTPS Only**: Enforce secure connections in production
+### Environment Setup
+**Required**: Copy `.env.template` to `.env.local` and configure:
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Authentication secret
+- `OPENROUTER_API_KEY`: AI sentiment analysis (optional for development)
+- `COINGECKO_API_KEY`: Crypto data (optional, free tier available)
 
-### 🎨 UI Component Standards
-**Base**: shadcn/ui components with custom extensions
+## Key File Patterns
 
-```typescript
-// Component pattern
-interface ComponentProps {
-  // Define strict TypeScript interfaces
-}
+### External API Integration
+**Location**: `/src/lib/api/` and `/src/services/`
+- Use service classes with error handling
+- Optional API keys for free tier support
+- Zod schemas for response validation
+- Comprehensive test coverage (CoinGecko: 95%, OpenRouter: 92%)
 
-export function Component({ ...props }: ComponentProps) {
-  // Functional components with hooks
-  return <div className="responsive-classes">Content</div>;
-}
-```
+### Database Schema (Prisma)
+**11 models** including User, Cryptocurrency, SentimentAnalysis, Alert, etc.
+- Use `upsert` for crypto data (handles duplicates)
+- Proper foreign key relationships
+- Enum types for sentiment labels and alert types
 
-### 📊 Database Operations
-**ORM**: Prisma with PostgreSQL, connection pooling enabled
+### Component Architecture
+**shadcn/ui base** + custom extensions in `/src/components/ui/`
+- Server/client component separation (Next.js App Router)
+- Tailwind CSS with responsive design
+- TypeScript interfaces for all props
 
-```typescript
-// Repository pattern example
-export class DataRepository {
-  async findMany(filters: Filters): Promise<Entity[]> {
-    return prisma.entity.findMany({
-      where: filters,
-      include: { relations: true }
-    });
-  }
-}
-```
-
-## External API Integration
-
-### 🤖 AI Integration (OpenRouter)
-- **Error Handling**: Validate responses with Zod schemas
-- **Cost Optimization**: Monitor usage, implement caching
-- **Fallback Strategy**: Handle service outages gracefully
-
-### 💰 Crypto Data (CoinGecko)
-- **Rate Limiting**: Respect free tier limits
-- **Data Normalization**: Consistent data structures across sources
-- **Real-time Updates**: WebSocket connections for live data
-
-### 🐋 Whale Monitoring (WhaleAlert)
-- **Webhook Processing**: Real-time transaction monitoring
-- **Data Validation**: Verify transaction authenticity
-- **Alert Triggers**: User notification system
-
-## Performance Guidelines
-
-### ⚡ Optimization Targets
-- **API Response Time**: <200ms average
-- **Bundle Size**: Monitor and optimize regularly
-- **Test Coverage**: Maintain 80%+ statement coverage
-- **Database Queries**: Avoid N+1 problems, use proper indexing
-
-### 📱 Mobile & Responsive
-- **Mobile-First**: Design for mobile, enhance for desktop
-- **PWA Features**: Service workers, offline capabilities
-- **Touch Targets**: 44px minimum touch targets
-
-## Common Tasks & Patterns
-
-### Adding New API Integration
-1. Create service class in `src/services/`
-2. Add comprehensive tests in `src/__tests__/services/`
-3. Configure environment variables
-4. Implement error handling and rate limiting
-5. Add types to `src/types/`
-
-### Creating UI Components
-1. Use shadcn/ui as base when possible
-2. Add to `src/components/ui/` for reusable components
-3. Write tests in `src/__tests__/components/`
-4. Ensure responsive design
-5. Follow accessibility guidelines
-
-### Database Schema Changes
-1. Create Prisma migration
-2. Update TypeScript types
-3. Add repository methods if needed
-4. Update related services and tests
-5. Ensure backward compatibility
+### Authentication
+**NextAuth.js** with database sessions:
+- Email and Google providers configured
+- Database adapter with Prisma
+- Protected tRPC procedures with middleware
 
 ## Testing Strategy
 
-### 🎯 Coverage Priorities
-1. **Business Logic**: Services and utilities (target: 95%+)
-2. **API Endpoints**: All routes with error scenarios
-3. **UI Components**: User interactions and edge cases
-4. **Database Operations**: CRUD operations and constraints
+### High Coverage Areas (Follow These Patterns)
+- **Services**: 95%+ coverage - comprehensive API mocking, error scenarios
+- **Utilities**: 100% coverage - format functions, type guards  
+- **Components**: 89%+ coverage - React Testing Library, user interactions
+- **Database**: 100% coverage - Prisma operations with `jest-mock-extended`
 
-### 🔍 Testing Tools
-- **Jest**: Unit and integration testing
-- **React Testing Library**: Component testing
-- **MSW**: API mocking for integration tests
-- **Prisma Mock**: Database operation testing
+### Priority Testing Patterns
+1. **Mock external APIs** globally: `global.fetch = jest.fn()`
+2. **Test error scenarios**: Network failures, invalid responses
+3. **Validate TypeScript types**: Zod schema testing
+4. **Database operations**: Mock Prisma with proper types
 
-## Deployment & DevOps
+## Common Patterns & Anti-Patterns
 
-### 🚀 Railway Deployment
-- **Environment Separation**: Dev, staging, production
-- **Database Migrations**: Automated with CI/CD
-- **Environment Variables**: Secure secret management
-- **Health Checks**: Automated monitoring endpoints
+### ✅ Do This
+- Use `coinGeckoService.getTopCryptos()` for live crypto data
+- Validate API responses with Zod schemas
+- Include comprehensive error handling in services
+- Use tRPC for type-safe client-server communication
+- Test both success and error scenarios
 
-### 📊 Monitoring
-- **Error Tracking**: Comprehensive logging
-- **Performance Metrics**: API response times, database queries
-- **User Analytics**: Privacy-compliant usage tracking
-- **Security Scanning**: Regular vulnerability assessments
+### ❌ Avoid This
+- Never use sample/fake data (project policy)
+- Don't skip error handling in API services
+- Avoid direct database queries in components
+- Don't test implementation details
+- Never commit API keys to version control
 
 ## Code Generation Guidelines
 
 When generating code:
-1. **Follow established patterns** from existing services
-2. **Include comprehensive tests** with proper mocking
-3. **Use TypeScript strictly** with proper type definitions
-4. **Implement error handling** for all external calls
-5. **Add JSDoc comments** for complex business logic
-6. **Consider performance** implications and optimization
-7. **Ensure accessibility** for UI components
-8. **Test edge cases** and error scenarios
+1. **Follow established service patterns** from `CoinGeckoService`/`OpenRouterService`
+2. **Include comprehensive tests** with proper mocking strategies
+3. **Use strict TypeScript** with Zod validation for external data
+4. **Implement proper error handling** with logging and graceful failures
+5. **Consider rate limiting** for external API calls
+6. **Test edge cases** including network failures and invalid responses
 
-## Recent Progress
-- ✅ **Testing Infrastructure**: 117 tests passing, 45.38% coverage
-- ✅ **Service Layer**: CoinGecko (95% coverage), OpenRouter (92% coverage)
-- ✅ **Type Safety**: Complete TypeScript coverage with Zod validation
-- ✅ **Component Library**: shadcn/ui integration with custom components
-- 🔄 **Next Focus**: Reach 80% test coverage, implement remaining APIs
+The codebase is production-ready with live data integration, comprehensive service layer testing, and type-safe APIs throughout the stack.
 
