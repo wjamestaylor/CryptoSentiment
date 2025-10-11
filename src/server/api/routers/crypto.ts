@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
+import { getCoinGeckoId } from '@/lib/crypto-mappings';
 
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
@@ -102,15 +103,20 @@ export const cryptoRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       
       try {
+        // Get the CoinGecko ID for this symbol
+        const coinGeckoId = getCoinGeckoId(input.symbol);
+        
         // First ensure the cryptocurrency exists in our database
         const crypto = await ctx.prisma.cryptocurrency.upsert({
           where: { symbol: input.symbol.toUpperCase() },
           update: {
             name: input.name || input.symbol,
+            coinGeckoId: coinGeckoId,
           },
           create: {
             symbol: input.symbol.toUpperCase(),
             name: input.name || input.symbol,
+            coinGeckoId: coinGeckoId,
           },
         });
 
@@ -196,6 +202,86 @@ export const cryptoRouter = createTRPCRouter({
         };
       } catch (error) {
         throw new Error(`Failed to fetch followed cryptocurrencies: ${error}`);
+      }
+    }),
+
+  // Public endpoint to get current prices for multiple cryptocurrencies by their IDs
+  getCryptosByIds: publicProcedure
+    .input(z.object({ 
+      ids: z.array(z.string()).min(1).max(100) // Support up to 100 IDs
+    }))
+    .query(async ({ input }) => {
+      try {
+        if (input.ids.length === 0) {
+          return {
+            success: true,
+            data: [],
+          };
+        }
+
+        // Join the IDs with commas for the CoinGecko API
+        const idsParam = input.ids.join(',');
+        
+        // Use public CoinGecko API
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${idsParam}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`
+        );
+        
+        if (!response.ok) {
+          console.error(`CoinGecko API error: ${response.status} ${response.statusText}`);
+          throw new Error(`CoinGecko API error: ${response.statusText}`);
+        }
+        
+        const cryptos = await response.json();
+        
+        return {
+          success: true,
+          data: cryptos,
+        };
+      } catch (error) {
+        console.error('Failed to fetch cryptocurrencies by IDs:', error);
+        throw new Error(`Failed to fetch cryptocurrencies by IDs: ${error}`);
+      }
+    }),
+
+  // Admin endpoint to update existing cryptocurrencies with CoinGecko IDs
+  updateCoinGeckoIds: publicProcedure
+    .mutation(async ({ ctx }) => {
+      try {
+        // Get all cryptocurrencies without CoinGecko IDs
+        const cryptosWithoutIds = await ctx.prisma.cryptocurrency.findMany({
+          where: {
+            OR: [
+              { coinGeckoId: null },
+              { coinGeckoId: '' }
+            ]
+          }
+        });
+
+        const updates = [];
+        
+        for (const crypto of cryptosWithoutIds) {
+          const coinGeckoId = getCoinGeckoId(crypto.symbol);
+          if (coinGeckoId) {
+            updates.push(
+              ctx.prisma.cryptocurrency.update({
+                where: { id: crypto.id },
+                data: { coinGeckoId }
+              })
+            );
+          }
+        }
+
+        await Promise.all(updates);
+
+        return {
+          success: true,
+          message: `Updated ${updates.length} cryptocurrencies with CoinGecko IDs`,
+          data: { updatedCount: updates.length }
+        };
+      } catch (error) {
+        console.error('Failed to update CoinGecko IDs:', error);
+        throw new Error(`Failed to update CoinGecko IDs: ${error}`);
       }
     }),
 });

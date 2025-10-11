@@ -29,6 +29,19 @@ export default function CryptoDashboard() {
     enabled: !!session
   });
 
+  // Get current prices for followed cryptocurrencies
+  const followedCryptoIds = followedCryptos?.data
+    ?.map(crypto => crypto.coinGeckoId)
+    .filter(Boolean) || []; // Filter out null/undefined values
+  
+  const { data: followedCryptoPrices } = api.crypto.getCryptosByIds.useQuery(
+    { ids: followedCryptoIds as string[] },
+    { 
+      enabled: !!session && followedCryptoIds.length > 0,
+      refetchInterval: 30000, // Refetch every 30 seconds
+    }
+  );
+
   // Mutations for following/unfollowing
   const followMutation = api.crypto.followCrypto.useMutation({
     onSuccess: () => {
@@ -51,6 +64,25 @@ export default function CryptoDashboard() {
       setAddingToWatchlist(null);
     }
   });
+
+  // Merge top cryptocurrencies with watched ones, ensuring no duplicates
+  const getAllDisplayedCryptos = () => {
+    const topCryptosData = topCryptos?.data || [];
+    const watchedCryptosData = followedCryptoPrices?.data || [];
+    
+    // Create a map of existing crypto IDs from top cryptocurrencies
+    const topCryptoIds = new Set(topCryptosData.map((crypto: CoinGeckoPrice) => crypto.id));
+    
+    // Filter watched cryptos that are not already in the top cryptocurrencies
+    const additionalWatchedCryptos = watchedCryptosData.filter(
+      (crypto: CoinGeckoPrice) => !topCryptoIds.has(crypto.id)
+    );
+    
+    // Combine top cryptocurrencies with additional watched ones
+    return [...topCryptosData, ...additionalWatchedCryptos];
+  };
+
+  const allDisplayedCryptos = getAllDisplayedCryptos();
 
   // Check if a crypto is in the watchlist
   const isInWatchlist = (cryptoSymbol: string) => {
@@ -140,13 +172,13 @@ export default function CryptoDashboard() {
         </div>
 
         {/* Quick Stats */}
-        {topCryptos?.data && (
+        {allDisplayedCryptos && allDisplayedCryptos.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Card className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Leaders</p>
-                  <p className="text-xl sm:text-2xl font-bold">{topCryptos.data.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Shown</p>
+                  <p className="text-xl sm:text-2xl font-bold">{allDisplayedCryptos.length}</p>
                 </div>
                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
               </div>
@@ -165,7 +197,7 @@ export default function CryptoDashboard() {
                 <div className="mb-2 sm:mb-0">
                   <p className="text-xs sm:text-sm text-muted-foreground">Gainers</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-500">
-                    {topCryptos.data.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h > 0).length}
+                    {allDisplayedCryptos.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h > 0).length}
                   </p>
                 </div>
                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
@@ -176,7 +208,7 @@ export default function CryptoDashboard() {
                 <div className="mb-2 sm:mb-0">
                   <p className="text-xs sm:text-sm text-muted-foreground">Losers</p>
                   <p className="text-xl sm:text-2xl font-bold text-red-500">
-                    {topCryptos.data.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h < 0).length}
+                    {allDisplayedCryptos.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h < 0).length}
                   </p>
                 </div>
                 <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 self-end sm:self-center" />
@@ -187,13 +219,18 @@ export default function CryptoDashboard() {
 
         {/* Cryptocurrency Grid */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Top Cryptocurrencies</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            {session && followedCryptos?.data?.length ? 
+              'Top Cryptocurrencies & Your Watchlist' : 
+              'Top Cryptocurrencies'
+            }
+          </h2>
           <div className={`grid gap-3 sm:gap-4 ${
             isMobile 
               ? 'grid-cols-1' 
               : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           }`}>
-            {topCryptos?.data?.map((crypto: CoinGeckoPrice) => (
+            {allDisplayedCryptos?.map((crypto: CoinGeckoPrice) => (
               <Card key={crypto.id} className="p-3 sm:p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] dark:hover:shadow-primary/25">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
@@ -210,7 +247,14 @@ export default function CryptoDashboard() {
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-sm sm:text-base truncate">{crypto.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm sm:text-base truncate">{crypto.name}</h3>
+                        {isInWatchlist(crypto.symbol) && (
+                          <div className="bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                            ⭐
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs sm:text-sm text-muted-foreground">{crypto.symbol.toUpperCase()}</p>
                     </div>
                   </div>
@@ -271,7 +315,7 @@ export default function CryptoDashboard() {
           </div>
         </div>
 
-        {topCryptos?.data?.length === 0 && (
+        {allDisplayedCryptos?.length === 0 && !isLoading && (
           <Card className="p-8 text-center">
             <div className="space-y-4">
               <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center">

@@ -120,12 +120,13 @@ model UserPreferences {
 }
 
 model Cryptocurrency {
-  id       String  @id @default(cuid())
-  symbol   String  @unique
-  name     String
-  logoUrl  String?
-  marketCap Float?
-  rank     Int?
+  id          String  @id @default(cuid())
+  symbol      String  @unique
+  name        String
+  coinGeckoId String? @unique // CoinGecko API ID (e.g., "monero", "bitcoin")
+  logoUrl     String?
+  marketCap   Float?
+  rank        Int?
 
   // Relationships
   followedBy    FollowedCoin[]
