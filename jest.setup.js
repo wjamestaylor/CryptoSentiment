@@ -1,5 +1,13 @@
 import '@testing-library/jest-dom'
 
+// Mock NextAuth to avoid ES module issues
+require('./src/__tests__/__mocks__/next-auth')
+
+// Mock environment variables
+process.env.NEXTAUTH_SECRET = 'test-secret'
+process.env.NEXTAUTH_URL = 'http://localhost:3000'
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
+
 // Mock Next.js router
 jest.mock('next/router', () => ({
   useRouter() {
