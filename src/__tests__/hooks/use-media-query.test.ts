@@ -10,19 +10,26 @@ import {
 
 // Mock window.matchMedia
 const mockMatchMedia = (matches: boolean) => {
+  const mockMediaQueryList = {
+    matches,
+    media: '',
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  };
+
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: jest.fn().mockImplementation((query) => ({
-      matches,
+      ...mockMediaQueryList,
       media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
     })),
   });
+
+  return mockMediaQueryList;
 };
 
 describe('Media Query Hooks', () => {
@@ -96,14 +103,28 @@ describe('Media Query Hooks', () => {
 
   describe('useIsTablet', () => {
     it('returns true when screen is between md and lg breakpoints', () => {
-      // Mock md: true, lg: false
-      const mockQuery = jest.fn()
-        .mockReturnValueOnce({ matches: true }) // md breakpoint
-        .mockReturnValueOnce({ matches: false }); // lg breakpoint
+      // Reset call count for this test
+      let callCount = 0;
+      
+      const mockMatchMediaForTablet = jest.fn().mockImplementation((query) => {
+        const matches = query.includes('768px') ? true : false; // md matches, lg doesn't
+        callCount++;
+        
+        return {
+          matches,
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        };
+      });
       
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: mockQuery,
+        value: mockMatchMediaForTablet,
       });
       
       const { result } = renderHook(() => useIsTablet());
