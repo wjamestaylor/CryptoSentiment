@@ -66,6 +66,21 @@ Object.defineProperty(globalThis, 'Request', {
       Object.entries(init?.headers || {}).forEach(([key, value]) => {
         this.headers.set(key, value);
       });
+      this._body = init?.body;
+    }
+    
+    async json() {
+      if (!this._body) {
+        throw new Error('Request body is empty');
+      }
+      return JSON.parse(this._body);
+    }
+    
+    async text() {
+      if (!this._body) {
+        return '';
+      }
+      return this._body;
     }
   },
   writable: true,
