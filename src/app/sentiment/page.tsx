@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +35,7 @@ interface SentimentAnalysis {
   requestId?: string;
 }
 
-export default function SentimentPage() {
+function SentimentPageContent() {
   const searchParams = useSearchParams();
   const cryptoParam = searchParams.get('crypto');
   
@@ -260,5 +260,19 @@ export default function SentimentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SentimentPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <SentimentPageContent />
+    </Suspense>
   );
 }
