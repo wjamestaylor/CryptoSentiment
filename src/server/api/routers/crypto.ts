@@ -284,4 +284,33 @@ export const cryptoRouter = createTRPCRouter({
         throw new Error(`Failed to update CoinGecko IDs: ${error}`);
       }
     }),
+
+  // Debug endpoint to check followed cryptocurrencies data
+  debugFollowedCryptos: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        const followedCryptos = await ctx.prisma.followedCoin.findMany({
+          where: { userId },
+          include: {
+            crypto: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        return {
+          success: true,
+          data: followedCryptos.map((following) => ({
+            ...following.crypto,
+            followedAt: following.createdAt,
+            hasValidCoinGeckoId: !!following.crypto.coinGeckoId
+          })),
+        };
+      } catch (error) {
+        throw new Error(`Failed to fetch debug data: ${error}`);
+      }
+    }),
 });

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/provider';
+import { getCoinGeckoId } from '@/lib/crypto-mappings';
 
 interface SearchCrypto {
   id: string;
@@ -61,69 +62,7 @@ export default function WatchlistPage() {
 
   // Convert symbol to CoinGecko ID for sentiment analysis
   const symbolToId = (symbol: string): string => {
-    const mapping: Record<string, string> = {
-      'BTC': 'bitcoin',
-      'ETH': 'ethereum',
-      'ADA': 'cardano',
-      'DOT': 'polkadot',
-      'SOL': 'solana',
-      'MATIC': 'polygon',
-      'BNB': 'binancecoin',
-      'XRP': 'ripple',
-      'DOGE': 'dogecoin',
-      'SHIB': 'shiba-inu',
-      'AVAX': 'avalanche-2',
-      'LINK': 'chainlink',
-      'UNI': 'uniswap',
-      'LTC': 'litecoin',
-      'BCH': 'bitcoin-cash',
-      'XLM': 'stellar',
-      'VET': 'vechain',
-      'ICP': 'internet-computer',
-      'FIL': 'filecoin',
-      'TRX': 'tron',
-      'ETC': 'ethereum-classic',
-      'XMR': 'monero',
-      'ALGO': 'algorand',
-      'ATOM': 'cosmos',
-      'HBAR': 'hedera-hashgraph',
-      'NEAR': 'near',
-      'MANA': 'decentraland',
-      'SAND': 'the-sandbox',
-      'CRO': 'crypto-com-chain',
-      'FTM': 'fantom',
-      'AAVE': 'aave',
-      'GRT': 'the-graph',
-      'ENJ': 'enjincoin',
-      'LRC': 'loopring',
-      'BAT': 'basic-attention-token',
-      'ZEC': 'zcash',
-      'DASH': 'dash',
-      'XTZ': 'tezos',
-      'THETA': 'theta-token',
-      'RUNE': 'thorchain',
-      'EGLD': 'elrond-erd-2',
-      'KSM': 'kusama',
-      'WAVES': 'waves',
-      'COMP': 'compound-coin',
-      'ZIL': 'zilliqa',
-      'ICX': 'icon',
-      'ONT': 'ontology',
-      'ZRX': '0x',
-      'BAL': 'balancer',
-      'SNX': 'havven',
-      'YFI': 'yearn-finance',
-      'UMA': 'uma',
-      'REN': 'republic-protocol',
-      'KNC': 'kyber-network',
-      'STORJ': 'storj',
-      'BNT': 'bancor',
-      'ANT': 'aragon',
-      'REP': 'augur',
-      'GNT': 'golem'
-    };
-    
-    return mapping[symbol.toUpperCase()] || symbol.toLowerCase();
+    return getCoinGeckoId(symbol) || symbol.toLowerCase();
   };
 
   const handleFollow = async (crypto: SearchCrypto) => {
