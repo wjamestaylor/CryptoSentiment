@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { api } from '@/lib/trpc/client'
+import { api } from '@/lib/trpc/provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -178,10 +178,12 @@ export default function AlertsPage() {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <Switch
+            id="active-only"
             checked={activeOnly}
             onCheckedChange={setActiveOnly}
+            aria-labelledby="active-only-label"
           />
-          <Label htmlFor="active-only">Show active alerts only</Label>
+          <Label id="active-only-label" htmlFor="active-only">Show active alerts only</Label>
         </div>
       </div>
 
@@ -212,7 +214,7 @@ export default function AlertsPage() {
           </Card>
         ) : (
           alerts.map((alert: Alert) => (
-            <Card key={alert.id} className={alert.isActive ? '' : 'opacity-60'}>
+            <Card key={alert.id} className={alert.isActive ? '' : 'opacity-60'} data-testid="alert-card">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -230,11 +232,13 @@ export default function AlertsPage() {
                     <Switch
                       checked={alert.isActive}
                       onCheckedChange={() => toggleAlert(alert.id, alert.isActive)}
+                      aria-label={`Toggle ${alert.crypto.name} alert ${alert.isActive ? 'off' : 'on'}`}
                     />
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteAlert(alert.id)}
+                      aria-label={`Delete ${alert.crypto.name} alert`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -329,9 +333,9 @@ function CreateAlertForm({
             </div>
           </div>
           <div>
-            <Label htmlFor="type">Alert Type</Label>
+            <Label htmlFor="alert-type">Alert Type</Label>
             <Select value={alertType} onValueChange={(value: string) => setAlertType(value as AlertType)}>
-              <SelectTrigger>
+              <SelectTrigger id="alert-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -362,7 +366,7 @@ function CreateAlertForm({
                 />
               </div>
               <div>
-                <Label htmlFor="direction">Direction</Label>
+                <Label htmlFor="sentiment-direction">Direction</Label>
                 <Select 
                   value={condition.direction || ''} 
                   onValueChange={(value: string) => setCondition({
@@ -370,7 +374,7 @@ function CreateAlertForm({
                     direction: value as 'bullish' | 'bearish'
                   })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="sentiment-direction">
                     <SelectValue placeholder="Select direction" />
                   </SelectTrigger>
                   <SelectContent>
@@ -408,7 +412,7 @@ function CreateAlertForm({
                     direction: value as 'above' | 'below'
                   })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="price-direction">
                     <SelectValue placeholder="Select direction" />
                   </SelectTrigger>
                   <SelectContent>
