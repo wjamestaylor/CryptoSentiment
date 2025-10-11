@@ -26,6 +26,14 @@ export interface CreateAlertData {
   condition: AlertCondition;
 }
 
+export interface CreateAlertWithSymbolData {
+  userId: string;
+  cryptoSymbol: string;
+  cryptoName?: string;
+  type: AlertType;
+  condition: AlertCondition;
+}
+
 export interface UpdateAlertData {
   condition?: AlertCondition;
   isActive?: boolean;
@@ -53,7 +61,49 @@ export class AlertService {
   }
 
   /**
-   * Create a new alert for a user
+   * Create a new alert for a user with cryptocurrency symbol
+   */
+  async createAlertWithSymbol(data: CreateAlertWithSymbolData) {
+    try {
+      // Validate the alert condition
+      this.validateAlertCondition(data.type, data.condition);
+
+      // First ensure the cryptocurrency exists in our database
+      const crypto = await db.cryptocurrency.upsert({
+        where: { symbol: data.cryptoSymbol.toUpperCase() },
+        update: {
+          name: data.cryptoName || data.cryptoSymbol,
+        },
+        create: {
+          symbol: data.cryptoSymbol.toUpperCase(),
+          name: data.cryptoName || data.cryptoSymbol,
+        },
+      });
+
+      // Now create the alert with the database crypto ID
+      const alert = await db.alert.create({
+        data: {
+          userId: data.userId,
+          cryptoId: crypto.id,
+          type: data.type,
+          condition: JSON.stringify(data.condition),
+          isActive: true,
+        },
+        include: {
+          crypto: true,
+          user: true,
+        },
+      });
+
+      return alert;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to create alert: ${message}`);
+    }
+  }
+
+  /**
+   * Create a new alert for a user (existing method for backward compatibility)
    */
   async createAlert(data: CreateAlertData) {
     try {
@@ -268,6 +318,8 @@ export class AlertService {
         title: notificationContent.title,
         content: notificationContent.message,
         alertId: alert.id,
+        cryptoId: alert.cryptoId,
+        alertType: alert.type,
       });
 
       console.log(`Alert triggered for user ${alert.userId}: ${notificationContent.title}`);

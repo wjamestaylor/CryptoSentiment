@@ -7,7 +7,8 @@ const alertService = new AlertService()
 
 // Enhanced input validation schemas
 const createAlertSchema = z.object({
-  cryptoId: z.string().min(1, 'Cryptocurrency is required'),
+  cryptoSymbol: z.string().min(1, 'Cryptocurrency symbol is required'),
+  cryptoName: z.string().optional(),
   type: z.nativeEnum(AlertType),
   condition: z.object({
     sentimentThreshold: z.number().min(-1).max(1).optional(),
@@ -42,9 +43,10 @@ export const alertsRouter = createTRPCRouter({
     .input(createAlertSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const alert = await alertService.createAlert({
+        const alert = await alertService.createAlertWithSymbol({
           userId: ctx.session.user.id,
-          cryptoId: input.cryptoId,
+          cryptoSymbol: input.cryptoSymbol,
+          cryptoName: input.cryptoName,
           type: input.type,
           condition: input.condition,
         })

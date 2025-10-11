@@ -276,23 +276,25 @@ function CreateAlertForm({
   isLoading: boolean
 }) {
   const [alertType, setAlertType] = useState<AlertType>(AlertType.SENTIMENT_CHANGE)
-  const [cryptoId, setCryptoId] = useState('')
+  const [cryptoSymbol, setCryptoSymbol] = useState('')
+  const [cryptoName, setCryptoName] = useState('')
   const [condition, setCondition] = useState<AlertCondition>({})
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!cryptoId) {
+    if (!cryptoSymbol) {
       toast({
         title: 'Error',
-        description: 'Please select a cryptocurrency',
+        description: 'Please enter a cryptocurrency symbol',
         variant: 'destructive',
       })
       return
     }
 
     onSubmit({
-      cryptoId,
+      cryptoSymbol: cryptoSymbol.toLowerCase(),
+      cryptoName: cryptoName || undefined,
       type: alertType,
       condition,
     })
@@ -307,28 +309,37 @@ function CreateAlertForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="crypto">Cryptocurrency</Label>
+              <Label htmlFor="crypto-symbol">Cryptocurrency Symbol</Label>
               <Input
-                id="crypto"
-                placeholder="e.g., bitcoin, ethereum"
-                value={cryptoId}
-                onChange={(e) => setCryptoId(e.target.value)}
+                id="crypto-symbol"
+                placeholder="e.g., btc, eth, sol"
+                value={cryptoSymbol}
+                onChange={(e) => setCryptoSymbol(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="type">Alert Type</Label>
-              <Select value={alertType} onValueChange={(value: string) => setAlertType(value as AlertType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AlertType.SENTIMENT_CHANGE}>Sentiment Change</SelectItem>
-                  <SelectItem value={AlertType.PRICE_CHANGE}>Price Change</SelectItem>
-                  <SelectItem value={AlertType.VOLUME_SPIKE}>Volume Spike</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="crypto-name">Name (Optional)</Label>
+              <Input
+                id="crypto-name"
+                placeholder="e.g., Bitcoin, Ethereum"
+                value={cryptoName}
+                onChange={(e) => setCryptoName(e.target.value)}
+              />
             </div>
+          </div>
+          <div>
+            <Label htmlFor="type">Alert Type</Label>
+            <Select value={alertType} onValueChange={(value: string) => setAlertType(value as AlertType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={AlertType.SENTIMENT_CHANGE}>Sentiment Change</SelectItem>
+                <SelectItem value={AlertType.PRICE_CHANGE}>Price Change</SelectItem>
+                <SelectItem value={AlertType.VOLUME_SPIKE}>Volume Spike</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Conditional form fields based on alert type */}
