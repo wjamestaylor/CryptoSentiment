@@ -67,8 +67,14 @@ export class NotificationService {
       if (user.email && user.preferences?.emailNotifications !== false) {
         try {
           if (data.type === NotificationType.ALERT_TRIGGERED && data.alertId && data.cryptoId && data.alertType) {
-            // Send specialized alert email
-            await this.sendAlertEmail(data, user);
+            // Try to send specialized alert email
+            try {
+              await this.sendAlertEmail(data, user);
+            } catch (alertEmailError) {
+              console.error('Failed to send alert email, falling back to generic email:', alertEmailError);
+              // Fallback to generic email if alert-specific email fails
+              await this.sendGenericEmail(data, user);
+            }
           } else {
             // Send generic notification email
             await this.sendGenericEmail(data, user);
