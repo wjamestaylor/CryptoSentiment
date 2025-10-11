@@ -130,56 +130,56 @@ export default function CryptoDashboard() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto py-6 px-4 space-y-8">
+      <div className="container mx-auto py-4 px-3 sm:py-6 sm:px-4 space-y-6 sm:space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Cryptocurrency Dashboard</h1>
-          <p className="text-muted-foreground">
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Cryptocurrency Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Track top cryptocurrencies and manage your watchlist
           </p>
         </div>
 
         {/* Quick Stats */}
         {topCryptos?.data && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Market Leaders</p>
-                  <p className="text-2xl font-bold">{topCryptos.data.length}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Leaders</p>
+                  <p className="text-xl sm:text-2xl font-bold">{topCryptos.data.length}</p>
                 </div>
-                <TrendingUp className="h-6 w-6 text-green-500" />
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Watchlist</p>
-                  <p className="text-2xl font-bold">{followedCryptos?.data?.length || 0}</p>
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Watchlist</p>
+                  <p className="text-xl sm:text-2xl font-bold">{followedCryptos?.data?.length || 0}</p>
                 </div>
-                <div className="text-2xl">⭐</div>
+                <div className="text-xl sm:text-2xl self-end sm:self-center">⭐</div>
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Gainers</p>
-                  <p className="text-2xl font-bold text-green-500">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Gainers</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-500">
                     {topCryptos.data.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h > 0).length}
                   </p>
                 </div>
-                <TrendingUp className="h-6 w-6 text-green-500" />
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
               </div>
             </Card>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Losers</p>
-                  <p className="text-2xl font-bold text-red-500">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Losers</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-500">
                     {topCryptos.data.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h < 0).length}
                   </p>
                 </div>
-                <TrendingDown className="h-6 w-6 text-red-500" />
+                <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 self-end sm:self-center" />
               </div>
             </Card>
           </div>
@@ -188,35 +188,35 @@ export default function CryptoDashboard() {
         {/* Cryptocurrency Grid */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Top Cryptocurrencies</h2>
-          <div className={`grid gap-4 ${
+          <div className={`grid gap-3 sm:gap-4 ${
             isMobile 
               ? 'grid-cols-1' 
-              : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
           }`}>
             {topCryptos?.data?.map((crypto: CoinGeckoPrice) => (
-              <Card key={crypto.id} className="p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] dark:hover:shadow-primary/25">
+              <Card key={crypto.id} className="p-3 sm:p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] dark:hover:shadow-primary/25">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                    <div className="relative flex-shrink-0">
                       <Image 
                         src={crypto.image} 
                         alt={crypto.name}
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 rounded-full"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
                       />
                       <div className="absolute -top-1 -right-1 bg-muted rounded-full px-1 text-xs font-bold">
                         #{crypto.market_cap_rank}
                       </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{crypto.name}</h3>
-                      <p className="text-sm text-muted-foreground">{crypto.symbol.toUpperCase()}</p>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base truncate">{crypto.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">{crypto.symbol.toUpperCase()}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg">${crypto.current_price.toLocaleString()}</p>
-                    <p className={`text-sm flex items-center ${
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-sm sm:text-lg">${crypto.current_price.toLocaleString()}</p>
+                    <p className={`text-xs sm:text-sm flex items-center justify-end ${
                       crypto.price_change_percentage_24h >= 0 
                         ? 'text-green-600 dark:text-green-400' 
                         : 'text-red-600 dark:text-red-400'
@@ -236,7 +236,7 @@ export default function CryptoDashboard() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm py-1 sm:py-2"
                     onClick={() => window.open(`/sentiment?crypto=${crypto.id}`, '_blank')}
                   >
                     🤖 {isMobile ? 'AI' : 'AI Analysis'}
@@ -246,17 +246,17 @@ export default function CryptoDashboard() {
                     variant={isInWatchlist(crypto.symbol) ? "default" : "outline"}
                     onClick={() => handleWatchlistToggle(crypto)}
                     disabled={addingToWatchlist === crypto.symbol}
-                    className={isInWatchlist(crypto.symbol) ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}
+                    className={`px-2 sm:px-3 py-1 sm:py-2 ${isInWatchlist(crypto.symbol) ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}`}
                   >
                     {addingToWatchlist === crypto.symbol ? (
-                      <LoadingSpinner className="h-4 w-4" />
+                      <LoadingSpinner className="h-3 w-3 sm:h-4 sm:w-4" />
                     ) : session ? (
                       isInWatchlist(crypto.symbol) ? "⭐" : "☆"
                     ) : "🔐"}
                   </Button>
                 </div>
                 
-                <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Market Cap:</span>
                     <span className="font-medium">${(crypto.market_cap / 1e9).toFixed(2)}B</span>
