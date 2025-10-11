@@ -13,7 +13,6 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
@@ -41,7 +40,7 @@ export default function SignInPage() {
       } else {
         setMessage(`Check your email! We've sent a sign-in link to ${email}`);
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);

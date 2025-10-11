@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { coinGeckoService } from '@/services/crypto/price.service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('Testing CoinGecko API...');
     

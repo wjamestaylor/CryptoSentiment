@@ -37,7 +37,7 @@ global.fetch = jest.fn();
 const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
 // Import after mocks
-const { prisma } = require('@/lib/db/prisma');
+import { prisma } from '@/lib/db/prisma';
 
 describe('Crypto Router tRPC Implementation', () => {
   beforeEach(() => {
@@ -93,7 +93,7 @@ describe('Crypto Router tRPC Implementation', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue(mockResponse),
-      } as any);
+      } as unknown as Response);
 
       // Simulate the tRPC procedure logic
       const limit = 10;
@@ -118,7 +118,7 @@ describe('Crypto Router tRPC Implementation', () => {
         ok: false,
         status: 429,
         statusText: 'Too Many Requests',
-      } as any);
+      } as unknown as Response);
 
       // Simulate error handling in tRPC procedure
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets');
@@ -136,8 +136,8 @@ describe('Crypto Router tRPC Implementation', () => {
       const mockCrypto = { id: 'crypto-1', symbol: 'BTC', name: 'Bitcoin' };
       const mockFollowing = { id: 'following-1', userId: 'user-1', cryptoId: 'crypto-1' };
 
-      prisma.cryptocurrency.upsert.mockResolvedValue(mockCrypto);
-      prisma.followedCoin.upsert.mockResolvedValue(mockFollowing);
+      (prisma.cryptocurrency.upsert as jest.Mock).mockResolvedValue(mockCrypto);
+      (prisma.followedCoin.upsert as jest.Mock).mockResolvedValue(mockFollowing);
 
       // Simulate the tRPC procedure logic
       const input = { symbol: 'btc', name: 'Bitcoin' };
@@ -184,8 +184,8 @@ describe('Crypto Router tRPC Implementation', () => {
     it('should handle database operations for unfollowCrypto', async () => {
       const mockCrypto = { id: 'crypto-1', symbol: 'BTC' };
 
-      prisma.cryptocurrency.findUnique.mockResolvedValue(mockCrypto);
-      prisma.followedCoin.delete.mockResolvedValue({});
+      (prisma.cryptocurrency.findUnique as jest.Mock).mockResolvedValue(mockCrypto);
+      (prisma.followedCoin.delete as jest.Mock).mockResolvedValue({});
 
       // Simulate the tRPC procedure logic
       const input = { symbol: 'btc' };
@@ -233,7 +233,7 @@ describe('Crypto Router tRPC Implementation', () => {
         },
       ];
 
-      prisma.followedCoin.findMany.mockResolvedValue(mockFollowedCryptos);
+      (prisma.followedCoin.findMany as jest.Mock).mockResolvedValue(mockFollowedCryptos);
 
       // Simulate the tRPC procedure logic
       const userId = 'user-1';
@@ -246,7 +246,7 @@ describe('Crypto Router tRPC Implementation', () => {
 
       const result = {
         success: true,
-        data: followedCryptos.map((following: any) => following.crypto),
+        data: followedCryptos.map((following: { crypto: unknown }) => following.crypto),
       };
 
       expect(result.success).toBe(true);
@@ -275,7 +275,7 @@ describe('Crypto Router tRPC Implementation', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue([]),
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets');
       const cryptos = await response.json();
@@ -300,7 +300,7 @@ describe('Crypto Router tRPC Implementation', () => {
     });
 
     it('should handle database errors in follow operations', async () => {
-      prisma.cryptocurrency.upsert.mockRejectedValue(new Error('Database connection failed'));
+      (prisma.cryptocurrency.upsert as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
       try {
         await prisma.cryptocurrency.upsert({

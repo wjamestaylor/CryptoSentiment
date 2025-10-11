@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { NextRequest, NextResponse } from 'next/server';
 
 // Mock the price service first
 jest.mock('@/services/crypto/price.service', () => ({
@@ -92,8 +91,8 @@ describe('/api/test/coingecko', () => {
 
       (coinGeckoService.getTopCryptos as jest.Mock).mockResolvedValue(mockData);
 
-      const request = new NextRequest('http://localhost:3000/api/test/coingecko');
-      const response = await GET(request);
+      
+      const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -110,8 +109,8 @@ describe('/api/test/coingecko', () => {
         new Error(errorMessage)
       );
 
-      const request = new NextRequest('http://localhost:3000/api/test/coingecko');
-      const response = await GET(request);
+      
+      const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -124,8 +123,8 @@ describe('/api/test/coingecko', () => {
     it('should handle unknown errors', async () => {
       (coinGeckoService.getTopCryptos as jest.Mock).mockRejectedValue('Unknown error');
 
-      const request = new NextRequest('http://localhost:3000/api/test/coingecko');
-      const response = await GET(request);
+      
+      const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -137,8 +136,8 @@ describe('/api/test/coingecko', () => {
       (coinGeckoService.getTopCryptos as jest.Mock).mockResolvedValue([]);
 
       const beforeTime = Date.now();
-      const request = new NextRequest('http://localhost:3000/api/test/coingecko');
-      const response = await GET(request);
+      
+      const response = await GET();
       const data = await response.json();
       const afterTime = Date.now();
       const responseTime = new Date(data.timestamp).getTime();
@@ -151,8 +150,8 @@ describe('/api/test/coingecko', () => {
     it('should handle empty response data', async () => {
       (coinGeckoService.getTopCryptos as jest.Mock).mockResolvedValue([]);
 
-      const request = new NextRequest('http://localhost:3000/api/test/coingecko');
-      const response = await GET(request);
+      
+      const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);

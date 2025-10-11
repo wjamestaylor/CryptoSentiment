@@ -49,7 +49,7 @@ describe('Crypto Router Logic', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue(mockCryptos),
-      } as any);
+      } as unknown as Response);
 
       // Simulate the endpoint logic
       const limit = 10;
@@ -67,7 +67,7 @@ describe('Crypto Router Logic', () => {
         ok: false,
         status: 429,
         statusText: 'Too Many Requests',
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h'
@@ -102,7 +102,7 @@ describe('Crypto Router Logic', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue([mockCrypto]),
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&sparkline=false&price_change_percentage=24h'
@@ -117,7 +117,7 @@ describe('Crypto Router Logic', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue([]),
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch(
         'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=invalid&sparkline=false&price_change_percentage=24h'
@@ -151,7 +151,7 @@ describe('Crypto Router Logic', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValue(mockResults),
-      } as any);
+      } as unknown as Response);
 
       const query = 'bitcoin';
       const response = await fetch(
@@ -255,7 +255,7 @@ describe('Crypto Router Logic', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch('https://api.example.com');
       
@@ -273,7 +273,7 @@ describe('Crypto Router Logic', () => {
         ok: false,
         status: 429,
         statusText: 'Too Many Requests',
-      } as any);
+      } as unknown as Response);
 
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets');
       

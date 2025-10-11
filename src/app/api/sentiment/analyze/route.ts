@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenRouterService } from '@/lib/api/openrouter';
-import { CoinGeckoService } from '@/lib/api/coingecko';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get real market data from CoinGecko
-    const coinGeckoService = new CoinGeckoService();
+    // Get real market data from CoinGecko (direct API call)
     let realPriceData = null;
     
     try {
