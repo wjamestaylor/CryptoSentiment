@@ -2,10 +2,27 @@
 
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/trpc/provider';
+
+interface SearchCrypto {
+  id: string;
+  name: string;
+  symbol: string;
+  thumb: string;
+}
+
+interface FollowedCrypto {
+  id: string;
+  name: string;
+  symbol: string;
+  logoUrl: string | null;
+  marketCap: number | null;
+  rank: number | null;
+}
 
 export default function WatchlistPage() {
   const { data: session } = useSession();
@@ -109,7 +126,7 @@ export default function WatchlistPage() {
     return mapping[symbol.toUpperCase()] || symbol.toLowerCase();
   };
 
-  const handleFollow = async (crypto: any) => {
+  const handleFollow = async (crypto: SearchCrypto) => {
     try {
       await followMutation.mutateAsync({
         symbol: crypto.symbol || crypto.id,
@@ -185,15 +202,17 @@ export default function WatchlistPage() {
                       </div>
                     ) : searchResults?.data?.coins?.length > 0 ? (
                       <div className="max-h-60 overflow-y-auto space-y-2">
-                        {searchResults?.data?.coins.slice(0, 10).map((crypto: any) => (
+                        {searchResults?.data?.coins.slice(0, 10).map((crypto: SearchCrypto) => (
                           <div
                             key={crypto.id}
                             className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
                           >
                             <div className="flex items-center space-x-3">
-                              <img
+                              <Image
                                 src={crypto.thumb}
                                 alt={crypto.name}
+                                width={32}
+                                height={32}
                                 className="w-8 h-8 rounded-full"
                               />
                               <div>
@@ -213,7 +232,7 @@ export default function WatchlistPage() {
                       </div>
                     ) : searchQuery.length > 2 ? (
                       <div className="text-center py-4 text-gray-500">
-                        No cryptocurrencies found matching "{searchQuery}"
+                        No cryptocurrencies found matching &quot;{searchQuery}&quot;
                       </div>
                     ) : null}
                   </div>
@@ -228,7 +247,7 @@ export default function WatchlistPage() {
           <CardHeader>
             <CardTitle>Your Watchlist</CardTitle>
             <CardDescription>
-              Cryptocurrencies you're following ({followedCryptos?.data?.length || 0} total)
+              Cryptocurrencies you&apos;re following ({followedCryptos?.data?.length || 0} total)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -243,7 +262,7 @@ export default function WatchlistPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {followedCryptos?.data?.map((crypto: any) => (
+                {followedCryptos?.data?.map((crypto: FollowedCrypto) => (
                   <Card key={crypto.id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
@@ -277,7 +296,7 @@ export default function WatchlistPage() {
                         🤖 AI Analysis
                       </Button>
                       <div className="text-xs text-gray-500 text-center">
-                        Added {new Date(crypto.createdAt).toLocaleDateString()}
+                        Added to watchlist
                       </div>
                     </div>
                   </Card>

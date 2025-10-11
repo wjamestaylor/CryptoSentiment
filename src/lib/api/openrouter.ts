@@ -43,6 +43,39 @@ export const SentimentAnalysisSchema = z.object({
 export type OpenRouterChatCompletion = z.infer<typeof OpenRouterChatCompletionSchema>;
 export type SentimentAnalysis = z.infer<typeof SentimentAnalysisSchema>;
 
+// Interfaces for sentiment analysis data
+interface PriceData {
+  current_price?: number;
+  price_change_24h?: number;
+  price_change_7d?: number;
+  volume_24h?: number;
+  market_cap?: number;
+}
+
+interface NewsArticle {
+  title: string;
+  description?: string;
+  content?: string;
+  url?: string;
+  publishedAt?: string;
+  source?: string;
+}
+
+interface WhaleActivity {
+  type?: string;
+  transaction_type?: string;
+  amount?: number;
+  timestamp?: string;
+  address?: string;
+}
+
+interface SentimentPromptData {
+  cryptocurrency: string;
+  priceData?: PriceData;
+  newsArticles?: NewsArticle[];
+  whaleActivities?: WhaleActivity[];
+}
+
 class OpenRouterError extends Error {
   constructor(message: string, public status?: number) {
     super(message);
@@ -62,7 +95,7 @@ export class OpenRouterService {
 
   private async request<T>(
     endpoint: string,
-    data: Record<string, any>
+    data: Record<string, unknown>
   ): Promise<T> {
     if (!this.apiKey) {
       throw new OpenRouterError('OpenRouter API key not configured');
@@ -178,18 +211,13 @@ export class OpenRouterService {
   /**
    * Build a comprehensive prompt for sentiment analysis
    */
-  private buildSentimentPrompt(data: {
-    cryptocurrency: string;
-    priceData?: any;
-    newsArticles?: any[];
-    whaleActivities?: any[];
-  }): string {
+  private buildSentimentPrompt(data: SentimentPromptData): string {
     let prompt = `Analyze the sentiment for ${data.cryptocurrency.toUpperCase()} based on the following data:\n\n`;
 
     // Price data analysis
     if (data.priceData) {
       prompt += `PRICE DATA:\n`;
-      prompt += `- Current Price: $${data.priceData.current_price.toLocaleString()}\n`;
+      prompt += `- Current Price: $${data.priceData.current_price?.toLocaleString() || 'N/A'}\n`;
       prompt += `- 24h Change: ${data.priceData.price_change_24h?.toFixed(2)}%\n`;
       if (data.priceData.price_change_7d) {
         prompt += `- 7d Change: ${data.priceData.price_change_7d.toFixed(2)}%\n`;
@@ -203,7 +231,9 @@ export class OpenRouterService {
       data.newsArticles.slice(0, 5).forEach((article, index) => {
         prompt += `${index + 1}. Title: ${article.title}\n`;
         prompt += `   Source: ${article.source}\n`;
-        prompt += `   Content: ${article.content.substring(0, 200)}...\n`;
+        if (article.content) {
+          prompt += `   Content: ${article.content.substring(0, 200)}...\n`;
+        }
         prompt += `   Published: ${article.publishedAt}\n\n`;
       });
     }
@@ -212,7 +242,7 @@ export class OpenRouterService {
     if (data.whaleActivities && data.whaleActivities.length > 0) {
       prompt += `WHALE ACTIVITIES:\n`;
       data.whaleActivities.slice(0, 5).forEach((activity, index) => {
-        prompt += `${index + 1}. ${activity.type.toUpperCase()}: $${activity.amount.toLocaleString()}\n`;
+        prompt += `${index + 1}. ${activity.type?.toUpperCase() || 'UNKNOWN'}: $${activity.amount?.toLocaleString() || '0'}\n`;
         prompt += `   Time: ${activity.timestamp}\n\n`;
       });
     }

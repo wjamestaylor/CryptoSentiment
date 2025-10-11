@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
         id: user.id,
       },
     }),
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn() {
       // Allow all sign-ins for now - we can add restrictions later
       return true;
     },

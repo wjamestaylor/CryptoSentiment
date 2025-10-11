@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/db/prisma'
 import superjson from 'superjson'
 import { ZodError } from 'zod'
-import { type FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch'
 
 type CreateContextOptions = {
   session: Session | null
@@ -18,7 +17,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   }
 }
 
-export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
+export const createTRPCContext = async () => {
   // Get session from request headers using the new App Router method
   const session = await getServerSession(authOptions)
   

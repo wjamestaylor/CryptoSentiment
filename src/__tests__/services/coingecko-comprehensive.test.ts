@@ -226,7 +226,7 @@ describe('CoinGeckoService', () => {
 
     it('should include API key in headers when provided', async () => {
       const serviceWithKey = new CoinGeckoService('test-api-key');
-      const mockData: any[] = [];
+      const mockData: unknown[] = [];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,

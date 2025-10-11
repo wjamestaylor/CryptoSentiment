@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
 
 export default function ProfilePage() {
   const { data: session } = useSession();

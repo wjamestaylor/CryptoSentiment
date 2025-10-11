@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
-import { coinGeckoService } from '@/services/crypto/price.service';
 
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
@@ -193,7 +192,7 @@ export const cryptoRouter = createTRPCRouter({
 
         return {
           success: true,
-          data: followedCryptos.map((following: any) => following.crypto),
+          data: followedCryptos.map((following) => following.crypto),
         };
       } catch (error) {
         throw new Error(`Failed to fetch followed cryptocurrencies: ${error}`);

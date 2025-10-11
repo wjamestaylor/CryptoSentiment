@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function CryptoDashboard() {
   const { data: session } = useSession();
@@ -24,7 +25,7 @@ export default function CryptoDashboard() {
       refetchFollowed();
       setAddingToWatchlist(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to follow crypto:', error);
       setAddingToWatchlist(null);
     }
@@ -35,7 +36,7 @@ export default function CryptoDashboard() {
       refetchFollowed();
       setAddingToWatchlist(null);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to unfollow crypto:', error);
       setAddingToWatchlist(null);
     }
@@ -43,13 +44,13 @@ export default function CryptoDashboard() {
 
   // Check if a crypto is in the watchlist
   const isInWatchlist = (cryptoSymbol: string) => {
-    return followedCryptos?.data?.some((followed: any) => 
+    return followedCryptos?.data?.some((followed: { symbol: string }) => 
       followed.symbol.toLowerCase() === cryptoSymbol.toLowerCase()
     ) || false;
   };
 
   // Handle watchlist toggle
-  const handleWatchlistToggle = async (crypto: any) => {
+  const handleWatchlistToggle = async (crypto: { symbol: string; name: string }) => {
     if (!session) {
       window.open('/auth/signin', '_blank');
       return;
@@ -111,13 +112,25 @@ export default function CryptoDashboard() {
       <h1 className="text-3xl font-bold mb-6">Cryptocurrency Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {topCryptos?.data?.map((crypto: any) => (
+        {topCryptos?.data?.map((crypto: { 
+          id: string; 
+          symbol: string; 
+          name: string; 
+          image: string; 
+          current_price: number; 
+          price_change_percentage_24h: number;
+          market_cap: number;
+          total_volume: number;
+          market_cap_rank: number;
+        }) => (
           <Card key={crypto.id} className="p-4 hover:shadow-lg transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
-                <img 
+                <Image 
                   src={crypto.image} 
                   alt={crypto.name}
+                  width={32}
+                  height={32}
                   className="w-8 h-8 rounded-full"
                 />
                 <div>

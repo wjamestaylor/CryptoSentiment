@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,7 +98,7 @@ export default function SignInPage() {
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <div className="text-sm text-green-600">{message}</div>
                   <div className="text-xs text-green-500 mt-1">
-                    Check your spam folder if you don't see the email within a few minutes.
+                    Check your spam folder if you don&apos;t see the email within a few minutes.
                   </div>
                 </div>
               )}

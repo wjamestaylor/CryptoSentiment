@@ -1,21 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+
+interface SentimentFactor {
+  description: string;
+  impact: 'positive' | 'negative' | 'neutral';
+  source?: string;
+  sourceUrl?: string;
+  confidence?: number;
+  type?: string;
+}
+
+interface PriceData {
+  current_price?: number;
+  price_change_24h?: number;
+  volume_24h?: number;
+  market_cap?: number;
+}
+
+interface SentimentAnalysis {
+  score: number;
+  sentiment: string;
+  confidence: number;
+  factors?: SentimentFactor[];
+  summary?: string;
+  timestamp?: string;
+  dataSource?: string;
+  reasoning?: string;
+  priceData?: PriceData;
+  requestId?: string;
+}
 
 export default function SentimentPage() {
   const searchParams = useSearchParams();
   const cryptoParam = searchParams.get('crypto');
   
   const [cryptocurrency, setCryptocurrency] = useState(cryptoParam || 'bitcoin');
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<SentimentAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const analyzeSentiment = async () => {
+    const analyzeSentiment = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -32,14 +61,14 @@ export default function SentimentPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
-      setAnalysis(data);
+      const result = await response.json();
+      setAnalysis(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze sentiment');
     } finally {
       setLoading(false);
     }
-  };
+  }, [cryptocurrency]);
 
   // Auto-run analysis if crypto parameter is provided
   useEffect(() => {
@@ -50,7 +79,7 @@ export default function SentimentPage() {
         analyzeSentiment();
       }, 100);
     }
-  }, [cryptoParam]);
+  }, [cryptoParam, analyzeSentiment]);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -156,7 +185,7 @@ export default function SentimentPage() {
                         <span className="text-gray-500">24h Change:</span> {analysis.priceData.price_change_24h?.toFixed(2)}%
                       </div>
                       <div>
-                        <span className="text-gray-500">Volume:</span> ${(analysis.priceData.volume_24h / 1e9)?.toFixed(1)}B
+                        <span className="text-gray-500">Volume:</span> ${(analysis.priceData.volume_24h ? analysis.priceData.volume_24h / 1e9 : 0)?.toFixed(1)}B
                       </div>
                       {analysis.priceData.market_cap && (
                         <div>
@@ -171,7 +200,7 @@ export default function SentimentPage() {
                   <div>
                     <div className="text-sm text-gray-600 font-medium mb-2">Key Factors</div>
                     <div className="space-y-2">
-                      {analysis.factors.map((factor: any, index: number) => (
+                      {analysis.factors.map((factor: SentimentFactor, index: number) => (
                         <div 
                           key={index}
                           className={`p-3 rounded-lg border-l-4 ${
@@ -217,7 +246,7 @@ export default function SentimentPage() {
                                 ? 'bg-red-100 text-red-700'
                                 : 'bg-blue-100 text-blue-700'
                             }`}>
-                              {factor.type.replace('_', ' ').toUpperCase()}
+                              {factor.type?.replace('_', ' ').toUpperCase()}
                             </div>
                           </div>
                         </div>

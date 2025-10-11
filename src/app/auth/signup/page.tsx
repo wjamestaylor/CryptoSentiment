@@ -171,7 +171,7 @@ export default function SignUpPage() {
         {/* Features Preview */}
         <div className="mt-8">
           <div className="text-center text-sm text-gray-600 mb-4">
-            What you'll get with your account:
+            What you&apos;ll get with your account:
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-gray-500">
             <div className="text-center">
