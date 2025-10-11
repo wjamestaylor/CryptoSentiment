@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 
 // Mock NextAuth to avoid ES module issues
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require('./src/__tests__/__mocks__/next-auth')
 
 // Mock environment variables

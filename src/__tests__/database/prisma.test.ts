@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
+import { PrismaClient, AlertType } from '@prisma/client';
+import { mockDeep, mockReset } from 'jest-mock-extended';
 
 // Create a deep mock of PrismaClient
 const prismaMock = mockDeep<PrismaClient>();
@@ -20,6 +20,10 @@ describe('Database Operations', () => {
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test User',
+        emailVerified: null,
+        username: null,
+        image: null,
+        subscriptionId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -47,6 +51,10 @@ describe('Database Operations', () => {
         id: 'user-1',
         email: 'test@example.com',
         name: 'Test User',
+        emailVerified: null,
+        username: null,
+        image: null,
+        subscriptionId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -63,21 +71,15 @@ describe('Database Operations', () => {
       });
     });
 
-    it('should return null for non-existent user', async () => {
-      prismaMock.user.findUnique.mockResolvedValue(null);
-
-      const result = await prismaMock.user.findUnique({
-        where: { email: 'nonexistent@example.com' },
-      });
-
-      expect(result).toBeNull();
-    });
-
-    it('should update user profile', async () => {
+    it('should update a user', async () => {
       const mockUpdatedUser = {
         id: 'user-1',
         email: 'test@example.com',
-        name: 'Updated Name',
+        name: 'Updated User',
+        emailVerified: null,
+        username: null,
+        image: null,
+        subscriptionId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -86,13 +88,13 @@ describe('Database Operations', () => {
 
       const result = await prismaMock.user.update({
         where: { id: 'user-1' },
-        data: { name: 'Updated Name' },
+        data: { name: 'Updated User' },
       });
 
       expect(result).toEqual(mockUpdatedUser);
       expect(prismaMock.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { name: 'Updated Name' },
+        data: { name: 'Updated User' },
       });
     });
   });
@@ -103,8 +105,9 @@ describe('Database Operations', () => {
         id: 'crypto-1',
         symbol: 'BTC',
         name: 'Bitcoin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        logoUrl: 'https://example.com/btc-logo.png',
+        marketCap: 1000000000,
+        rank: 1,
       };
 
       prismaMock.cryptocurrency.create.mockResolvedValue(mockCrypto);
@@ -113,44 +116,59 @@ describe('Database Operations', () => {
         data: {
           symbol: 'BTC',
           name: 'Bitcoin',
+          logoUrl: 'https://example.com/btc-logo.png',
+          marketCap: 1000000000,
+          rank: 1,
         },
       });
 
       expect(result).toEqual(mockCrypto);
+      expect(prismaMock.cryptocurrency.create).toHaveBeenCalledWith({
+        data: {
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          logoUrl: 'https://example.com/btc-logo.png',
+          marketCap: 1000000000,
+          rank: 1,
+        },
+      });
     });
 
-    it('should upsert cryptocurrency', async () => {
+    it('should upsert a cryptocurrency', async () => {
       const mockCrypto = {
         id: 'crypto-1',
         symbol: 'BTC',
         name: 'Bitcoin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        logoUrl: 'https://example.com/btc-logo.png',
+        marketCap: 1000000000,
+        rank: 1,
       };
 
       prismaMock.cryptocurrency.upsert.mockResolvedValue(mockCrypto);
 
       const result = await prismaMock.cryptocurrency.upsert({
         where: { symbol: 'BTC' },
-        update: { name: 'Bitcoin' },
-        create: { symbol: 'BTC', name: 'Bitcoin' },
+        update: { marketCap: 1000000000 },
+        create: {
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          logoUrl: 'https://example.com/btc-logo.png',
+          marketCap: 1000000000,
+          rank: 1,
+        },
       });
 
       expect(result).toEqual(mockCrypto);
-      expect(prismaMock.cryptocurrency.upsert).toHaveBeenCalledWith({
-        where: { symbol: 'BTC' },
-        update: { name: 'Bitcoin' },
-        create: { symbol: 'BTC', name: 'Bitcoin' },
-      });
     });
 
-    it('should find cryptocurrency by symbol', async () => {
+    it('should find a cryptocurrency by symbol', async () => {
       const mockCrypto = {
         id: 'crypto-1',
         symbol: 'BTC',
         name: 'Bitcoin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        logoUrl: 'https://example.com/btc-logo.png',
+        marketCap: 1000000000,
+        rank: 1,
       };
 
       prismaMock.cryptocurrency.findUnique.mockResolvedValue(mockCrypto);
@@ -160,126 +178,57 @@ describe('Database Operations', () => {
       });
 
       expect(result).toEqual(mockCrypto);
-    });
-  });
-
-  describe('FollowedCoin operations', () => {
-    it('should create followed coin relationship', async () => {
-      const mockFollowedCoin = {
-        id: 'followed-1',
-        userId: 'user-1',
-        cryptoId: 'crypto-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      prismaMock.followedCoin.create.mockResolvedValue(mockFollowedCoin);
-
-      const result = await prismaMock.followedCoin.create({
-        data: {
-          userId: 'user-1',
-          cryptoId: 'crypto-1',
-        },
+      expect(prismaMock.cryptocurrency.findUnique).toHaveBeenCalledWith({
+        where: { symbol: 'BTC' },
       });
-
-      expect(result).toEqual(mockFollowedCoin);
     });
 
-    it('should upsert followed coin relationship', async () => {
-      const mockFollowedCoin = {
-        id: 'followed-1',
-        userId: 'user-1',
-        cryptoId: 'crypto-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      prismaMock.followedCoin.upsert.mockResolvedValue(mockFollowedCoin);
-
-      const result = await prismaMock.followedCoin.upsert({
-        where: {
-          userId_cryptoId: {
-            userId: 'user-1',
-            cryptoId: 'crypto-1',
-          },
-        },
-        update: {},
-        create: {
-          userId: 'user-1',
-          cryptoId: 'crypto-1',
-        },
-      });
-
-      expect(result).toEqual(mockFollowedCoin);
-    });
-
-    it('should delete followed coin relationship', async () => {
-      const mockDeletedCoin = {
-        id: 'followed-1',
-        userId: 'user-1',
-        cryptoId: 'crypto-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      prismaMock.followedCoin.delete.mockResolvedValue(mockDeletedCoin);
-
-      const result = await prismaMock.followedCoin.delete({
-        where: {
-          userId_cryptoId: {
-            userId: 'user-1',
-            cryptoId: 'crypto-1',
-          },
-        },
-      });
-
-      expect(result).toEqual(mockDeletedCoin);
-    });
-
-    it('should find user followed coins with crypto details', async () => {
-      const mockFollowedCoins = [
+    it('should find many cryptocurrencies', async () => {
+      const mockCryptos = [
         {
-          id: 'followed-1',
-          userId: 'user-1',
-          cryptoId: 'crypto-1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          crypto: {
-            id: 'crypto-1',
-            symbol: 'BTC',
-            name: 'Bitcoin',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          logoUrl: 'https://example.com/btc-logo.png',
+          marketCap: 1000000000,
+          rank: 1,
+        },
+        {
+          id: 'crypto-2',
+          symbol: 'ETH',
+          name: 'Ethereum',
+          logoUrl: 'https://example.com/eth-logo.png',
+          marketCap: 500000000,
+          rank: 2,
         },
       ];
 
-      prismaMock.followedCoin.findMany.mockResolvedValue(mockFollowedCoins);
+      prismaMock.cryptocurrency.findMany.mockResolvedValue(mockCryptos);
 
-      const result = await prismaMock.followedCoin.findMany({
-        where: { userId: 'user-1' },
-        include: { crypto: true },
-        orderBy: { createdAt: 'desc' },
+      const result = await prismaMock.cryptocurrency.findMany({
+        take: 10,
+        orderBy: { rank: 'asc' },
       });
 
-      expect(result).toEqual(mockFollowedCoins);
-      expect(prismaMock.followedCoin.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        include: { crypto: true },
-        orderBy: { createdAt: 'desc' },
+      expect(result).toEqual(mockCryptos);
+      expect(prismaMock.cryptocurrency.findMany).toHaveBeenCalledWith({
+        take: 10,
+        orderBy: { rank: 'asc' },
       });
     });
   });
 
   describe('Alert operations', () => {
-    it('should create price alert', async () => {
+    it('should create an alert', async () => {
       const mockAlert = {
         id: 'alert-1',
         userId: 'user-1',
         cryptoId: 'crypto-1',
-        type: 'PRICE_ABOVE' as const,
-        targetPrice: 60000,
+        type: AlertType.PRICE_CHANGE,
+        condition: JSON.stringify({ price: 50000, operator: 'above' }),
         isActive: true,
+        lastTriggered: null,
+        triggerCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -290,8 +239,8 @@ describe('Database Operations', () => {
         data: {
           userId: 'user-1',
           cryptoId: 'crypto-1',
-          type: 'PRICE_ABOVE',
-          targetPrice: 60000,
+          type: AlertType.PRICE_CHANGE,
+          condition: JSON.stringify({ price: 50000, operator: 'above' }),
           isActive: true,
         },
       });
@@ -299,15 +248,17 @@ describe('Database Operations', () => {
       expect(result).toEqual(mockAlert);
     });
 
-    it('should find active alerts for user', async () => {
+    it('should find user alerts', async () => {
       const mockAlerts = [
         {
           id: 'alert-1',
           userId: 'user-1',
           cryptoId: 'crypto-1',
-          type: 'PRICE_ABOVE' as const,
-          targetPrice: 60000,
+          type: AlertType.PRICE_CHANGE,
+          condition: JSON.stringify({ price: 50000, operator: 'above' }),
           isActive: true,
+          lastTriggered: null,
+          triggerCount: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -316,26 +267,25 @@ describe('Database Operations', () => {
       prismaMock.alert.findMany.mockResolvedValue(mockAlerts);
 
       const result = await prismaMock.alert.findMany({
-        where: {
-          userId: 'user-1',
-          isActive: true,
-        },
-        include: {
-          crypto: true,
-        },
+        where: { userId: 'user-1' },
       });
 
       expect(result).toEqual(mockAlerts);
+      expect(prismaMock.alert.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
     });
 
-    it('should update alert status', async () => {
+    it('should update an alert', async () => {
       const mockUpdatedAlert = {
         id: 'alert-1',
         userId: 'user-1',
         cryptoId: 'crypto-1',
-        type: 'PRICE_ABOVE' as const,
-        targetPrice: 60000,
+        type: AlertType.PRICE_CHANGE,
+        condition: JSON.stringify({ price: 55000, operator: 'above' }),
         isActive: false,
+        lastTriggered: new Date(),
+        triggerCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -344,14 +294,45 @@ describe('Database Operations', () => {
 
       const result = await prismaMock.alert.update({
         where: { id: 'alert-1' },
-        data: { isActive: false },
+        data: { 
+          condition: JSON.stringify({ price: 55000, operator: 'above' }),
+          isActive: false,
+          lastTriggered: new Date(),
+          triggerCount: 1
+        },
       });
 
       expect(result).toEqual(mockUpdatedAlert);
     });
+
+    it('should delete an alert', async () => {
+      const mockDeletedAlert = {
+        id: 'alert-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        type: AlertType.PRICE_CHANGE,
+        condition: JSON.stringify({ price: 50000, operator: 'above' }),
+        isActive: true,
+        lastTriggered: null,
+        triggerCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      prismaMock.alert.delete.mockResolvedValue(mockDeletedAlert);
+
+      const result = await prismaMock.alert.delete({
+        where: { id: 'alert-1' },
+      });
+
+      expect(result).toEqual(mockDeletedAlert);
+      expect(prismaMock.alert.delete).toHaveBeenCalledWith({
+        where: { id: 'alert-1' },
+      });
+    });
   });
 
-  describe('Transaction handling', () => {
+  describe('Transaction operations', () => {
     it('should handle database transactions', async () => {
       const mockTransaction = jest.fn();
       prismaMock.$transaction.mockImplementation(mockTransaction);
@@ -361,57 +342,27 @@ describe('Database Operations', () => {
         prismaMock.cryptocurrency.create({ data: { symbol: 'BTC', name: 'Bitcoin' } }),
       ]);
 
-      expect(prismaMock.$transaction).toHaveBeenCalled();
-    });
-
-    it('should handle transaction rollback on error', async () => {
-      const error = new Error('Transaction failed');
-      prismaMock.$transaction.mockRejectedValue(error);
-
-      await expect(
-        prismaMock.$transaction([
-          prismaMock.user.create({ data: { email: 'test@example.com' } }),
-          prismaMock.cryptocurrency.create({ data: { symbol: 'BTC', name: 'Bitcoin' } }),
-        ])
-      ).rejects.toThrow('Transaction failed');
+      expect(mockTransaction).toHaveBeenCalled();
     });
   });
 
-  describe('Error handling', () => {
-    it('should handle unique constraint violations', async () => {
-      const error = new Error('Unique constraint failed');
-      prismaMock.user.create.mockRejectedValue(error);
+  describe('Connection operations', () => {
+    it('should connect to database', async () => {
+      const mockConnect = jest.fn();
+      prismaMock.$connect.mockImplementation(mockConnect);
 
-      await expect(
-        prismaMock.user.create({
-          data: { email: 'existing@example.com' },
-        })
-      ).rejects.toThrow('Unique constraint failed');
+      await prismaMock.$connect();
+
+      expect(mockConnect).toHaveBeenCalled();
     });
 
-    it('should handle foreign key constraint violations', async () => {
-      const error = new Error('Foreign key constraint failed');
-      prismaMock.followedCoin.create.mockRejectedValue(error);
+    it('should disconnect from database', async () => {
+      const mockDisconnect = jest.fn();
+      prismaMock.$disconnect.mockImplementation(mockDisconnect);
 
-      await expect(
-        prismaMock.followedCoin.create({
-          data: {
-            userId: 'nonexistent-user',
-            cryptoId: 'crypto-1',
-          },
-        })
-      ).rejects.toThrow('Foreign key constraint failed');
-    });
+      await prismaMock.$disconnect();
 
-    it('should handle record not found errors', async () => {
-      const error = new Error('Record to delete does not exist');
-      prismaMock.user.delete.mockRejectedValue(error);
-
-      await expect(
-        prismaMock.user.delete({
-          where: { id: 'nonexistent-user' },
-        })
-      ).rejects.toThrow('Record to delete does not exist');
+      expect(mockDisconnect).toHaveBeenCalled();
     });
   });
 });

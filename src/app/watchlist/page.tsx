@@ -185,7 +185,7 @@ export default function WatchlistPage() {
                       </div>
                     ) : searchResults?.data?.coins?.length > 0 ? (
                       <div className="max-h-60 overflow-y-auto space-y-2">
-                        {searchResults.data.coins.slice(0, 10).map((crypto: any) => (
+                        {searchResults?.data?.coins.slice(0, 10).map((crypto: any) => (
                           <div
                             key={crypto.id}
                             className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
@@ -204,9 +204,9 @@ export default function WatchlistPage() {
                             <Button
                               size="sm"
                               onClick={() => handleFollow(crypto)}
-                              disabled={followMutation.isLoading}
+                              disabled={followMutation.isPending}
                             >
-                              {followMutation.isLoading ? "Adding..." : "Add to Watchlist"}
+                              {followMutation.isPending ? "Adding..." : "Add to Watchlist"}
                             </Button>
                           </div>
                         ))}
@@ -261,7 +261,7 @@ export default function WatchlistPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleUnfollow(crypto.symbol)}
-                        disabled={unfollowMutation.isLoading}
+                        disabled={unfollowMutation.isPending}
                       >
                         Remove
                       </Button>
@@ -288,7 +288,7 @@ export default function WatchlistPage() {
         </Card>
 
         {/* Quick Actions */}
-        {followedCryptos?.data?.length > 0 && (
+        {followedCryptos?.data && followedCryptos.data.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
