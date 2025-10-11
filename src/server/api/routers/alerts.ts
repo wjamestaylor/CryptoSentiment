@@ -1,56 +1,175 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc'
 import { AlertType } from '@prisma/client'
+import { AlertService } from '@/services/notifications/alerts.service'
+
+const alertService = new AlertService()
+
+// Enhanced input validation schemas
+const createAlertSchema = z.object({
+  cryptoId: z.string().min(1, 'Cryptocurrency is required'),
+  type: z.nativeEnum(AlertType),
+  condition: z.object({
+    sentimentThreshold: z.number().min(-1).max(1).optional(),
+    direction: z.enum(['bullish', 'bearish', 'above', 'below']).optional(),
+    priceThreshold: z.number().positive().optional(),
+    percentage: z.boolean().optional(),
+    volumeThreshold: z.number().positive().optional(),
+    notificationMethods: z.array(z.string()).optional(),
+    cooldownMinutes: z.number().positive().optional(),
+  }),
+})
+
+const updateAlertSchema = z.object({
+  id: z.string().min(1, 'Alert ID is required'),
+  condition: z.object({
+    sentimentThreshold: z.number().min(-1).max(1).optional(),
+    direction: z.enum(['bullish', 'bearish', 'above', 'below']).optional(),
+    priceThreshold: z.number().positive().optional(),
+    percentage: z.boolean().optional(),
+    volumeThreshold: z.number().positive().optional(),
+    notificationMethods: z.array(z.string()).optional(),
+    cooldownMinutes: z.number().positive().optional(),
+  }).optional(),
+  isActive: z.boolean().optional(),
+})
 
 export const alertsRouter = createTRPCRouter({
+  /**
+   * Create a new alert with enhanced validation
+   */
   createAlert: protectedProcedure
-    .input(
-      z.object({
-        cryptoId: z.string(),
-        type: z.nativeEnum(AlertType),
-        condition: z.string(),
-      })
-    )
+    .input(createAlertSchema)
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.alert.create({
-        data: {
+      try {
+        const alert = await alertService.createAlert({
           userId: ctx.session.user.id,
           cryptoId: input.cryptoId,
           type: input.type,
           condition: input.condition,
-        },
-      })
+        })
+
+        return {
+          success: true,
+          alert,
+          message: 'Alert created successfully',
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to create alert: ${message}`)
+      }
     }),
 
-  getUserAlerts: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.prisma.alert.findMany({
-      where: { userId: ctx.session.user.id },
-      include: { crypto: true },
-      orderBy: { createdAt: 'desc' },
-    })
-  }),
+  /**
+   * Get all alerts for the current user
+   */
+  getUserAlerts: protectedProcedure
+    .input(z.object({
+      activeOnly: z.boolean().optional().default(false),
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const alerts = await alertService.getUserAlerts(
+          ctx.session.user.id,
+          input.activeOnly
+        )
 
+        return {
+          success: true,
+          alerts,
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to get alerts: ${message}`)
+      }
+    }),
+
+  /**
+   * Update an existing alert
+   */
   updateAlert: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        isActive: z.boolean().optional(),
-        condition: z.string().optional(),
-      })
-    )
+    .input(updateAlertSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updateData } = input
-      return ctx.prisma.alert.update({
-        where: { id, userId: ctx.session.user.id },
-        data: updateData,
-      })
+      try {
+        const { id, ...updateData } = input
+        
+        const alert = await alertService.updateAlert(id, updateData)
+
+        return {
+          success: true,
+          alert,
+          message: 'Alert updated successfully',
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to update alert: ${message}`)
+      }
     }),
 
+  /**
+   * Delete an alert
+   */
   deleteAlert: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.alert.delete({
-        where: { id: input.id, userId: ctx.session.user.id },
-      })
+      try {
+        await alertService.deleteAlert(input.id)
+
+        return {
+          success: true,
+          message: 'Alert deleted successfully',
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to delete alert: ${message}`)
+      }
+    }),
+
+  /**
+   * Test alert conditions (for debugging)
+   */
+  testAlert: protectedProcedure
+    .input(z.object({
+      cryptoId: z.string(),
+      sentimentData: z.object({
+        score: z.number(),
+        label: z.string(),
+        confidence: z.number(),
+      }).optional(),
+      priceData: z.object({
+        price: z.number(),
+        change24h: z.number(),
+        volume24h: z.number().optional(),
+      }).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // This is for testing purposes only
+        if (input.sentimentData) {
+          await alertService.checkAlerts(input.cryptoId, {
+            cryptoId: input.cryptoId,
+            score: input.sentimentData.score,
+            label: input.sentimentData.label as any,
+            confidence: input.sentimentData.confidence,
+          })
+        }
+
+        if (input.priceData) {
+          await alertService.checkAlerts(input.cryptoId, {
+            cryptoId: input.cryptoId,
+            price: input.priceData.price,
+            change24h: input.priceData.change24h,
+            volume24h: input.priceData.volume24h,
+          })
+        }
+
+        return {
+          success: true,
+          message: 'Alert check completed',
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to test alert: ${message}`)
+      }
     }),
 })

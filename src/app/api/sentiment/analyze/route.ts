@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenRouterService } from '@/lib/api/openrouter';
+import { AlertService } from '@/services/notifications/alerts.service';
+import { SentimentLabel } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,13 +66,29 @@ export async function POST(request: NextRequest) {
     const openRouterService = new OpenRouterService();
     const analysis = await openRouterService.analyzeSentiment(analysisData);
     
+    // Trigger alert checking after successful sentiment analysis
+    try {
+      const alertService = new AlertService();
+      await alertService.checkAlerts(cryptocurrency, {
+        cryptoId: cryptocurrency,
+        score: analysis.score || 0,
+        label: analysis.sentiment as SentimentLabel,
+        confidence: analysis.confidence || 0
+      });
+      console.log(`Alert check completed for ${cryptocurrency} after sentiment analysis`);
+    } catch (alertError) {
+      console.error('Failed to check alerts after sentiment analysis:', alertError);
+      // Don't fail the main request if alert checking fails
+    }
+    
     // Return analysis with live data confirmation
     return NextResponse.json({
       ...analysis,
       dataSource: 'live',
       priceData: analysisData.priceData,
       timestamp: new Date().toISOString(),
-      requestId: Math.random().toString(36).substring(7)
+      requestId: Math.random().toString(36).substring(7),
+      alertsChecked: true
     });
   } catch (error) {
     console.error('Sentiment analysis error:', error);
