@@ -49,9 +49,11 @@ export function Navbar() {
               <LoadingSpinner className="h-6 w-6" />
             ) : session ? (
               <div className="flex items-center space-x-3">
-                <span className="text-sm text-muted-foreground">
-                  Welcome, {session.user?.email?.split('@')[0]}
-                </span>
+                {session.user?.email && (
+                  <span className="text-sm text-muted-foreground">
+                    Welcome, {session.user.email.split('@')[0]}
+                  </span>
+                )}
                 <Button
                   onClick={() => signOut()}
                   variant="outline"
@@ -89,9 +91,9 @@ export function Navbar() {
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6" data-testid="close-icon" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-6 w-6" data-testid="menu-icon" />
               )}
             </Button>
           </div>
@@ -120,9 +122,11 @@ export function Navbar() {
                   </div>
                 ) : session ? (
                   <div className="space-y-3">
-                    <div className="text-sm text-muted-foreground">
-                      Welcome, {session.user?.email?.split('@')[0]}
-                    </div>
+                    {session.user?.email && (
+                      <div className="text-sm text-muted-foreground">
+                        Welcome, {session.user.email.split('@')[0]}
+                      </div>
+                    )}
                     <Button
                       onClick={() => {
                         signOut();
