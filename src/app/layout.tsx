@@ -4,6 +4,8 @@ import "./globals.css";
 import { TRPCProvider } from "@/lib/trpc/provider";
 import { Navbar } from "@/components/ui/navbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,18 +28,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <TRPCProvider>
-            <Navbar />
-            <main className="min-h-screen">
-              {children}
-            </main>
-          </TRPCProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <TRPCProvider>
+              <ErrorBoundary>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="min-h-screen">
+                    {children}
+                  </main>
+                </div>
+              </ErrorBoundary>
+            </TRPCProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
