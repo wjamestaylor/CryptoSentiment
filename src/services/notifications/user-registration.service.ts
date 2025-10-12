@@ -1,6 +1,12 @@
 import { NotificationService } from '@/services/notifications/notification.service';
 import { prisma as db } from '@/lib/db/prisma';
 
+interface SubscriptionDetails {
+  tier: string;
+  status?: string;
+  stripeId?: string;
+}
+
 export class UserRegistrationService {
   private notificationService: NotificationService;
 
@@ -131,7 +137,7 @@ export class UserRegistrationService {
   /**
    * Send subscription update notification
    */
-  async sendSubscriptionUpdate(userId: string, subscriptionDetails: any) {
+  async sendSubscriptionUpdate(userId: string, subscriptionDetails: SubscriptionDetails) {
     try {
       const title = 'Subscription Updated';
       const content = `Your subscription has been updated to ${subscriptionDetails.tier} tier. Your new features are now active!`;

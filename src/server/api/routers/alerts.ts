@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc'
-import { AlertType } from '@prisma/client'
+import { AlertType, SentimentLabel } from '@prisma/client'
 import { AlertService } from '@/services/notifications/alerts.service'
 
 const alertService = new AlertService()
@@ -91,7 +91,7 @@ export const alertsRouter = createTRPCRouter({
    */
   updateAlert: protectedProcedure
     .input(updateAlertSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       try {
         const { id, ...updateData } = input
         
@@ -113,7 +113,7 @@ export const alertsRouter = createTRPCRouter({
    */
   deleteAlert: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       try {
         await alertService.deleteAlert(input.id)
 
@@ -144,14 +144,14 @@ export const alertsRouter = createTRPCRouter({
         volume24h: z.number().optional(),
       }).optional(),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       try {
         // This is for testing purposes only
         if (input.sentimentData) {
           await alertService.checkAlerts(input.cryptoId, {
             cryptoId: input.cryptoId,
             score: input.sentimentData.score,
-            label: input.sentimentData.label as any,
+            label: input.sentimentData.label as SentimentLabel,
             confidence: input.sentimentData.confidence,
           })
         }

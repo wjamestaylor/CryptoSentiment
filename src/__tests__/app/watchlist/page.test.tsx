@@ -33,8 +33,14 @@ jest.mock('@/lib/crypto-mappings', () => ({
 }));
 
 jest.mock('next/image', () => {
-  return function MockImage({ src, alt, ...props }: any) {
-    return <img src={src} alt={alt} {...props} />;
+  return function MockImage({ src, alt, width = 100, height = 100, ...props }: { 
+    src: string; 
+    alt: string; 
+    width?: number; 
+    height?: number; 
+    [key: string]: unknown 
+  }) {
+    return <div data-testid="mock-image" data-src={src} data-alt={alt} style={{ width, height }} {...props} />;
   };
 });
 
@@ -45,7 +51,26 @@ Object.defineProperty(window, 'open', {
 });
 
 const mockUseSession = useSession as jest.Mock;
-const mockApi = api as any;
+
+// Type for mocked API structure
+interface MockedApi {
+  crypto: {
+    getFollowedCryptos: {
+      useQuery: jest.Mock
+    }
+    searchCryptos: {
+      useQuery: jest.Mock
+    }
+    followCrypto: {
+      useMutation: jest.Mock
+    }
+    unfollowCrypto: {
+      useMutation: jest.Mock
+    }
+  }
+}
+
+const mockApi = api as unknown as MockedApi;
 
 describe('WatchlistPage', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useUserRegistration, useEmailTesting } from '@/hooks/use-email';
+import { useUserRegistration, useEmailTesting, RegistrationResult, EmailTestResult } from '@/hooks/use-email';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -32,7 +32,7 @@ describe('useUserRegistration', () => {
 
     const { result } = renderHook(() => useUserRegistration());
 
-    let registrationResult: any;
+    let registrationResult: RegistrationResult | undefined;
 
     await act(async () => {
       registrationResult = await result.current.handleNewUserRegistration('user-123');
@@ -71,7 +71,7 @@ describe('useUserRegistration', () => {
 
     const { result } = renderHook(() => useUserRegistration());
 
-    let registrationResult: any;
+    let registrationResult: RegistrationResult | undefined;
 
     await act(async () => {
       registrationResult = await result.current.handleNewUserRegistration('user-456');
@@ -100,7 +100,7 @@ describe('useUserRegistration', () => {
 
     const { result } = renderHook(() => useUserRegistration());
 
-    let registrationResult: any;
+    let registrationResult: RegistrationResult | undefined;
 
     await act(async () => {
       registrationResult = await result.current.handleNewUserRegistration('user-789');
@@ -123,7 +123,7 @@ describe('useUserRegistration', () => {
 
     const { result } = renderHook(() => useUserRegistration());
 
-    let registrationResult: any;
+    let registrationResult: RegistrationResult | undefined;
 
     await act(async () => {
       registrationResult = await result.current.handleNewUserRegistration('user-error');
@@ -145,7 +145,7 @@ describe('useUserRegistration', () => {
 
     const { result } = renderHook(() => useUserRegistration());
 
-    let registrationResult: any;
+    let registrationResult: RegistrationResult | undefined;
 
     await act(async () => {
       registrationResult = await result.current.handleNewUserRegistration('user-unknown');
@@ -163,8 +163,8 @@ describe('useUserRegistration', () => {
   });
 
   it('should set isProcessing to true during registration and false afterward', async () => {
-    let resolvePromise: (value: any) => void;
-    const delayedPromise = new Promise((resolve) => {
+    let resolvePromise: (value: Partial<Response>) => void;
+    const delayedPromise = new Promise<Partial<Response>>((resolve) => {
       resolvePromise = resolve;
     });
 
@@ -225,7 +225,7 @@ describe('useEmailTesting', () => {
 
       const { result } = renderHook(() => useEmailTesting());
 
-      let connectionResult: any;
+      let connectionResult: EmailTestResult | undefined;
 
       await act(async () => {
         connectionResult = await result.current.testEmailConnection();
@@ -250,7 +250,7 @@ describe('useEmailTesting', () => {
 
       const { result } = renderHook(() => useEmailTesting());
 
-      let connectionResult: any;
+      let connectionResult: EmailTestResult | undefined;
 
       await act(async () => {
         connectionResult = await result.current.testEmailConnection();
@@ -259,6 +259,8 @@ describe('useEmailTesting', () => {
       const expectedResult = {
         success: false,
         error: 'Connection failed',
+        message: 'Failed to test email connection',
+        timestamp: expect.any(String),
       };
 
       expect(connectionResult).toEqual(expectedResult);
@@ -280,7 +282,7 @@ describe('useEmailTesting', () => {
 
       const { result } = renderHook(() => useEmailTesting());
 
-      let emailResult: any;
+      let emailResult: EmailTestResult | undefined;
 
       await act(async () => {
         emailResult = await result.current.sendTestWelcomeEmail('test@example.com', 'John Doe');
@@ -338,7 +340,7 @@ describe('useEmailTesting', () => {
 
       const { result } = renderHook(() => useEmailTesting());
 
-      let emailResult: any;
+      let emailResult: EmailTestResult | undefined;
 
       await act(async () => {
         emailResult = await result.current.sendTestWelcomeEmail('invalid@example.com');
@@ -347,6 +349,8 @@ describe('useEmailTesting', () => {
       const expectedResult = {
         success: false,
         error: 'SMTP error',
+        message: 'Failed to send welcome email',
+        timestamp: expect.any(String),
       };
 
       expect(emailResult).toEqual(expectedResult);
@@ -378,7 +382,7 @@ describe('useEmailTesting', () => {
         message: 'Bitcoin has reached your target price',
       };
 
-      let emailResult: any;
+      let emailResult: EmailTestResult | undefined;
 
       await act(async () => {
         emailResult = await result.current.sendTestAlertEmail(alertParams);
@@ -437,7 +441,7 @@ describe('useEmailTesting', () => {
 
       const { result } = renderHook(() => useEmailTesting());
 
-      let emailResult: any;
+      let emailResult: EmailTestResult | undefined;
 
       await act(async () => {
         emailResult = await result.current.sendTestAlertEmail({
@@ -448,6 +452,8 @@ describe('useEmailTesting', () => {
       const expectedResult = {
         success: false,
         error: 'Unknown error',
+        message: 'Failed to send alert email',
+        timestamp: expect.any(String),
       };
 
       expect(emailResult).toEqual(expectedResult);
@@ -456,8 +462,8 @@ describe('useEmailTesting', () => {
   });
 
   it('should set isLoading to true during operations and false afterward', async () => {
-    let resolvePromise: (value: any) => void;
-    const delayedPromise = new Promise((resolve) => {
+    let resolvePromise: (value: Partial<Response>) => void;
+    const delayedPromise = new Promise<Partial<Response>>((resolve) => {
       resolvePromise = resolve;
     });
 

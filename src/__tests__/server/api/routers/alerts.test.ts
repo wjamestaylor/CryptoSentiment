@@ -26,14 +26,22 @@ jest.mock('@/services/notifications/alerts.service', () => ({
   })),
 }));
 
-import { AlertType, SentimentLabel } from '@prisma/client';
+import { AlertType } from '@prisma/client';
 import { AlertService } from '@/services/notifications/alerts.service';
 import { z } from 'zod';
 
 const MockAlertService = AlertService as jest.MockedClass<typeof AlertService>;
 
+interface MockAlertServiceInstance {
+  createAlertWithSymbol: jest.Mock;
+  getUserAlerts: jest.Mock;
+  updateAlert: jest.Mock;
+  deleteAlert: jest.Mock;
+  checkAlerts: jest.Mock;
+}
+
 describe('Alerts Router tRPC Implementation', () => {
-  let mockAlertService: any;
+  let mockAlertService: MockAlertServiceInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -44,7 +52,7 @@ describe('Alerts Router tRPC Implementation', () => {
       deleteAlert: jest.fn(),
       checkAlerts: jest.fn(),
     };
-    MockAlertService.mockImplementation(() => mockAlertService);
+    (MockAlertService as jest.Mock).mockImplementation(() => mockAlertService as unknown as AlertService);
   });
 
   describe('tRPC input validation schemas', () => {

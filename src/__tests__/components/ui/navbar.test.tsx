@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useSession, signOut } from 'next-auth/react';
 import { Navbar } from '@/components/ui/navbar';
 
@@ -10,7 +10,13 @@ const mockSignOut = signOut as jest.Mock;
 
 // Mock next/link
 jest.mock('next/link', () => {
-  return function MockLink({ children, href, ...props }: any) {
+  interface MockLinkProps {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }
+  
+  return function MockLink({ children, href, ...props }: MockLinkProps) {
     return (
       <a href={href} {...props}>
         {children}

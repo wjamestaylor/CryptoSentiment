@@ -1,9 +1,19 @@
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/trpc/react';
+import { useState } from 'react';
 
 export interface RegistrationResult {
   success: boolean;
   error?: string;
+}
+
+export interface EmailTestResult {
+  success: boolean;
+  message: string;
+  error?: string;
+  timestamp: string;
+  email?: string;
+  alertType?: string;
+  subject?: string;
+  userId?: string;
 }
 
 /**
@@ -59,7 +69,7 @@ export function useUserRegistration() {
  */
 export function useEmailTesting() {
   const [isLoading, setIsLoading] = useState(false);
-  const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResult, setLastResult] = useState<EmailTestResult | null>(null);
 
   const testEmailConnection = async () => {
     setIsLoading(true);
@@ -76,7 +86,12 @@ export function useEmailTesting() {
       setLastResult(result);
       return result;
     } catch (error) {
-      const errorResult = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      const errorResult: EmailTestResult = { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to test email connection',
+        timestamp: new Date().toISOString(),
+      };
       setLastResult(errorResult);
       return errorResult;
     } finally {
@@ -103,7 +118,12 @@ export function useEmailTesting() {
       setLastResult(result);
       return result;
     } catch (error) {
-      const errorResult = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      const errorResult: EmailTestResult = { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to send welcome email',
+        timestamp: new Date().toISOString(),
+      };
       setLastResult(errorResult);
       return errorResult;
     } finally {
@@ -137,7 +157,12 @@ export function useEmailTesting() {
       setLastResult(result);
       return result;
     } catch (error) {
-      const errorResult = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      const errorResult: EmailTestResult = { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to send alert email',
+        timestamp: new Date().toISOString(),
+      };
       setLastResult(errorResult);
       return errorResult;
     } finally {

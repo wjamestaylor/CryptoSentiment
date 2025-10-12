@@ -114,7 +114,7 @@ export function withErrorBoundary<P extends object>(
 }
 
 // Specific error fallbacks for different contexts
-export function ApiErrorFallback({ error, resetError }: ErrorFallbackProps) {
+export function ApiErrorFallback({ resetError }: Pick<ErrorFallbackProps, 'resetError'>) {
   return (
     <div className="text-center p-6">
       <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
@@ -130,7 +130,7 @@ export function ApiErrorFallback({ error, resetError }: ErrorFallbackProps) {
   );
 }
 
-export function DataErrorFallback({ error, resetError }: ErrorFallbackProps) {
+export function DataErrorFallback({ resetError }: Pick<ErrorFallbackProps, 'resetError'>) {
   return (
     <div className="text-center p-6">
       <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />

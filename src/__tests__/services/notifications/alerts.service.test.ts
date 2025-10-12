@@ -1,4 +1,4 @@
-import { AlertService, CreateAlertData, CreateAlertWithSymbolData } from '@/services/notifications/alerts.service';
+import { AlertService } from '@/services/notifications/alerts.service';
 import { AlertType, SentimentLabel } from '@prisma/client';
 
 // Mock the database
@@ -23,7 +23,11 @@ jest.mock('@/services/notifications/notification.service', () => ({
   })),
 }));
 
-const mockDb = require('@/lib/db/prisma').prisma;
+// Import the mocked database after mocking
+import { prisma } from '@/lib/db/prisma';
+
+// Type assertion for the mocked database
+const mockDb = prisma as jest.Mocked<typeof prisma>;
 
 describe('AlertService', () => {
   let alertService: AlertService;
@@ -63,8 +67,8 @@ describe('AlertService', () => {
         user: { id: 'user-1', email: 'user@example.com' },
       };
 
-      mockDb.cryptocurrency.upsert.mockResolvedValue(mockCrypto);
-      mockDb.alert.create.mockResolvedValue(mockAlert);
+      (mockDb.cryptocurrency.upsert as jest.Mock).mockResolvedValue(mockCrypto);
+      (mockDb.alert.create as jest.Mock).mockResolvedValue(mockAlert);
 
       const result = await alertService.createAlertWithSymbol(mockCreateAlertData);
 
@@ -84,7 +88,7 @@ describe('AlertService', () => {
         condition: { priceThreshold: 50000 },
       };
 
-      mockDb.cryptocurrency.upsert.mockRejectedValue(new Error('Database error'));
+      (mockDb.cryptocurrency.upsert as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(alertService.createAlertWithSymbol(mockCreateAlertData)).rejects.toThrow('Failed to create alert: Database error');
     });
@@ -104,7 +108,7 @@ describe('AlertService', () => {
         },
       ];
 
-      mockDb.alert.findMany.mockResolvedValue(mockAlerts);
+      (mockDb.alert.findMany as jest.Mock).mockResolvedValue(mockAlerts);
 
       const result = await alertService.getUserAlerts('user-1');
 
@@ -126,7 +130,7 @@ describe('AlertService', () => {
         },
       ];
 
-      mockDb.alert.findMany.mockResolvedValue(mockAlerts);
+      (mockDb.alert.findMany as jest.Mock).mockResolvedValue(mockAlerts);
 
       const result = await alertService.getUserAlerts('user-1', true);
 
@@ -141,7 +145,7 @@ describe('AlertService', () => {
 
   describe('deleteAlert', () => {
     it('should delete alert successfully', async () => {
-      mockDb.alert.delete.mockResolvedValue({});
+      (mockDb.alert.delete as jest.Mock).mockResolvedValue({});
 
       const result = await alertService.deleteAlert('alert-1');
 
@@ -152,7 +156,7 @@ describe('AlertService', () => {
     });
 
     it('should handle database error when deleting alert', async () => {
-      mockDb.alert.delete.mockRejectedValue(new Error('Database error'));
+      (mockDb.alert.delete as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(alertService.deleteAlert('alert-1')).rejects.toThrow('Failed to delete alert: Database error');
     });
@@ -182,8 +186,8 @@ describe('AlertService', () => {
         },
       ];
 
-      mockDb.alert.findMany.mockResolvedValue(mockAlerts);
-      mockDb.alert.update.mockResolvedValue({});
+      (mockDb.alert.findMany as jest.Mock).mockResolvedValue(mockAlerts);
+      (mockDb.alert.update as jest.Mock).mockResolvedValue({});
 
       // The method might not return anything, so just check it doesn't throw
       await expect(alertService.checkAlerts('crypto-1', sentimentData)).resolves.not.toThrow();
@@ -202,7 +206,7 @@ describe('AlertService', () => {
         confidence: 0.9,
       };
 
-      mockDb.alert.findMany.mockRejectedValue(new Error('Database error'));
+      (mockDb.alert.findMany as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       // Should throw an error when database fails
       await expect(alertService.checkAlerts('crypto-1', sentimentData)).rejects.toThrow('Failed to check alerts: Database error');

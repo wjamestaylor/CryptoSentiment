@@ -39,13 +39,42 @@ import { NotificationService } from '@/services/notifications/notification.servi
 import { UserRegistrationService } from '@/services/notifications/user-registration.service';
 import { z } from 'zod';
 
+interface NotificationUpdateData {
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  discordNotifications?: boolean;
+  telegramNotifications?: boolean;
+}
+
+interface MockNotificationService {
+  getUnreadNotifications: jest.Mock;
+  markAsRead: jest.Mock;
+  sendNotification: jest.Mock;
+  sendWelcomeEmail: jest.Mock;
+  cleanupOldNotifications: jest.Mock;
+}
+
+interface MockUserRegistrationService {
+  handleNewUserRegistration: jest.Mock;
+  sendSystemAnnouncement: jest.Mock;
+}
+
+interface MockPrisma {
+  user: {
+    findUnique: jest.Mock;
+  };
+  userPreferences: {
+    upsert: jest.Mock;
+  };
+}
+
 const MockNotificationService = NotificationService as jest.MockedClass<typeof NotificationService>;
 const MockUserRegistrationService = UserRegistrationService as jest.MockedClass<typeof UserRegistrationService>;
 
 describe('Notifications Router tRPC Implementation', () => {
-  let mockNotificationService: any;
-  let mockUserRegistrationService: any;
-  let mockPrisma: any;
+  let mockNotificationService: MockNotificationService;
+  let mockUserRegistrationService: MockUserRegistrationService;
+  let mockPrisma: MockPrisma;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -72,8 +101,8 @@ describe('Notifications Router tRPC Implementation', () => {
       },
     };
 
-    MockNotificationService.mockImplementation(() => mockNotificationService);
-    MockUserRegistrationService.mockImplementation(() => mockUserRegistrationService);
+    MockNotificationService.mockImplementation(() => mockNotificationService as unknown as NotificationService);
+    MockUserRegistrationService.mockImplementation(() => mockUserRegistrationService as unknown as UserRegistrationService);
   });
 
   describe('tRPC input validation schemas', () => {
@@ -605,7 +634,7 @@ describe('Notifications Router tRPC Implementation', () => {
 
       // Simulate the tRPC procedure logic
       const userId = 'user-1';
-      const updateData: any = {};
+      const updateData: NotificationUpdateData = {};
       if (input.email !== undefined) updateData.emailNotifications = input.email;
       if (input.push !== undefined) updateData.pushNotifications = input.push;
       if (input.discord !== undefined) updateData.discordNotifications = input.discord;
@@ -654,7 +683,7 @@ describe('Notifications Router tRPC Implementation', () => {
       mockPrisma.userPreferences.upsert.mockResolvedValue({});
 
       const userId = 'user-1';
-      const updateData: any = {};
+      const updateData: NotificationUpdateData = {};
       if (input.email !== undefined) updateData.emailNotifications = input.email;
 
       await mockPrisma.userPreferences.upsert({
@@ -797,7 +826,7 @@ describe('Notifications Router tRPC Implementation', () => {
       mockNotificationService.cleanupOldNotifications.mockResolvedValue(mockResult);
 
       // Default should be 30 days
-      const result = await mockNotificationService.cleanupOldNotifications(30);
+      await mockNotificationService.cleanupOldNotifications(30);
       
       expect(mockNotificationService.cleanupOldNotifications).toHaveBeenCalledWith(30);
     });

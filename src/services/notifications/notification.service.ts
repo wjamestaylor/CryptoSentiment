@@ -13,6 +13,15 @@ export interface NotificationData {
   alertType?: AlertType;
 }
 
+// User type for notification methods
+interface NotificationUser {
+  email: string | null;
+  name: string | null;
+  preferences?: {
+    emailNotifications?: boolean;
+  } | null;
+}
+
 export class NotificationService {
   private emailService: EmailService;
 
@@ -48,7 +57,7 @@ export class NotificationService {
   async sendNotification(data: NotificationData) {
     try {
       // Create the notification record
-      const notification = await this.createNotification(data);
+      await this.createNotification(data);
 
       // Get user preferences for notification channels
       const user = await db.user.findUnique({
@@ -103,9 +112,13 @@ export class NotificationService {
   /**
    * Send specialized alert email
    */
-  private async sendAlertEmail(data: NotificationData, user: any) {
+  private async sendAlertEmail(data: NotificationData, user: NotificationUser) {
     if (!data.alertId || !data.cryptoId || !data.alertType) {
       throw new Error('Missing alert context for alert email');
+    }
+
+    if (!user.email) {
+      throw new Error('User email is required for alert email');
     }
 
     // Get alert and crypto details
@@ -139,7 +152,11 @@ export class NotificationService {
   /**
    * Send generic notification email
    */
-  private async sendGenericEmail(data: NotificationData, user: any) {
+  private async sendGenericEmail(data: NotificationData, user: NotificationUser) {
+    if (!user.email) {
+      throw new Error('User email is required for notification email');
+    }
+
     const subject = `CryptoSentiment: ${data.title}`;
     const html = this.generateGenericEmailHTML(data, user);
 
@@ -153,7 +170,7 @@ export class NotificationService {
   /**
    * Generate HTML for generic notification emails
    */
-  private generateGenericEmailHTML(data: NotificationData, user: any): string {
+  private generateGenericEmailHTML(data: NotificationData, user: NotificationUser): string {
     const dashboardLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard`;
 
     return `

@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 interface Toast {
   id: string
   title: string

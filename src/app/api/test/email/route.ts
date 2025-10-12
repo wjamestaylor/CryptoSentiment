@@ -1,11 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EmailService } from '@/services/email/email.service';
-import { NotificationService } from '@/services/notifications/notification.service';
 import { UserRegistrationService } from '@/services/notifications/user-registration.service';
 import { AlertType } from '@prisma/client';
 
+// Parameter interfaces for test functions
+interface WelcomeEmailParams {
+  email: string;
+  name?: string;
+}
+
+interface AlertEmailParams {
+  email: string;
+  name?: string;
+  cryptoName?: string;
+  cryptoSymbol?: string;
+  alertType?: AlertType;
+  title?: string;
+  message?: string;
+  triggerCount?: number;
+}
+
+interface GenericEmailParams {
+  email: string;
+  subject?: string;
+  title?: string;
+  content?: string;
+}
+
+interface UserRegistrationParams {
+  userId: string;
+}
+
 const emailService = new EmailService();
-const notificationService = new NotificationService();
 const userRegistrationService = new UserRegistrationService();
 
 export async function POST(request: NextRequest) {
@@ -55,7 +81,7 @@ async function testEmailConnection() {
   });
 }
 
-async function sendTestWelcomeEmail(params: any) {
+async function sendTestWelcomeEmail(params: WelcomeEmailParams) {
   const { email, name } = params;
   
   if (!email) {
@@ -75,7 +101,7 @@ async function sendTestWelcomeEmail(params: any) {
   });
 }
 
-async function sendTestAlertEmail(params: any) {
+async function sendTestAlertEmail(params: AlertEmailParams) {
   const { 
     email, 
     name, 
@@ -120,7 +146,7 @@ async function sendTestAlertEmail(params: any) {
   });
 }
 
-async function sendTestGenericEmail(params: any) {
+async function sendTestGenericEmail(params: GenericEmailParams) {
   const { 
     email, 
     subject = 'Test Notification from CryptoSentiment',
@@ -172,7 +198,7 @@ async function sendTestGenericEmail(params: any) {
   });
 }
 
-async function testUserRegistration(params: any) {
+async function testUserRegistration(params: UserRegistrationParams) {
   const { userId } = params;
   
   if (!userId) {

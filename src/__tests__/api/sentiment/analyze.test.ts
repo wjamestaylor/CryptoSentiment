@@ -93,7 +93,7 @@ describe('/api/sentiment/analyze', () => {
       });
 
       // Mock successful OpenRouter sentiment analysis
-      const { OpenRouterService } = require('@/lib/api/openrouter');
+      const { OpenRouterService } = await import('@/lib/api/openrouter');
       const mockAnalyzeSentiment = jest.fn().mockResolvedValue({
         sentiment: 'BULLISH',
         confidence: 0.85,
@@ -109,7 +109,7 @@ describe('/api/sentiment/analyze', () => {
         ]
       });
 
-      OpenRouterService.mockImplementation(() => ({
+      (OpenRouterService as jest.Mock).mockImplementation(() => ({
         analyzeSentiment: mockAnalyzeSentiment
       }));
 
@@ -159,12 +159,12 @@ describe('/api/sentiment/analyze', () => {
       });
 
       // Mock OpenRouter service error
-      const { OpenRouterService } = require('@/lib/api/openrouter');
+      const { OpenRouterService } = await import('@/lib/api/openrouter');
       const mockAnalyzeSentiment = jest.fn().mockRejectedValue(
         new Error('OpenRouter API error')
       );
 
-      OpenRouterService.mockImplementation(() => ({
+      (OpenRouterService as jest.Mock).mockImplementation(() => ({
         analyzeSentiment: mockAnalyzeSentiment
       }));
 
@@ -193,7 +193,7 @@ describe('/api/sentiment/analyze', () => {
       });
 
       // Mock successful OpenRouter sentiment analysis
-      const { OpenRouterService } = require('@/lib/api/openrouter');
+      const { OpenRouterService } = await import('@/lib/api/openrouter');
       const mockAnalyzeSentiment = jest.fn().mockResolvedValue({
         sentiment: 'NEUTRAL',
         confidence: 0.6,
@@ -202,7 +202,7 @@ describe('/api/sentiment/analyze', () => {
         factors: []
       });
 
-      OpenRouterService.mockImplementation(() => ({
+      (OpenRouterService as jest.Mock).mockImplementation(() => ({
         analyzeSentiment: mockAnalyzeSentiment
       }));
 
@@ -235,8 +235,8 @@ describe('/api/sentiment/analyze', () => {
       });
 
       // Mock OpenRouter service
-      const { OpenRouterService } = require('@/lib/api/openrouter');
-      OpenRouterService.mockImplementation(() => ({
+      const { OpenRouterService } = await import('@/lib/api/openrouter');
+      (OpenRouterService as jest.Mock).mockImplementation(() => ({
         analyzeSentiment: jest.fn().mockResolvedValue({
           sentiment: 'BEARISH',
           confidence: 0.7,

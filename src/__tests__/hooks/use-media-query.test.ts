@@ -103,12 +103,8 @@ describe('Media Query Hooks', () => {
 
   describe('useIsTablet', () => {
     it('returns true when screen is between md and lg breakpoints', () => {
-      // Reset call count for this test
-      let callCount = 0;
-      
       const mockMatchMediaForTablet = jest.fn().mockImplementation((query) => {
         const matches = query.includes('768px') ? true : false; // md matches, lg doesn't
-        callCount++;
         
         return {
           matches,

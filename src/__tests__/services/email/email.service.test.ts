@@ -1,5 +1,6 @@
 import { EmailService, AlertEmailData } from '@/services/email/email.service';
 import { AlertType } from '@prisma/client';
+import nodemailer from 'nodemailer';
 
 // Mock nodemailer
 jest.mock('nodemailer', () => ({
@@ -9,9 +10,14 @@ jest.mock('nodemailer', () => ({
   })),
 }));
 
+interface MockTransporter {
+  sendMail: jest.Mock;
+  verify: jest.Mock;
+}
+
 describe('EmailService', () => {
   let emailService: EmailService;
-  let mockTransporter: any;
+  let mockTransporter: MockTransporter;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -20,12 +26,11 @@ describe('EmailService', () => {
     process.env.FROM_EMAIL = 'test@cryptosentiment.com';
     process.env.NEXTAUTH_URL = 'http://localhost:3000';
     
-    const nodemailer = require('nodemailer');
     mockTransporter = {
       sendMail: jest.fn(),
       verify: jest.fn(),
     };
-    nodemailer.createTransport.mockReturnValue(mockTransporter);
+    (nodemailer.createTransport as jest.Mock).mockReturnValue(mockTransporter);
     
     emailService = new EmailService();
   });
@@ -45,7 +50,6 @@ describe('EmailService', () => {
       
       new EmailService();
       
-      const nodemailer = require('nodemailer');
       expect(nodemailer.createTransport).toHaveBeenCalledWith({
         host: 'smtp.resend.com',
         port: 465,
@@ -65,7 +69,6 @@ describe('EmailService', () => {
       
       new EmailService();
       
-      const nodemailer = require('nodemailer');
       expect(nodemailer.createTransport).toHaveBeenCalledWith({
         host: 'smtp.example.com',
         port: 587,
@@ -80,7 +83,6 @@ describe('EmailService', () => {
     it('should use default SMTP configuration when no environment variables', () => {
       new EmailService();
       
-      const nodemailer = require('nodemailer');
       expect(nodemailer.createTransport).toHaveBeenCalledWith({
         host: 'localhost',
         port: 587,

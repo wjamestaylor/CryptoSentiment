@@ -35,7 +35,26 @@ const mockToast = toast as jest.MockedFunction<typeof toast>
 
 // Import the mocked api 
 import { api } from '@/lib/trpc/provider'
-const mockApi = api as any
+
+// Type for mocked API structure
+interface MockedApi {
+  alerts: {
+    getUserAlerts: {
+      useQuery: jest.Mock
+    }
+    createAlert: {
+      useMutation: jest.Mock
+    }
+    updateAlert: {
+      useMutation: jest.Mock
+    }
+    deleteAlert: {
+      useMutation: jest.Mock
+    }
+  }
+}
+
+const mockApi = api as unknown as MockedApi
 
 // Mock alerts data
 const mockAlert = {
@@ -134,7 +153,7 @@ describe('AlertsPage', () => {
       deleteAlert: {
         useMutation: jest.fn().mockReturnValue(mockDeleteAlert)
       }
-    } as any
+    }
   })
 
   describe('Authentication States', () => {

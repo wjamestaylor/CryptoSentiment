@@ -1,11 +1,19 @@
 import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
+import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { NotificationService } from '@/services/notifications/notification.service';
 import { UserRegistrationService } from '@/services/notifications/user-registration.service';
 import { NotificationType } from '@prisma/client';
 
 const notificationService = new NotificationService();
 const userRegistrationService = new UserRegistrationService();
+
+// Interface for notification preference updates
+interface NotificationPreferenceUpdate {
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  discordNotifications?: boolean;
+  telegramNotifications?: boolean;
+}
 
 export const notificationsRouter = createTRPCRouter({
   /**
@@ -173,7 +181,7 @@ export const notificationsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       try {
         // Prepare update data
-        const updateData: any = {};
+        const updateData: NotificationPreferenceUpdate = {};
         if (input.email !== undefined) updateData.emailNotifications = input.email;
         if (input.push !== undefined) updateData.pushNotifications = input.push;
         if (input.discord !== undefined) updateData.discordNotifications = input.discord;

@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AlertService } from '@/services/notifications/alerts.service';
 import { AlertType } from '@prisma/client';
 
+interface CreateAlertParams {
+  userId?: string;
+  cryptoSymbol?: string;
+  cryptoName?: string;
+  alertType?: AlertType;
+  condition?: {
+    sentimentThreshold?: number;
+    direction?: 'bullish' | 'bearish' | 'above' | 'below';
+  };
+}
+
+interface CheckAlertParams {
+  cryptoSymbol?: string;
+  sentimentData?: {
+    score: number;
+    label: string;
+    confidence: number;
+  };
+}
+
 const alertService = new AlertService();
 
 export async function POST(request: NextRequest) {
@@ -32,7 +52,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function createTestAlert(params: any) {
+async function createTestAlert(params: CreateAlertParams) {
   const { 
     userId = 'test-user-id',
     cryptoSymbol = 'btc',
@@ -72,7 +92,7 @@ async function createTestAlert(params: any) {
   }
 }
 
-async function checkTestAlert(params: any) {
+async function checkTestAlert(params: CheckAlertParams) {
   const { 
     cryptoSymbol = 'btc',
     sentimentData = {

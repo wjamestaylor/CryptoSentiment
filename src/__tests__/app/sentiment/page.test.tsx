@@ -88,7 +88,6 @@ describe('SentimentPage', () => {
       render(<SentimentPage />);
       
       // Should show loading spinner in suspense fallback
-      const loadingElement = document.querySelector('.animate-spin');
       // Note: Due to Suspense, this might not be visible in tests, but the component structure should be there
     });
 

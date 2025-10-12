@@ -91,7 +91,7 @@ export function getCoinGeckoId(symbol: string): string | null {
  * Get symbol from CoinGecko ID
  */
 export function getSymbolFromCoinGeckoId(coinGeckoId: string): string | null {
-  const entry = Object.entries(SYMBOL_TO_COINGECKO_ID).find(([_, id]) => id === coinGeckoId);
+  const entry = Object.entries(SYMBOL_TO_COINGECKO_ID).find(([, id]) => id === coinGeckoId);
   return entry ? entry[0] : null;
 }
 

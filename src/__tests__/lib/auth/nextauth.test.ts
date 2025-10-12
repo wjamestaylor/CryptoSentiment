@@ -54,8 +54,9 @@ afterAll(() => {
 // Import after mocking
 import { authOptions } from '@/lib/auth/nextauth';
 import { getServerSession } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import EmailProvider from 'next-auth/providers/email';
+import { type GetServerSidePropsContext } from 'next';
+
+// Mock next-auth getServerSession
 
 describe('NextAuth Configuration', () => {
   beforeEach(() => {
@@ -163,8 +164,8 @@ describe('NextAuth Configuration', () => {
       const mockRes = { statusCode: 200 };
       
       const result = await getServerAuthSession({
-        req: mockReq as any,
-        res: mockRes as any
+        req: mockReq as GetServerSidePropsContext['req'],
+        res: mockRes as GetServerSidePropsContext['res']
       });
 
       expect(getServerSession).toHaveBeenCalledWith(
@@ -180,8 +181,8 @@ describe('NextAuth Configuration', () => {
 
       const { getServerAuthSession } = await import('@/lib/auth/nextauth');
       const result = await getServerAuthSession({
-        req: {} as any,
-        res: {} as any
+        req: {} as GetServerSidePropsContext['req'],
+        res: {} as GetServerSidePropsContext['res']
       });
 
       expect(result).toBeNull();

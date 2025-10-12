@@ -5,7 +5,7 @@ import { AlertType, NotificationType } from '@prisma/client';
 // Mock EmailService
 jest.mock('@/services/email/email.service');
 
-// Mock Prisma with jest-mock-extended
+// Mock the database
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     notification: {
@@ -23,8 +23,9 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-// Get the mocked prisma
-const { prisma: mockPrisma } = require('@/lib/db/prisma');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockDb = require('@/lib/db/prisma').prisma;
+
 const MockedEmailService = EmailService as jest.MockedClass<typeof EmailService>;
 
 describe('NotificationService', () => {
@@ -35,12 +36,11 @@ describe('NotificationService', () => {
     jest.clearAllMocks();
     
     // Create mock email service instance
-    mockEmailService = {
-      sendEmail: jest.fn(),
-      sendAlertEmail: jest.fn(),
-      sendWelcomeEmail: jest.fn(),
-      testConnection: jest.fn(),
-    } as any;
+    mockEmailService = new EmailService() as jest.Mocked<EmailService>;
+    jest.spyOn(mockEmailService, 'sendEmail').mockImplementation(jest.fn());
+    jest.spyOn(mockEmailService, 'sendAlertEmail').mockImplementation(jest.fn());
+    jest.spyOn(mockEmailService, 'sendWelcomeEmail').mockImplementation(jest.fn());
+    jest.spyOn(mockEmailService, 'testConnection').mockImplementation(jest.fn());
     
     MockedEmailService.mockImplementation(() => mockEmailService);
     
@@ -59,7 +59,7 @@ describe('NotificationService', () => {
         createdAt: new Date(),
       };
 
-      mockPrisma.notification.create.mockResolvedValue(mockNotification);
+      mockDb.notification.create.mockResolvedValue(mockNotification);
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -72,7 +72,7 @@ describe('NotificationService', () => {
       const result = await notificationService.createNotification(notificationData);
 
       expect(result).toEqual(mockNotification);
-      expect(mockPrisma.notification.create).toHaveBeenCalledWith({
+      expect(mockDb.notification.create).toHaveBeenCalledWith({
         data: {
           userId: 'user-1',
           type: NotificationType.ALERT_TRIGGERED,
@@ -85,7 +85,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle database error', async () => {
-      mockPrisma.notification.create.mockRejectedValue(new Error('Database error'));
+      mockDb.notification.create.mockRejectedValue(new Error('Database error'));
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -121,8 +121,8 @@ describe('NotificationService', () => {
     };
 
     beforeEach(() => {
-      mockPrisma.notification.create.mockResolvedValue(mockNotification);
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockDb.notification.create.mockResolvedValue(mockNotification);
+      mockDb.user.findUnique.mockResolvedValue(mockUser);
     });
 
     it('should send alert email when notification is alert triggered', async () => {
@@ -135,7 +135,7 @@ describe('NotificationService', () => {
         triggerCount: 5,
       };
 
-      mockPrisma.alert.findUnique.mockResolvedValue(mockAlert);
+      mockDb.alert.findUnique.mockResolvedValue(mockAlert);
       mockEmailService.sendAlertEmail.mockResolvedValue(true);
 
       const notificationData: NotificationData = {
@@ -195,7 +195,7 @@ describe('NotificationService', () => {
         },
       };
 
-      mockPrisma.user.findUnique.mockResolvedValue(userWithoutEmailNotifications);
+      mockDb.user.findUnique.mockResolvedValue(userWithoutEmailNotifications);
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -217,7 +217,7 @@ describe('NotificationService', () => {
         email: null,
       };
 
-      mockPrisma.user.findUnique.mockResolvedValue(userWithoutEmail);
+      mockDb.user.findUnique.mockResolvedValue(userWithoutEmail);
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -249,7 +249,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle user not found', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockDb.user.findUnique.mockResolvedValue(null);
 
       const notificationData: NotificationData = {
         userId: 'nonexistent-user',
@@ -281,7 +281,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle alert not found for alert emails', async () => {
-      mockPrisma.alert.findUnique.mockResolvedValue(null);
+      mockDb.alert.findUnique.mockResolvedValue(null);
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -343,12 +343,12 @@ describe('NotificationService', () => {
         },
       ];
 
-      mockPrisma.notification.findMany.mockResolvedValue(mockNotifications);
+      mockDb.notification.findMany.mockResolvedValue(mockNotifications);
 
       const result = await notificationService.getUnreadNotifications('user-1');
 
       expect(result).toEqual(mockNotifications);
-      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+      expect(mockDb.notification.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
           isRead: false,
@@ -358,7 +358,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle database error', async () => {
-      mockPrisma.notification.findMany.mockRejectedValue(new Error('Database error'));
+      mockDb.notification.findMany.mockRejectedValue(new Error('Database error'));
 
       await expect(notificationService.getUnreadNotifications('user-1')).rejects.toThrow(
         'Failed to get notifications: Database error'
@@ -368,12 +368,12 @@ describe('NotificationService', () => {
 
   describe('markAsRead', () => {
     it('should mark notifications as read', async () => {
-      mockPrisma.notification.updateMany.mockResolvedValue({ count: 2 });
+      mockDb.notification.updateMany.mockResolvedValue({ count: 2 });
 
       const result = await notificationService.markAsRead(['notification-1', 'notification-2']);
 
       expect(result).toEqual({ success: true });
-      expect(mockPrisma.notification.updateMany).toHaveBeenCalledWith({
+      expect(mockDb.notification.updateMany).toHaveBeenCalledWith({
         where: {
           id: { in: ['notification-1', 'notification-2'] },
         },
@@ -384,7 +384,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle database error', async () => {
-      mockPrisma.notification.updateMany.mockRejectedValue(new Error('Database error'));
+      mockDb.notification.updateMany.mockRejectedValue(new Error('Database error'));
 
       await expect(notificationService.markAsRead(['notification-1'])).rejects.toThrow(
         'Failed to mark notifications as read: Database error'
@@ -395,12 +395,12 @@ describe('NotificationService', () => {
   describe('cleanupOldNotifications', () => {
     it('should delete old read notifications', async () => {
       const mockResult = { count: 5 };
-      mockPrisma.notification.deleteMany.mockResolvedValue(mockResult);
+      mockDb.notification.deleteMany.mockResolvedValue(mockResult);
 
       const result = await notificationService.cleanupOldNotifications(30);
 
       expect(result).toEqual(mockResult);
-      expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
+      expect(mockDb.notification.deleteMany).toHaveBeenCalledWith({
         where: {
           createdAt: { lt: expect.any(Date) },
           isRead: true,
@@ -410,11 +410,11 @@ describe('NotificationService', () => {
 
     it('should use default days when not specified', async () => {
       const mockResult = { count: 3 };
-      mockPrisma.notification.deleteMany.mockResolvedValue(mockResult);
+      mockDb.notification.deleteMany.mockResolvedValue(mockResult);
 
       await notificationService.cleanupOldNotifications();
 
-      expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
+      expect(mockDb.notification.deleteMany).toHaveBeenCalledWith({
         where: {
           createdAt: { lt: expect.any(Date) },
           isRead: true,
@@ -423,7 +423,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle database error', async () => {
-      mockPrisma.notification.deleteMany.mockRejectedValue(new Error('Database error'));
+      mockDb.notification.deleteMany.mockRejectedValue(new Error('Database error'));
 
       await expect(notificationService.cleanupOldNotifications()).rejects.toThrow(
         'Failed to cleanup notifications: Database error'

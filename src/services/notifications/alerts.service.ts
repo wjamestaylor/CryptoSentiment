@@ -49,8 +49,34 @@ export interface SentimentData {
 export interface PriceData {
   cryptoId: string;
   price: number;
-  change24h: number;
+  change24h?: number;
+  percentChange24h?: number;
   volume24h?: number;
+}
+
+export interface VolumeData {
+  cryptoId: string;
+  volume24h: number;
+}
+
+// Type for alerts with included crypto data
+interface AlertWithCrypto {
+  id: string;
+  userId: string;
+  cryptoId: string;
+  type: AlertType;
+  condition: string;
+  isActive: boolean;
+  lastTriggered: Date | null;
+  triggerCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  crypto?: {
+    id: string;
+    name: string;
+    symbol: string;
+    coinGeckoId?: string | null;
+  } | null;
 }
 
 export class AlertService {
@@ -135,7 +161,7 @@ export class AlertService {
    * Get all alerts for a user
    */
   async getUserAlerts(userId: string, activeOnly: boolean = false) {
-    const whereClause: any = { userId };
+    const whereClause: { userId: string; isActive?: boolean } = { userId };
     if (activeOnly) {
       whereClause.isActive = true;
     }
@@ -154,7 +180,11 @@ export class AlertService {
    */
   async updateAlert(alertId: string, data: UpdateAlertData) {
     try {
-      const updateData: any = {
+      const updateData: {
+        updatedAt: Date;
+        isActive?: boolean;
+        condition?: string;
+      } = {
         updatedAt: new Date(),
       };
 
@@ -201,7 +231,7 @@ export class AlertService {
   /**
    * Check alerts for a specific cryptocurrency and trigger if conditions are met
    */
-  async checkAlerts(cryptoId: string, data: SentimentData | PriceData) {
+  async checkAlerts(cryptoId: string, data: SentimentData | PriceData | VolumeData) {
     try {
       // Get all active alerts for this cryptocurrency
       const activeAlerts = await db.alert.findMany({
@@ -226,7 +256,14 @@ export class AlertService {
         } else if (alert.type === AlertType.PRICE_CHANGE && 'price' in data) {
           shouldTrigger = this.checkPriceCondition(condition, data as PriceData);
         } else if (alert.type === AlertType.VOLUME_SPIKE && 'volume24h' in data) {
-          shouldTrigger = this.checkVolumeCondition(condition, data as PriceData);
+          // Ensure we have valid volume data
+          const volumeData = data as PriceData;
+          if (volumeData.volume24h !== undefined) {
+            shouldTrigger = this.checkVolumeCondition(condition, { 
+              cryptoId: volumeData.cryptoId, 
+              volume24h: volumeData.volume24h 
+            });
+          }
         }
 
         if (shouldTrigger) {
@@ -268,6 +305,7 @@ export class AlertService {
 
     if (percentage) {
       // Check percentage change
+      if (data.change24h === undefined) return false;
       const changePercent = Math.abs(data.change24h);
       return changePercent >= priceThreshold;
     } else {
@@ -285,7 +323,7 @@ export class AlertService {
   /**
    * Check if volume conditions are met
    */
-  private checkVolumeCondition(condition: AlertCondition, data: PriceData): boolean {
+  private checkVolumeCondition(condition: AlertCondition, data: VolumeData): boolean {
     const { volumeThreshold } = condition;
     
     if (!volumeThreshold || !data.volume24h) return false;
@@ -297,7 +335,7 @@ export class AlertService {
   /**
    * Trigger an alert by sending notifications and updating the alert record
    */
-  private async triggerAlert(alert: any, data: SentimentData | PriceData) {
+  private async triggerAlert(alert: AlertWithCrypto, data: SentimentData | PriceData | VolumeData) {
     try {
       // Update alert trigger information
       await db.alert.update({
@@ -331,7 +369,7 @@ export class AlertService {
   /**
    * Create notification content based on alert type and data
    */
-  private createNotificationContent(alert: any, data: SentimentData | PriceData) {
+  private createNotificationContent(alert: AlertWithCrypto, data: SentimentData | PriceData | VolumeData) {
     const cryptoName = alert.crypto?.name || alert.cryptoId;
     
     if (alert.type === AlertType.SENTIMENT_CHANGE && 'score' in data) {
@@ -342,15 +380,19 @@ export class AlertService {
       };
     } else if (alert.type === AlertType.PRICE_CHANGE && 'price' in data) {
       const priceData = data as PriceData;
+      const changeText = priceData.change24h !== undefined 
+        ? ` with a 24h change of ${priceData.change24h.toFixed(2)}%`
+        : '';
       return {
         title: `${cryptoName} Price Alert`,
-        message: `${cryptoName} price is now $${priceData.price.toLocaleString()} with a 24h change of ${priceData.change24h.toFixed(2)}%.`,
+        message: `${cryptoName} price is now $${priceData.price.toLocaleString()}${changeText}.`,
       };
     } else if (alert.type === AlertType.VOLUME_SPIKE && 'volume24h' in data) {
-      const volumeData = data as PriceData;
+      const volumeData = data as VolumeData | PriceData;
+      const volume = 'volume24h' in volumeData ? volumeData.volume24h : undefined;
       return {
         title: `${cryptoName} Volume Alert`,
-        message: `${cryptoName} has unusual volume activity: $${volumeData.volume24h?.toLocaleString()} in 24h trading volume.`,
+        message: `${cryptoName} has unusual volume activity: $${volume?.toLocaleString() || 'N/A'} in 24h trading volume.`,
       };
     }
 

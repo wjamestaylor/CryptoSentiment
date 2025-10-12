@@ -23,6 +23,13 @@ interface AlertCondition {
   notificationMethods?: string[]
 }
 
+interface CreateAlertFormData {
+  cryptoSymbol: string
+  cryptoName?: string
+  type: AlertType
+  condition: AlertCondition
+}
+
 interface Alert {
   id: string
   type: AlertType
@@ -38,7 +45,7 @@ interface Alert {
 }
 
 export default function AlertsPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [activeOnly, setActiveOnly] = useState(false)
 
@@ -276,7 +283,7 @@ function CreateAlertForm({
   isLoading,
 }: {
   onCancel: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: CreateAlertFormData) => void
   isLoading: boolean
 }) {
   const [alertType, setAlertType] = useState<AlertType>(AlertType.SENTIMENT_CHANGE)
