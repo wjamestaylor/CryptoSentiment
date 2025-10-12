@@ -2,29 +2,46 @@
  * Coverage tests for sentiment tRPC router
  */
 
+// Mock superjson first
+jest.mock('superjson', () => ({
+  serialize: jest.fn(),
+  deserialize: jest.fn(),
+  stringify: jest.fn(),
+  parse: jest.fn(),
+}));
+
 // Mock external dependencies
-jest.mock('next-auth/providers/google', () => ({
-  default: jest.fn(() => ({
+jest.mock('next-auth/providers/google', () => {
+  return jest.fn(() => ({
     id: 'google',
     name: 'Google',
     type: 'oauth',
-  })),
-}));
-jest.mock('next-auth/providers/email', () => ({
-  default: jest.fn(() => ({
+  }));
+});
+
+jest.mock('next-auth/providers/email', () => {
+  return jest.fn(() => ({
     id: 'email',
     name: 'Email',
     type: 'email',
-  })),
+  }));
+});
+
+jest.mock('@/lib/api/openrouter', () => ({
+  openRouterClient: jest.fn(),
 }));
-jest.mock('@/lib/api/openrouter');
-jest.mock('next-auth');
-jest.mock('next-auth/next');
+
+jest.mock('next-auth', () => ({
+  getServerSession: jest.fn(),
+}));
+
 jest.mock('jose', () => ({}));
 jest.mock('openid-client', () => ({}));
+
 jest.mock('@next-auth/prisma-adapter', () => ({
   PrismaAdapter: jest.fn(),
 }));
+
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     sentiment: {

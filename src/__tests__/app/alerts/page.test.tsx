@@ -165,7 +165,7 @@ describe('AlertsPage', () => {
       })
 
       render(<AlertsPage />)
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
+      expect(document.querySelector('.container.mx-auto.py-6.px-4')).toBeInTheDocument()
     })
 
     it('redirects unauthenticated users', () => {

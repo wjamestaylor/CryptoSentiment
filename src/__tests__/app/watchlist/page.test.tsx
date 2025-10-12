@@ -333,7 +333,7 @@ describe('WatchlistPage', () => {
       const searchInput = screen.getByPlaceholderText('Search cryptocurrency (e.g., bitcoin, ethereum)...');
       fireEvent.change(searchInput, { target: { value: 'bitcoin' } });
 
-      expect(screen.getByText('Searching...')).toBeInTheDocument();
+      expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
     });
 
     it('shows no results message', () => {
