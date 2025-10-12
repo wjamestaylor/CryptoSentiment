@@ -7,6 +7,49 @@ const nextConfig: NextConfig = {
       'assets.coingecko.com',
     ],
   },
+  
+  // Production optimizations
+  output: 'standalone',
+  
+  // Enable compression
+  compress: true,
+  
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+    ];
+  },
+  
+  // Rewrites for API optimization
+  async rewrites() {
+    return [
+      {
+        source: '/api/health',
+        destination: '/api/health',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

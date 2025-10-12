@@ -7,7 +7,9 @@ import {
   CryptoPriceLoading,
   DashboardStatsLoading,
   TableLoading,
-  SentimentLoading
+  SentimentLoading,
+  AlertPageLoading,
+  WatchlistLoading
 } from '@/components/ui/loading';
 
 describe('Loading Components', () => {
@@ -96,6 +98,36 @@ describe('Loading Components', () => {
       
       const skeletons = screen.getAllByRole('status', { hidden: true });
       expect(skeletons.length).toBeGreaterThan(5);
+    });
+  });
+
+  describe('AlertPageLoading', () => {
+    it('renders alert page skeleton with proper structure', () => {
+      const { container } = render(<AlertPageLoading />);
+      
+      // Should have container structure
+      expect(container.querySelector('.container')).toBeInTheDocument();
+      
+      // Should have grid layout
+      expect(container.querySelector('.grid')).toBeInTheDocument();
+      
+      const skeletons = screen.getAllByRole('status', { hidden: true });
+      expect(skeletons.length).toBeGreaterThan(8); // Multiple skeleton elements
+    });
+  });
+
+  describe('WatchlistLoading', () => {
+    it('renders watchlist page skeleton with proper structure', () => {
+      const { container } = render(<WatchlistLoading />);
+      
+      // Should have container structure
+      expect(container.querySelector('.container')).toBeInTheDocument();
+      
+      // Should have grid layout for two columns
+      expect(container.querySelector('.grid-cols-1.lg\\:grid-cols-2')).toBeInTheDocument();
+      
+      const skeletons = screen.getAllByRole('status', { hidden: true });
+      expect(skeletons.length).toBeGreaterThan(15); // Multiple skeleton elements for both sections
     });
   });
 

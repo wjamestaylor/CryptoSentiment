@@ -5,7 +5,9 @@ import {
   DefaultErrorFallback, 
   withErrorBoundary,
   ApiErrorFallback,
-  DataErrorFallback 
+  DataErrorFallback,
+  NetworkErrorFallback,
+  AuthErrorFallback
 } from '@/components/ui/error-boundary';
 
 // Test component that throws an error
@@ -193,5 +195,60 @@ describe('withErrorBoundary HOC', () => {
     const WrappedComponent = withErrorBoundary(TestComponent);
 
     expect(WrappedComponent.displayName).toBe('withErrorBoundary(TestComponent)');
+  });
+});
+
+describe('NetworkErrorFallback', () => {
+  it('renders network-specific error message', () => {
+    const mockResetError = jest.fn();
+
+    render(
+      <NetworkErrorFallback resetError={mockResetError} />
+    );
+
+    expect(screen.getByText('Connection Error')).toBeInTheDocument();
+    expect(screen.getByText('Unable to connect to the server. Please check your internet connection.')).toBeInTheDocument();
+    expect(screen.getByText('Reconnect')).toBeInTheDocument();
+  });
+
+  it('calls resetError when reconnect button is clicked', () => {
+    const mockResetError = jest.fn();
+
+    render(
+      <NetworkErrorFallback resetError={mockResetError} />
+    );
+
+    const reconnectButton = screen.getByText('Reconnect');
+    fireEvent.click(reconnectButton);
+
+    expect(mockResetError).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AuthErrorFallback', () => {
+  it('renders auth-specific error message', () => {
+    const mockResetError = jest.fn();
+
+    render(
+      <AuthErrorFallback resetError={mockResetError} />
+    );
+
+    expect(screen.getByText('Authentication Error')).toBeInTheDocument();
+    expect(screen.getByText('Your session has expired. Please sign in again.')).toBeInTheDocument();
+    expect(screen.getByText('Try again')).toBeInTheDocument();
+    expect(screen.getByText('Sign In')).toBeInTheDocument();
+  });
+
+  it('calls resetError when try again button is clicked', () => {
+    const mockResetError = jest.fn();
+
+    render(
+      <AuthErrorFallback resetError={mockResetError} />
+    );
+
+    const retryButton = screen.getByText('Try again');
+    fireEvent.click(retryButton);
+
+    expect(mockResetError).toHaveBeenCalledTimes(1);
   });
 });

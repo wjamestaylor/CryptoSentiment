@@ -86,12 +86,15 @@ export default function WatchlistPage() {
 
   if (!session) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-6 sm:py-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <Card className="p-8">
-            <h2 className="text-2xl font-bold mb-4">Sign In Required</h2>
-            <p className="text-gray-600 mb-6">Please sign in to manage your cryptocurrency watchlist.</p>
-            <Button onClick={() => window.location.href = '/api/auth/signin'}>
+          <Card className="p-6 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4">Sign In Required</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm sm:text-base">Please sign in to manage your cryptocurrency watchlist.</p>
+            <Button 
+              onClick={() => window.location.href = '/api/auth/signin'}
+              className="w-full sm:w-auto"
+            >
               Sign In
             </Button>
           </Card>
@@ -101,13 +104,14 @@ export default function WatchlistPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">My Watchlist</h1>
+    <div className="container mx-auto py-6 sm:py-8 px-4">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">My Watchlist</h1>
           <Button
             onClick={() => setIsSearching(!isSearching)}
             variant={isSearching ? "secondary" : "default"}
+            className="w-full sm:w-auto"
           >
             {isSearching ? "Cancel" : "Add Cryptocurrency"}
           </Button>
@@ -117,11 +121,11 @@ export default function WatchlistPage() {
         {isSearching && (
           <Card>
             <CardHeader>
-              <CardTitle>Add Cryptocurrency</CardTitle>
-              <CardDescription>Search and add cryptocurrencies to your watchlist</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Add Cryptocurrency</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Search and add cryptocurrencies to your watchlist</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <Input
                   placeholder="Search cryptocurrency (e.g., bitcoin, ethereum)..."
                   value={searchQuery}
@@ -135,9 +139,19 @@ export default function WatchlistPage() {
                 {searchQuery.length > 2 && (
                   <div className="space-y-2">
                     {isSearchLoading ? (
-                      <div className="text-center py-4">
-                        <div className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-                        <p className="text-sm text-gray-500 mt-2">Searching...</p>
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 border rounded-lg animate-pulse">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-8 w-8 bg-muted rounded-full"></div>
+                              <div>
+                                <div className="h-4 w-16 bg-muted rounded mb-1"></div>
+                                <div className="h-3 w-12 bg-muted rounded"></div>
+                              </div>
+                            </div>
+                            <div className="h-8 w-20 bg-muted rounded"></div>
+                          </div>
+                        ))}
                       </div>
                     ) : searchResults?.data?.coins?.length > 0 ? (
                       <div className="max-h-60 overflow-y-auto space-y-2">

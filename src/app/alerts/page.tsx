@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AlertPageLoading } from '@/components/ui/loading';
 import { Switch } from '@/components/ui/switch'
 import { AlertType } from '@prisma/client'
 import { Trash2, Plus, Bell, TrendingUp, Volume2 } from 'lucide-react'
@@ -51,7 +52,7 @@ export default function AlertsPage() {
 
   // Redirect if not authenticated
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return <AlertPageLoading />
   }
 
   if (status === 'unauthenticated') {
@@ -167,22 +168,26 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Alert Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Alert Management</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Set up alerts for price changes, sentiment shifts, and market events
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
+        <Button 
+          onClick={() => setShowCreateForm(true)}
+          className="w-full sm:w-auto"
+          size="sm"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Create Alert
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:space-x-4 sm:gap-0">
         <div className="flex items-center space-x-2">
           <Switch
             id="active-only"

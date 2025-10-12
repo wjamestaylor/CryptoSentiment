@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { SentimentLoading } from '@/components/ui/loading';
 
 interface SentimentFactor {
   description: string;
@@ -82,19 +83,19 @@ function SentimentPageContent() {
   }, [cryptoParam, analyzeSentiment]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-6 sm:py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Crypto Sentiment Analysis</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Crypto Sentiment Analysis</h1>
         
-        <Card className="mb-8">
+        <Card className="mb-6 sm:mb-8">
           <CardHeader>
-            <CardTitle>Analyze Cryptocurrency Sentiment</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Analyze Cryptocurrency Sentiment</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               Get AI-powered sentiment analysis for any cryptocurrency
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Input
                 placeholder="Enter cryptocurrency (e.g., bitcoin, ethereum)"
                 value={cryptocurrency}
@@ -104,6 +105,7 @@ function SentimentPageContent() {
               <Button 
                 onClick={analyzeSentiment}
                 disabled={loading || !cryptocurrency.trim()}
+                className="w-full sm:w-auto"
               >
                 {loading ? 'Analyzing...' : 'Analyze'}
               </Button>
@@ -117,7 +119,11 @@ function SentimentPageContent() {
           </CardContent>
         </Card>
 
-        {analysis && (
+        {loading && (
+          <SentimentLoading />
+        )}
+
+        {analysis && !loading && (
           <Card>
             <CardHeader>
               <CardTitle>Sentiment Analysis Results</CardTitle>
@@ -131,32 +137,32 @@ function SentimentPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm text-blue-600 font-medium">Overall Sentiment</div>
-                    <div className="text-2xl font-bold text-blue-900 capitalize">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                    <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Overall Sentiment</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100 capitalize">
                       {analysis.sentiment}
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <div className="text-sm text-green-600 font-medium">Confidence</div>
-                    <div className="text-2xl font-bold text-green-900">
+                  <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                    <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">Confidence</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">
                       {Math.round(analysis.confidence * 100)}%
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <div className="text-sm text-purple-600 font-medium">Score</div>
-                    <div className="text-2xl font-bold text-purple-900">
+                  <div className="p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg sm:col-span-2 lg:col-span-1">
+                    <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">Score</div>
+                    <div className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
                       {Math.round((analysis.score + 1) * 50)}/100
                     </div>
                   </div>
                 </div>
 
                 {analysis.reasoning && (
-                  <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                     <div className="text-sm text-gray-600 font-medium mb-2">AI Analysis</div>
                     <div className="text-gray-800">{analysis.reasoning}</div>
                   </div>
