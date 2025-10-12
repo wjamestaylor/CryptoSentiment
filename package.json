@@ -23,11 +23,17 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "docker:build": "docker build -t cryptosentiment .",
+    "docker:run": "docker run -p 3000:3000 cryptosentiment",
+    "docker:compose": "docker-compose up --build",
+    "deploy:railway": "railway up",
+    "prod:setup": "npm ci && npx prisma generate && npx prisma migrate deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

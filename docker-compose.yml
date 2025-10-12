@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+    depends_on:
+      - postgres
+    volumes:
+      - ./.env.local:/app/.env.local:ro
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=cryptosentiment
+      - POSTGRES_USER=cryptosentiment
+      - POSTGRES_PASSWORD=cryptosentiment_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
