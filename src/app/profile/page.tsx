@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BotConnection } from "@/components/profile/BotConnection";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -57,6 +58,12 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bot Integration */}
+      <BotConnection initialStatus={{
+        discord: { connected: false, userId: null, notificationsEnabled: false },
+        telegram: { connected: false, userId: null, notificationsEnabled: false }
+      }} />
 
       {/* Preferences Card */}
       <Card>

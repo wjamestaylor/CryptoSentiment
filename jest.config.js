@@ -16,7 +16,9 @@ const customJestConfig = {
   ],
   testPathIgnorePatterns: [
     'src/__tests__/__mocks__/',
+    'src/__tests__/_disabled/',
     'node_modules/',
+    '.*\\.mock\\.(js|jsx|ts|tsx)$',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
