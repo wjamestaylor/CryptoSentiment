@@ -7,14 +7,18 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including devDependencies needed for build)
+RUN npm ci && npm cache clean --force
 
 # Copy source code
 COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
+
+# Set environment for build
+ENV NODE_ENV=production
+ENV SKIP_ENV_VALIDATION=true
 
 # Build application
 RUN npm run build
@@ -37,7 +41,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Generate Prisma client
 RUN npx prisma generate
