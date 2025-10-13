@@ -44,19 +44,33 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM,
-      maxAge: 24 * 60 * 60, // 24 hours
-    }),
+    // Only include EmailProvider if email configuration is available
+    ...(process.env.RESEND_API_KEY || (process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER)
+      ? [EmailProvider({
+          server: process.env.RESEND_API_KEY 
+            ? {
+                host: 'smtp.resend.com',
+                port: 465,
+                secure: true,
+                auth: {
+                  user: 'resend',
+                  pass: process.env.RESEND_API_KEY,
+                },
+              }
+            : {
+                host: process.env.EMAIL_SERVER_HOST,
+                port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+                secure: false, // true for 465, false for other ports
+                auth: {
+                  user: process.env.EMAIL_SERVER_USER,
+                  pass: process.env.EMAIL_SERVER_PASSWORD,
+                },
+              },
+          from: process.env.FROM_EMAIL || process.env.EMAIL_FROM,
+          maxAge: 24 * 60 * 60, // 24 hours
+        })]
+      : []
+    ),
   ],
   pages: {
     signIn: '/auth/signin',
