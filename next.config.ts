@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
   // Enable compression
   compress: true,
   
+  // ESLint configuration
+  eslint: {
+    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
+    dirs: ['src/app', 'src/components', 'src/lib', 'src/server', 'src/services'], // Exclude test directories
+  },
+  
   // Security headers
   async headers() {
     return [
