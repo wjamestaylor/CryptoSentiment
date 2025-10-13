@@ -24,6 +24,10 @@ describe('Database Operations', () => {
         username: null,
         image: null,
         subscriptionId: null,
+        discordUserId: null,
+        discordVerified: false,
+        telegramUserId: null,
+        telegramVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -55,6 +59,10 @@ describe('Database Operations', () => {
         username: null,
         image: null,
         subscriptionId: null,
+        discordUserId: null,
+        discordVerified: false,
+        telegramUserId: null,
+        telegramVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -80,6 +88,10 @@ describe('Database Operations', () => {
         username: null,
         image: null,
         subscriptionId: null,
+        discordUserId: null,
+        discordVerified: false,
+        telegramUserId: null,
+        telegramVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

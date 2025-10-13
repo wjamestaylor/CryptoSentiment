@@ -20,6 +20,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Bot integration fields
+  discordUserId    String?  @unique
+  discordVerified  Boolean  @default(false)
+  telegramUserId   String?  @unique
+  telegramVerified Boolean  @default(false)
+
   // Subscription information
   subscription   Subscription?
   subscriptionId String?
