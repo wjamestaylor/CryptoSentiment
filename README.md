@@ -301,3 +301,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **CryptoSentiment** - AI-Powered Cryptocurrency Sentiment Analysis Platform# Updated at Tue 14 Oct 2025 08:39:29 AM NZDT
 # Deployment trigger Tue 14 Oct 2025 05:13:25 PM NZDT
 # Clear SMTP config Tue 14 Oct 2025 06:00:34 PM NZDT
+# Clear EMAIL_FROM Tue 14 Oct 2025 07:02:28 PM NZDT
