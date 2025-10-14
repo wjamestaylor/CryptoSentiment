@@ -1,18 +1,5 @@
-import { type GetServerSidePropsContext }  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    // Temporarily disable email provider to debug
-    // ...(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')
-    //   ? [EmailProvider({
-    //       server: `smtp://resend:${process.env.RESEND_API_KEY}@smtp.resend.com:465`,
-    //       from: process.env.FROM_EMAIL || 'wjamestaylor@gmail.com',
-    //       maxAge: 24 * 60 * 60, // 24 hours
-    //     })]
-    //   : []
-    // ),
-  ],port {
+import { type GetServerSidePropsContext } from 'next'
+import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
@@ -57,10 +44,18 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-        // Only include EmailProvider if Resend is configured properly
+    // Email provider with Resend
     ...(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')
       ? [EmailProvider({
-          server: `smtp://resend:${process.env.RESEND_API_KEY}@smtp.resend.com:465`,
+          server: {
+            host: 'smtp.resend.com',
+            port: 465,
+            secure: true,
+            auth: {
+              user: 'resend',
+              pass: process.env.RESEND_API_KEY,
+            },
+          },
           from: process.env.FROM_EMAIL || 'wjamestaylor@gmail.com',
           maxAge: 24 * 60 * 60, // 24 hours
         })]
