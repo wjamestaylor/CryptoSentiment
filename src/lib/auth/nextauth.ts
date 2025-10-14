@@ -44,10 +44,11 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    // Only include EmailProvider if email configuration is available
-    ...(process.env.RESEND_API_KEY || (process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER)
+    // Only include EmailProvider if email configuration is properly set
+    ...((process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) || 
+        (process.env.EMAIL_SERVER_HOST && process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD && process.env.EMAIL_SERVER_PASSWORD.length > 10)
       ? [EmailProvider({
-          server: process.env.RESEND_API_KEY 
+          server: (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_'))
             ? {
                 host: 'smtp.resend.com',
                 port: 465,
@@ -60,7 +61,7 @@ export const authOptions: NextAuthOptions = {
             : {
                 host: process.env.EMAIL_SERVER_HOST,
                 port: Number(process.env.EMAIL_SERVER_PORT) || 587,
-                secure: false, // true for 465, false for other ports
+                secure: process.env.EMAIL_SERVER_PORT === '465',
                 auth: {
                   user: process.env.EMAIL_SERVER_USER,
                   pass: process.env.EMAIL_SERVER_PASSWORD,
