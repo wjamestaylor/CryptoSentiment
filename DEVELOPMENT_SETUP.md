@@ -28,19 +28,21 @@ npx prisma migrate deploy
 
 ### 3. Start Development
 ```bash
-# Run development server
+# Run development server with Turbopack
 npm run dev
 
 # Run tests (optional)
 npm test
 
 # Check coverage (optional)
-npm test -- --coverage
+npm run test:coverage
 ```
 
 ### 4. Verify Setup
 - Open [http://localhost:3000](http://localhost:3000)
-- Check that cryptocurrency data loads
+- Sign in with Google OAuth (working in production)
+- Add cryptocurrencies to watchlist
+- Test AI sentiment analysis
 - Verify no console errors
 
 ## 🔧 Environment Variables
@@ -50,98 +52,150 @@ npm test -- --coverage
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/cryptosentiment"
 
-# Authentication
+# Authentication (NextAuth.js)
 NEXTAUTH_SECRET="your-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
 
-# APIs (for full functionality)
-COINGECKO_API_KEY="your-coingecko-key"  # Optional for free tier
-OPENROUTER_API_KEY="your-openrouter-key"
+# Google OAuth (required for authentication)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# APIs (required for full functionality)
+OPENROUTER_API_KEY="sk-or-..."  # AI sentiment analysis
+COINGECKO_API_KEY="CG-..."      # Crypto data (optional - free tier available)
 ```
 
 ### Optional
 ```bash
-# Additional APIs
+# Additional APIs (future features)
 WHALEALERT_API_KEY="your-whalealert-key"
 NEWSDATA_API_KEY="your-newsdata-key"
 
-# Payments
+# Payments (subscription system)
 STRIPE_SECRET_KEY="your-stripe-key"
+STRIPE_PUBLISHABLE_KEY="your-stripe-publishable-key"
 
-# Notifications
+# Bot notifications (future features)
 DISCORD_BOT_TOKEN="your-discord-token"
 TELEGRAM_BOT_TOKEN="your-telegram-token"
+
+# Email service (currently disabled due to NextAuth issues)
+EMAIL_FROM="noreply@cryptosentiment.com"
+RESEND_API_KEY="re_..."
 ```
 
 ## 📊 Development Status
 
-### ✅ Working Features
+### ✅ Production Ready Features
 - **Live Cryptocurrency Data**: Real-time prices via CoinGecko API
-- **tRPC API**: All 15+ endpoints functional
-- **Database**: PostgreSQL with Prisma ORM
-- **UI Components**: Complete shadcn/ui component library
-- **Testing**: 45.38% coverage, 117 tests passing
+- **AI Sentiment Analysis**: OpenRouter integration working
+- **Google OAuth Authentication**: Full user authentication flow
+- **Smart Watchlist**: Add/remove cryptocurrencies with AI analysis
+- **Responsive Dashboard**: Mobile-first design with shadcn/ui
+- **Database**: PostgreSQL with 11 Prisma models, 5 migrations deployed
+- **tRPC API**: Type-safe API with all endpoints functional
+- **Testing**: 606+ tests across 42 suites (100% pass rate)
 
-### 🔄 In Development
-- **AI Sentiment Analysis**: Service ready, needs API key
-- **User Authentication**: Backend ready, UI in progress
-- **Alert System**: Database ready, UI needed
+### 🔄 In Development (High Priority)
+- **Pricing/Subscription System**: Stripe integration needed
+- **Email Authentication**: NextAuth email provider disabled (SMTP issues)
+- **Bot Integrations**: Discord and Telegram notification setup
+- **Alert System**: Email and multi-channel notifications
+- **UI Polish**: Color consistency fixes across app sections
+
+### 📈 Current Metrics
+- **Test Coverage**: 606+ automated tests, 42 test suites
+- **Database**: 11 models, 5 successful migrations
+- **API Coverage**: 100% tRPC router coverage
+- **Production Status**: Deployed on Railway with Google OAuth working
 
 ## 🛠 Common Development Tasks
 
-### Database
+### Database Operations
 ```bash
-# Reset database
+# Reset database (careful - deletes all data)
 npx prisma migrate reset
 
-# View database
+# View database in browser
 npx prisma studio
 
 # Generate types after schema changes
 npx prisma generate
+
+# Push schema changes (development)
+npx prisma db push
+
+# Create new migration (production)
+npx prisma migrate dev --name migration_name
 ```
 
-### Testing
+### Testing & Quality
 ```bash
-# Run specific test
-npm test -- coingecko
+# Run all tests
+npm test
 
-# Watch mode
-npm test -- --watch
+# Run tests with coverage
+npm run test:coverage
 
-# Coverage for specific file
-npm test -- --coverage services/
-```
+# Watch mode for development
+npm run test:watch
 
-### Code Quality
-```bash
-# Type check
+# Run specific test file
+npm test services/crypto/coinGecko.service.test.ts
+
+# Type checking
 npm run type-check
 
-# Lint
+# Linting with auto-fix
 npm run lint
+```
 
-# Format
-npm run format
+### Development Server
+```bash
+# Start with Turbopack (fast)
+npm run dev
+
+# Build for production testing
+npm run build
+npm run start
+
+# Database admin interface
+npx prisma studio  # Opens http://localhost:5555
 ```
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-**Database connection error:**
+**Google OAuth not working:**
+```bash
+# Ensure environment variables are set
+echo $GOOGLE_CLIENT_ID
+echo $GOOGLE_CLIENT_SECRET
+
+# Check NextAuth configuration in src/lib/auth/nextauth.ts
+# Verify redirect URIs in Google Cloud Console
+```
+
+**Database connection errors:**
 ```bash
 # Check PostgreSQL is running
 pg_isready
 
 # Verify connection string in .env.local
 echo $DATABASE_URL
+
+# Test database connection
+npx prisma db push
 ```
 
-**tRPC errors:**
+**AI Analysis not working:**
 ```bash
-# Regenerate tRPC types
-npm run dev  # This regenerates types automatically
+# Verify OpenRouter API key
+echo $OPENROUTER_API_KEY
+
+# Check service in src/services/ai/openrouter.service.ts
+# Look for API errors in browser console
 ```
 
 **Test failures:**
@@ -149,41 +203,47 @@ npm run dev  # This regenerates types automatically
 # Clear Jest cache
 npm test -- --clearCache
 
-# Run specific failing test
-npm test -- --testNamePattern="specific test name"
+# Run tests in sequence (avoid parallel issues)
+npm test -- --runInBand
+
+# Check specific test output
+npm test -- --verbose services/crypto/coinGecko.service.test.ts
 ```
 
 ### Development URLs
 - **Main App**: http://localhost:3000
 - **Database Studio**: http://localhost:5555 (after `npx prisma studio`)
-- **API Docs**: http://localhost:3000/api (when implemented)
+- **Production App**: https://lavish-patience-production-f0a0.up.railway.app
 
-## 📈 Performance Tips
-
-### Development
-- Use `npm run dev` for hot reloading
-- Keep Prisma Studio open for database inspection
-- Use `npm test -- --watch` for continuous testing
-
-### Production
-- All environment variables configured
-- Database migrations applied
-- Build successful: `npm run build`
+### Performance & Debugging
+- Use React DevTools for component debugging
+- Check Network tab for API call issues
+- Monitor Console for tRPC errors
+- Use Prisma Studio for database inspection
 
 ## 🆘 Getting Help
 
-### Resources
-- **Documentation**: `/docs` folder
-- **Implementation Guide**: `docs/IMPLEMENTATION_CHECKLIST.md`
-- **Test Coverage**: `docs/TEST_COVERAGE_REPORT.md`
-- **Security**: `SECURITY.md`
+### Documentation Resources
+- **[Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md)**: Current development status and priorities
+- **[Test Coverage Report](docs/TEST_COVERAGE_REPORT.md)**: Quality metrics and testing details
+- **[Security Setup](SECURITY-SETUP.md)**: Security configuration and best practices
+- **[Production Email Setup](PRODUCTION_EMAIL_SETUP.md)**: Email service configuration (currently disabled)
 
-### Issues
-- Check existing GitHub issues
-- Review error logs in development console
-- Verify environment variables are set correctly
+### Issue Resolution
+1. **Check Console Errors**: Browser DevTools → Console tab
+2. **Verify Environment**: Ensure all required `.env.local` variables are set
+3. **Database Issues**: Use `npx prisma studio` to inspect data
+4. **API Problems**: Check Network tab for failed requests
+5. **Test Failures**: Run `npm test -- --verbose` for detailed output
+
+### Development Workflow
+1. **Start Development**: `npm run dev` (with Turbopack for speed)
+2. **Database Changes**: Use `npx prisma db push` for schema updates
+3. **Test Changes**: Run `npm test` before committing
+4. **Type Safety**: Use `npm run type-check` for TypeScript validation
 
 ---
 
-**Last Updated**: October 10, 2025  
-**Current Status**: ✅ Ready for development with 45.38% test coverage
+**Last Updated**: October 15, 2025  
+**Current Status**: ✅ Production-ready with Google OAuth authentication  
+**Live Demo**: https://lavish-patience-production-f0a0.up.railway.app
