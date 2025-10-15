@@ -28,6 +28,10 @@ export class SubscriptionService {
     successUrl,
     cancelUrl,
   }: CreateCheckoutSessionParams): Promise<Stripe.Checkout.Session> {
+    if (!stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     try {
       // Get user from database
       const user = await prisma.user.findUnique({
@@ -69,6 +73,10 @@ export class SubscriptionService {
    * Create Stripe customer portal session
    */
   async createPortalSession(userId: string, returnUrl: string): Promise<Stripe.BillingPortal.Session> {
+    if (!stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     try {
       // Get user's subscription with Stripe customer ID
       const subscription = await prisma.subscription.findUnique({
@@ -161,6 +169,10 @@ export class SubscriptionService {
    * Handle successful subscription creation
    */
   async handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
+    if (!stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
     try {
       const customerId = subscription.customer as string;
       const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
