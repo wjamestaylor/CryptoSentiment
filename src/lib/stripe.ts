@@ -18,14 +18,14 @@ export const getStripe = (): Stripe => {
   return stripeInstance;
 };
 
-// Export stripe as a getter that returns null during build if no key
-export const stripe = (() => {
+// Export stripe using a getter function to avoid build-time evaluation
+export const stripe = process.env.STRIPE_SECRET_KEY ? (() => {
   try {
-    return process.env.STRIPE_SECRET_KEY ? getStripe() : null;
+    return getStripe();
   } catch {
     return null;
   }
-})();
+})() : null;
 
 // Stripe product and price IDs (will be configured in Stripe Dashboard)
 export const STRIPE_CONFIG = {
