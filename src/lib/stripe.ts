@@ -1,18 +1,31 @@
 import Stripe from 'stripe';
 
-// Only throw error at runtime, not during build
-const getStripe = () => {
+// Lazy-initialized Stripe instance
+let stripeInstance: Stripe | null = null;
+
+export const getStripe = (): Stripe => {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
   }
-  return new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-09-30.clover',
-    typescript: true,
-  });
+  
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-09-30.clover',
+      typescript: true,
+    });
+  }
+  
+  return stripeInstance;
 };
 
-// Export a getter instead of direct instance to avoid build-time evaluation
-export const stripe = process.env.STRIPE_SECRET_KEY ? getStripe() : null;
+// Export stripe as a getter that returns null during build if no key
+export const stripe = (() => {
+  try {
+    return process.env.STRIPE_SECRET_KEY ? getStripe() : null;
+  } catch {
+    return null;
+  }
+})();
 
 // Stripe product and price IDs (will be configured in Stripe Dashboard)
 export const STRIPE_CONFIG = {
