@@ -302,3 +302,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 # Deployment trigger Tue 14 Oct 2025 05:13:25 PM NZDT
 # Clear SMTP config Tue 14 Oct 2025 06:00:34 PM NZDT
 # Clear EMAIL_FROM Tue 14 Oct 2025 07:02:28 PM NZDT
+# Enable Google OAuth Wed 15 Oct 2025 03:11:33 PM NZDT
