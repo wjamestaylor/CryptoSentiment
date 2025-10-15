@@ -23,8 +23,13 @@ export default function Home() {
             </Link>
             <Link href="/auth/signup" className="w-full sm:w-auto">
               <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Get Started
+                Get Started Free
               </Button>
+            </Link>
+          </div>
+          <div className="mt-4">
+            <Link href="/pricing" className="text-blue-600 hover:text-blue-700 font-medium">
+              View Pricing Plans →
             </Link>
           </div>
         </div>
@@ -83,48 +88,48 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Current Status */}
+        {/* CTA Section */}
         <div className="text-center">
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-3xl mx-auto bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
             <CardHeader>
-              <CardTitle>🚀 Development Status</CardTitle>
+              <CardTitle className="text-2xl font-bold">Ready to Make Smarter Crypto Decisions? 🚀</CardTitle>
               <CardDescription>
-                CryptoSentiment is actively being developed with cutting-edge features
+                Join traders using AI-powered sentiment analysis for better market insights
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-left">
-                  <div className="font-semibold text-green-600">✅ Completed</div>
-                  <ul className="mt-2 space-y-1 text-gray-600">
-                    <li>• Email Authentication</li>
-                    <li>• AI Service Integration</li>
-                    <li>• Database Schema</li>
-                    <li>• 45% Test Coverage</li>
-                  </ul>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                  <div className="font-bold text-green-600 text-lg">Free</div>
+                  <div className="text-gray-600 dark:text-gray-300">10 AI analyses</div>
+                  <div className="text-gray-600 dark:text-gray-300">10 watchlist coins</div>
                 </div>
-                <div className="text-left">
-                  <div className="font-semibold text-blue-600">🔄 In Progress</div>
-                  <ul className="mt-2 space-y-1 text-gray-600">
-                    <li>• User Dashboard</li>
-                    <li>• Alert System</li>
-                    <li>• Subscription Plans</li>
-                    <li>• Mobile App</li>
-                  </ul>
+                <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/20 rounded-lg border-2 border-blue-400">
+                  <div className="font-bold text-blue-600 text-lg">Pro - $9/month</div>
+                  <div className="text-gray-600 dark:text-gray-300">100 AI analyses</div>
+                  <div className="text-gray-600 dark:text-gray-300">50 coins + bot alerts</div>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                  <div className="font-bold text-purple-600 text-lg">Business - $29/month</div>
+                  <div className="text-gray-600 dark:text-gray-300">500 AI analyses</div>
+                  <div className="text-gray-600 dark:text-gray-300">Unlimited + API access</div>
                 </div>
               </div>
-              <div className="pt-4">
-                <Link href="/dashboard">
-                  <Button variant="outline" className="mr-4">
-                    View Dashboard
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/pricing">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    View All Plans
                   </Button>
                 </Link>
-                <Link href="/sentiment">
-                  <Button>
-                    Test AI Analysis
+                <Link href="/auth/signup">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Start Free Trial
                   </Button>
                 </Link>
               </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No credit card required • 30-day free trial • Cancel anytime
+              </p>
             </CardContent>
           </Card>
         </div>
