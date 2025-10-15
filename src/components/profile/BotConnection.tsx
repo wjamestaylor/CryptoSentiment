@@ -123,11 +123,13 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copied!',
-      description: 'Verification code copied to clipboard.',
-    });
+    if (typeof window !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      toast({
+        title: 'Copied!',
+        description: 'Verification code copied to clipboard.',
+      });
+    }
   };
 
   const getBotIcon = (botType: BotType) => {
@@ -253,7 +255,11 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       variant="ghost"
                       size="sm"
                       className="text-xs"
-                      onClick={() => window.open('https://discord.gg/cryptosentiment', '_blank')}
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          window.open('https://discord.gg/cryptosentiment', '_blank');
+                        }
+                      }}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />
                       Join Server
@@ -334,7 +340,11 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       variant="ghost"
                       size="sm"
                       className="text-xs"
-                      onClick={() => window.open('https://t.me/CryptoSentimentBot', '_blank')}
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          window.open('https://t.me/CryptoSentimentBot', '_blank');
+                        }
+                      }}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />
                       Start Bot
@@ -430,7 +440,11 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => window.open(getBotInstructions(selectedBot).actionUrl, '_blank')}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.open(getBotInstructions(selectedBot).actionUrl, '_blank');
+                }
+              }}
               className="w-full sm:w-auto"
             >
               <ExternalLink className="w-4 h-4 mr-2" />

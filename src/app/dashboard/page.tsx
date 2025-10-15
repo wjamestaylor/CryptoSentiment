@@ -15,6 +15,7 @@ import { ErrorBoundary, ApiErrorFallback } from '@/components/ui/error-boundary'
 import { useIsMobile } from '@/hooks/use-media-query';
 import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { CoinGeckoPrice } from '@/types';
+import { SubscriptionStatus } from '@/components/subscription/SubscriptionStatus';
 
 export default function CryptoDashboard() {
   const { data: session } = useSession();
@@ -170,6 +171,16 @@ export default function CryptoDashboard() {
             Track top cryptocurrencies and manage your watchlist
           </p>
         </div>
+
+        {/* Subscription Status - Only show for authenticated users */}
+        {session && (
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="md:col-span-2">
+              {/* Placeholder for future dashboard widgets */}
+            </div>
+            <SubscriptionStatus />
+          </div>
+        )}
 
         {/* Quick Stats */}
         {allDisplayedCryptos && allDisplayedCryptos.length > 0 && (

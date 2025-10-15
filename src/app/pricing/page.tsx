@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Zap, Users, Bot, BarChart3, Bell, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from '@/hooks/use-toast';
 
 interface PricingTier {
   name: string;
@@ -181,7 +182,7 @@ export default function PricingPage() {
 
   const handlePlanSelect = async (tier: PricingTier) => {
     if (tier.price === 0) {
-      // Free plan - redirect to signup
+      // Free plan - redirect to signup or dashboard
       if (!session) {
         router.push('/auth/signup');
       } else {
@@ -191,7 +192,7 @@ export default function PricingPage() {
     }
 
     if (!session) {
-      // Need to sign up first
+      // Need to sign up first for paid plans
       router.push('/auth/signup');
       return;
     }
@@ -199,16 +200,41 @@ export default function PricingPage() {
     setIsLoading(tier.name);
     
     try {
-      // TODO: Implement Stripe checkout
-      console.log(`Creating checkout for ${tier.name} plan`);
-      // For now, just redirect to dashboard
-      setTimeout(() => {
-        setIsLoading(null);
-        router.push('/dashboard');
-      }, 1000);
+      // Create Stripe checkout session
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: tier.name.toLowerCase(),
+          billing: billingInterval === 'month' ? 'monthly' : 'yearly',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      
+      // Redirect to Stripe checkout
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (error) {
       console.error('Error creating checkout:', error);
       setIsLoading(null);
+      
+      // Show user-friendly error message
+      toast({
+        title: "Checkout Error",
+        description: error instanceof Error ? error.message : 'Failed to start checkout. Please try again.',
+        variant: "destructive",
+      });
     }
   };
 
