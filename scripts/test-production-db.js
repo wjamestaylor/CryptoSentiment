@@ -1,5 +1,5 @@
 // Test production database schema
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
 
 async function testDatabase() {
   const prisma = new PrismaClient();

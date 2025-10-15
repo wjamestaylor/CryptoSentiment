@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Zap, Users, Bot, BarChart3, Bell, Shield } from 'lucide-react';
-import Link from 'next/link';
+import { Check, Zap, Users, Bot, BarChart3, Bell, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface PricingTier {

@@ -10,7 +10,7 @@ jest.mock('crypto', () => ({
 // Simple test for bot router functionality
 describe('Bots Router Logic', () => {
   it('should generate verification code format correctly', () => {
-    const crypto = require('crypto');
+    const crypto = jest.requireMock('crypto');
     crypto.randomBytes.mockReturnValue({
       toString: jest.fn(() => 'abc12345'),
     });

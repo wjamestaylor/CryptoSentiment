@@ -29,6 +29,17 @@ jest.mock('@/lib/trpc/provider', () => ({
         useMutation: jest.fn(),
       },
     },
+    subscription: {
+      getCurrent: {
+        useQuery: jest.fn(),
+      },
+      checkFeatureAccess: {
+        useQuery: jest.fn(),
+      },
+      getLimits: {
+        useQuery: jest.fn(),
+      },
+    },
   },
 }));
 
@@ -73,6 +84,17 @@ interface MockedApi {
     }
     unfollowCrypto: {
       useMutation: jest.Mock
+    }
+  }
+  subscription: {
+    getCurrent: {
+      useQuery: jest.Mock
+    }
+    checkFeatureAccess: {
+      useQuery: jest.Mock
+    }
+    getLimits: {
+      useQuery: jest.Mock
     }
   }
 }
@@ -139,6 +161,44 @@ describe('CryptoDashboard', () => {
     mockApi.crypto.getFollowedCryptos.useQuery.mockReturnValue({
       data: { data: mockFollowedCryptos },
       refetch: jest.fn(),
+    });
+
+    // Default subscription API mocks
+    mockApi.subscription.getCurrent.useQuery.mockReturnValue({
+      data: {
+        id: 'sub-1',
+        tier: 'FREE',
+        status: 'ACTIVE',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        trialEnd: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    mockApi.subscription.checkFeatureAccess.useQuery.mockReturnValue({
+      data: { hasAccess: true },
+      isLoading: false,
+      error: null,
+    });
+
+    mockApi.subscription.getLimits.useQuery.mockReturnValue({
+      data: {
+        aiAnalysisUsed: 2,
+        aiAnalysisLimit: 10,
+        watchlistUsed: 1,
+        watchlistLimit: 10,
+        alertsUsed: 0,
+        alertsLimit: 3,
+      },
+      isLoading: false,
+      error: null,
     });
 
     mockApi.crypto.getCryptosByIds.useQuery.mockReturnValue({

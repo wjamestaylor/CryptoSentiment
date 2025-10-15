@@ -1,6 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { prisma } from '@/lib/db/prisma';
-import { Cryptocurrency, User } from '@prisma/client';
 import { z } from 'zod';
 
 // Telegram bot token will be read when needed
@@ -310,7 +309,7 @@ export class TelegramService {
   /**
    * Register Telegram user with CryptoSentiment account
    */
-  async registerUser(telegramUserId: string, telegramUsername?: string): Promise<boolean> {
+  async registerUser(telegramUserId: string): Promise<boolean> {
     try {
       // This is a placeholder - in reality, users would link accounts through the web interface
       // For now, we'll just store the Telegram user ID if a user exists
@@ -382,7 +381,7 @@ export class TelegramService {
    * Handle /register command
    */
   private async handleRegisterCommand(chatId: number, userId: string, username?: string): Promise<void> {
-    await this.registerUser(userId, username);
+    await this.registerUser(userId);
   }
 
   /**

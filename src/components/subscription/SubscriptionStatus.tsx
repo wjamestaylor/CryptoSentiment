@@ -103,7 +103,7 @@ export function SubscriptionStatus() {
             Subscription
           </div>
           {sub.tier !== 'FREE' && (
-            <Badge variant={tierStyle.badge as any}>
+            <Badge variant={tierStyle.badge as "default" | "secondary" | "destructive" | "outline" | null | undefined}>
               {sub.tier}
             </Badge>
           )}

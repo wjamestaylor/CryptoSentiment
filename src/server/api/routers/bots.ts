@@ -68,7 +68,7 @@ export const botsRouter = createTRPCRouter({
       // Store verification code in cache/database (you might want to use Redis for this)
       // For now, we'll store it in a simple in-memory cache
       // In production, use Redis with expiration
-      const cacheKey = `bot_verification:${ctx.session.user.id}:${input.botType}`;
+      // const cacheKey = `bot_verification:${ctx.session.user.id}:${input.botType}`;
       
       // TODO: Replace with Redis cache
       // await redis.setex(cacheKey, 300, verificationCode); // 5 minutes expiration
@@ -109,7 +109,12 @@ export const botsRouter = createTRPCRouter({
       console.log(`Verifying bot linking for user ${ctx.session.user.id}: ${input.botType} - ${input.botUserId}`);
 
       // Update user with bot information
-      const updateData: any = {};
+      const updateData: {
+        discordUserId?: string;
+        discordVerified?: boolean;
+        telegramUserId?: string;
+        telegramVerified?: boolean;
+      } = {};
       
       if (input.botType === 'discord') {
         updateData.discordUserId = input.botUserId;
@@ -153,7 +158,12 @@ export const botsRouter = createTRPCRouter({
   unlinkBot: protectedProcedure
     .input(botUnlinkSchema)
     .mutation(async ({ ctx, input }) => {
-      const updateData: any = {};
+      const updateData: {
+        discordUserId?: string | null;
+        discordVerified?: boolean;
+        telegramUserId?: string | null;
+        telegramVerified?: boolean;
+      } = {};
       
       if (input.botType === 'discord') {
         updateData.discordUserId = null;

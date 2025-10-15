@@ -1,6 +1,7 @@
-import { Client, GatewayIntentBits, TextChannel, User, EmbedBuilder, SlashCommandBuilder, CommandInteraction, ActivityType } from 'discord.js';
+import { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, CommandInteraction, ActivityType } from 'discord.js';
 import { z } from 'zod';
 import { prisma } from '@/lib/db/prisma';
+import type { Alert } from '@prisma/client';
 
 // Environment variables
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -431,10 +432,10 @@ export class DiscordService {
       .setDescription(`You have ${user.alerts.length} active alert(s)`)
       .setColor(0x00ff00);
 
-    user.alerts.slice(0, 10).forEach((alert: any, index: number) => {
+    user.alerts.slice(0, 10).forEach((alert: Alert, index: number) => {
       embed.addFields({
         name: `Alert ${index + 1}`,
-        value: `**${alert.cryptoSymbol}** - ${alert.type}\nThreshold: ${alert.threshold || 'N/A'}`,
+        value: `**${alert.cryptoId}** - ${alert.type}\nThreshold: ${alert.condition || 'N/A'}`,
         inline: true,
       });
     });

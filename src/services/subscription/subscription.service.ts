@@ -1,7 +1,6 @@
 import { stripe, STRIPE_CONFIG, SUBSCRIPTION_TIERS } from '@/lib/stripe';
 import { prisma } from '@/lib/db/prisma';
 import { SubscriptionStatus, SubscriptionTier } from '@prisma/client';
-import type { User } from '@prisma/client';
 import type Stripe from 'stripe';
 
 export interface CreateCheckoutSessionParams {
@@ -182,6 +181,14 @@ export class SubscriptionService {
       const tier = this.mapPriceIdToTier(priceId);
       const status = this.mapStripeStatusToPrisma(subscription.status);
 
+      // Type assertion for Stripe subscription properties
+      const stripeSubscription = subscription as Stripe.Subscription & {
+        current_period_start: number;
+        current_period_end: number;
+        cancel_at_period_end: boolean;
+        trial_end?: number;
+      };
+
       // Create or update subscription in database
       await prisma.subscription.upsert({
         where: {
@@ -192,10 +199,10 @@ export class SubscriptionService {
           tier,
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: customerId,
-          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-          cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-          trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
         },
         create: {
           userId,
@@ -203,10 +210,10 @@ export class SubscriptionService {
           tier,
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: customerId,
-          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-          cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-          trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
         },
       });
 
@@ -222,16 +229,24 @@ export class SubscriptionService {
    */
   async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
     try {
+      // Type assertion for Stripe subscription properties
+      const stripeSubscription = subscription as Stripe.Subscription & {
+        current_period_start: number;
+        current_period_end: number;
+        cancel_at_period_end: boolean;
+        trial_end?: number;
+      };
+
       await prisma.subscription.update({
         where: {
           stripeSubscriptionId: subscription.id,
         },
         data: {
           status: this.mapStripeStatusToPrisma(subscription.status),
-          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-          cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-          trialEnd: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000) : null,
+          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
         },
       });
 

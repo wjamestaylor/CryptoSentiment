@@ -6,7 +6,6 @@ import {
 } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import GoogleProvider from 'next-auth/providers/google'
-import EmailProvider from 'next-auth/providers/email'
 import { prisma } from '@/lib/db/prisma'
 
 declare module 'next-auth' {
