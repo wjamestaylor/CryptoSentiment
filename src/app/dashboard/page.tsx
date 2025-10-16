@@ -15,7 +15,7 @@ import { ErrorBoundary, ApiErrorFallback } from '@/components/ui/error-boundary'
 import { useIsMobile } from '@/hooks/use-media-query';
 import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { CoinGeckoPrice } from '@/types';
-import { SubscriptionStatus } from '@/components/subscription/SubscriptionStatus';
+import { SubscriptionIndicator } from '@/components/subscription/SubscriptionIndicator';
 
 export default function CryptoDashboard() {
   const { data: session } = useSession();
@@ -165,22 +165,21 @@ export default function CryptoDashboard() {
     <ErrorBoundary>
       <div className="container mx-auto py-4 px-3 sm:py-6 sm:px-4 space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="text-center sm:text-left">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Cryptocurrency Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Track top cryptocurrencies and manage your watchlist
-          </p>
-        </div>
-
-        {/* Subscription Status - Only show for authenticated users */}
-        {session && (
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-2">
-              {/* Placeholder for future dashboard widgets */}
-            </div>
-            <SubscriptionStatus />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Cryptocurrency Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Track top cryptocurrencies and manage your watchlist
+            </p>
           </div>
-        )}
+          
+          {/* Subscription Indicator - Only show for authenticated users */}
+          {session && (
+            <div className="flex justify-center sm:justify-end">
+              <SubscriptionIndicator />
+            </div>
+          )}
+        </div>
 
         {/* Quick Stats */}
         {allDisplayedCryptos && allDisplayedCryptos.length > 0 && (
