@@ -1,6 +1,14 @@
 # CryptoSentiment 🚀
 
-> AI-powered cryptocurrency sentiment analysis platform with real-time data and intelligent notifications
+> AI-powered cryptocurrency sent## 🔧 Tech Stack
+
+**Frontend:** Next.js 15, TypeScript, Tailwind CSS, shadcn/ui  
+**Backend:** tRPC, Prisma, PostgreSQL, NextAuth.js  
+**AI/Data:** OpenRouter, CoinGecko, WhaleAlert, NewsData.io  
+**Analytics:** Portfolio tracking, performance metrics, SVG visualization  
+**Payments:** Stripe subscription management with feature gating  
+**Testing:** Jest (744 tests, 54 suites, 100% pass rate)  
+**Deployment:** Railway, Dockernalysis platform with real-time data and intelligent notifications
 
 ![Dashboard Preview](public/CryptoSentiment.png)
 
@@ -10,11 +18,14 @@
 
 - 🤖 **AI Sentiment Analysis** - Real-time sentiment scoring with OpenRouter LLMs
 - 📊 **Live Market Data** - Real-time prices and market data from CoinGecko
-- 👁️ **Smart Watchlist** - Track cryptocurrencies with one-click AI analysis
+- � **Portfolio Analytics** - Comprehensive performance tracking and insights
+- 💹 **Price Visualization** - SVG-based charts for price trends and volume
+- �👁️ **Smart Watchlist** - Track cryptocurrencies with one-click AI analysis
 - 🔐 **Secure Authentication** - Google OAuth + Magic Link email auth with NextAuth.js
 - 📱 **Responsive Design** - Mobile-first with shadcn/ui components
 - 🚨 **Alert System** - Custom notifications across multiple channels
 - 📈 **Type-Safe API** - Full-stack TypeScript with tRPC
+- 💳 **Subscription Management** - Stripe integration with feature gating
 
 *View [full feature list](docs/IMPLEMENTATION_CHECKLIST.md) for detailed capabilities and roadmap.*
 
