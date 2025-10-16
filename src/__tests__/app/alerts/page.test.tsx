@@ -11,6 +11,10 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }))
 jest.mock('@/hooks/use-toast')
+
+// Mock fetch globally
+global.fetch = jest.fn()
+
 jest.mock('@/lib/trpc/provider', () => ({
   api: {
     alerts: {
@@ -133,6 +137,26 @@ const mockRefetchAlerts = jest.fn()
 describe('AlertsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Setup fetch mock
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/api/alerts/templates')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ templates: [] })
+        })
+      }
+      if (url.includes('/api/alerts/monitoring')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ monitoring: null })
+        })
+      }
+      return Promise.resolve({
+        ok: false,
+        json: () => Promise.resolve({})
+      })
+    })
     
     // Setup API mocks
     mockApi.alerts = {

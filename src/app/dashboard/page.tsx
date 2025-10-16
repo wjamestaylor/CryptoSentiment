@@ -18,6 +18,9 @@ import { CoinGeckoPrice } from '@/types';
 import { SubscriptionIndicator } from '@/components/subscription/SubscriptionIndicator';
 import { useUsageLimit } from '@/components/feature-gating/FeatureGate';
 import { UsageType } from '@prisma/client';
+import { PortfolioSummary } from '@/components/analytics/PortfolioSummary';
+import { PriceChart } from '@/components/analytics/PriceChart';
+import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CryptoDashboard() {
@@ -299,6 +302,47 @@ export default function CryptoDashboard() {
                 <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 self-end sm:self-center" />
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* Analytics Section - Only show for authenticated users */}
+        {session && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Portfolio Analytics</h2>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/analytics', '_blank')}
+              >
+                View Full Analytics
+              </Button>
+            </div>
+            
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Portfolio Summary */}
+              <PortfolioSummary className="lg:col-span-1" showFullDetails={false} />
+              
+              {/* Price Chart for top performer */}
+              {followedCryptoPrices?.data && followedCryptoPrices.data.length > 0 && (
+                <PriceChart 
+                  className="lg:col-span-2"
+                  cryptoId={followedCryptoPrices.data[0].id}
+                  cryptoName={followedCryptoPrices.data[0].name}
+                  cryptoSymbol={followedCryptoPrices.data[0].symbol}
+                />
+              )}
+              
+              {/* If no followed cryptos, show Bitcoin chart */}
+              {(!followedCryptoPrices?.data || followedCryptoPrices.data.length === 0) && (
+                <PriceChart 
+                  className="lg:col-span-2"
+                  cryptoId="bitcoin"
+                  cryptoName="Bitcoin"
+                  cryptoSymbol="BTC"
+                />
+              )}
+            </div>
           </div>
         )}
 

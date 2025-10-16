@@ -30,6 +30,9 @@ jest.mock('@/lib/trpc/provider', () => ({
       unfollowCrypto: {
         useMutation: jest.fn(),
       },
+      getWatchlistSummary: {
+        useQuery: jest.fn(),
+      },
     },
     subscription: {
       getCurrent: {
@@ -56,6 +59,33 @@ jest.mock('@/hooks/use-toast', () => ({
 jest.mock('@/components/feature-gating/FeatureGate', () => ({
   FeatureGate: ({ children }: { children: React.ReactNode; fallback?: React.ReactNode }) => children,
   useUsageLimit: jest.fn(),
+}));
+
+jest.mock('@/components/analytics/PortfolioSummary', () => ({
+  PortfolioSummary: () => (
+    <div data-testid="portfolio-summary-mock">
+      <h3>Portfolio Summary</h3>
+      <p>Mock portfolio data for testing</p>
+    </div>
+  ),
+}));
+
+jest.mock('@/components/analytics/PriceChart', () => ({
+  PriceChart: () => (
+    <div data-testid="price-chart-mock">
+      <h3>Price Chart</h3>
+      <p>Mock price chart for testing</p>
+    </div>
+  ),
+}));
+
+jest.mock('@/components/analytics/AnalyticsDashboard', () => ({
+  AnalyticsDashboard: () => (
+    <div data-testid="analytics-dashboard-mock">
+      <h3>Analytics Dashboard</h3>
+      <p>Mock analytics dashboard for testing</p>
+    </div>
+  ),
 }));
 
 jest.mock('next/image', () => {
@@ -95,6 +125,9 @@ interface MockedApi {
     }
     unfollowCrypto: {
       useMutation: jest.Mock
+    }
+    getWatchlistSummary: {
+      useQuery: jest.Mock
     }
   }
   subscription: {
@@ -242,6 +275,19 @@ describe('CryptoDashboard', () => {
     mockApi.crypto.unfollowCrypto.useMutation.mockReturnValue({
       mutateAsync: jest.fn(),
       isPending: false,
+    });
+
+    // Mock analytics API
+    mockApi.crypto.getWatchlistSummary.useQuery.mockReturnValue({
+      data: {
+        totalWatched: 1,
+        totalValue: 45000,
+        totalGainLoss: 1125,
+        gainLossPercentage: 2.5,
+        topPerformer: { symbol: 'BTC', gainLoss: 1125 },
+      },
+      isLoading: false,
+      error: null,
     });
   });
 

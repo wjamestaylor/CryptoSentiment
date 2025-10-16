@@ -6,6 +6,7 @@ import { sentimentRouter } from './routers/sentiment'
 import { notificationsRouter } from './routers/notifications'
 import { botsRouter } from './routers/bots'
 import { subscriptionRouter } from './routers/subscription'
+import { analyticsRouter } from './routers/analytics'
 
 export const appRouter = createTRPCRouter({
   crypto: cryptoRouter,
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   notifications: notificationsRouter,
   bots: botsRouter,
   subscription: subscriptionRouter,
+  analytics: analyticsRouter,
 })
 
 export type AppRouter = typeof appRouter
