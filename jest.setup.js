@@ -1,8 +1,18 @@
 import '@testing-library/jest-dom'
 
+// Mock superjson to avoid ES module issues
+jest.mock('superjson', () => ({
+  default: {
+    stringify: jest.fn((obj) => JSON.stringify(obj)),
+    parse: jest.fn((str) => JSON.parse(str)),
+  },
+  stringify: jest.fn((obj) => JSON.stringify(obj)),
+  parse: jest.fn((str) => JSON.parse(str)),
+}));
+
 // Mock NextAuth to avoid ES module issues
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-require('./src/__tests__/__mocks__/next-auth.mock')
+require('./src/__tests__/__mocks__/next-auth.mock.ts')
 
 // Mock environment variables
 process.env.NEXTAUTH_SECRET = 'test-secret'

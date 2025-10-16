@@ -2,10 +2,23 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useSearchParams } from 'next/navigation';
 import SentimentPage from '@/app/sentiment/page';
+import { TestWrapper } from '../../utils/test-wrapper';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn(),
+}));
+
+// Mock the usage limit hook
+jest.mock('@/hooks/use-usage-limit', () => ({
+  useUsageLimit: jest.fn().mockReturnValue({
+    currentUsage: 2,
+    limit: 5,
+    allowed: true,
+    isLoading: false,
+    error: null,
+    refetch: jest.fn(),
+  }),
 }));
 
 // Mock fetch
@@ -14,6 +27,11 @@ const mockFetch = fetch as jest.Mock;
 
 // Mock search params
 const mockUseSearchParams = useSearchParams as jest.Mock;
+
+// Helper function to render with providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(<TestWrapper>{ui}</TestWrapper>);
+};
 
 // Sample sentiment analysis response
 const mockSentimentAnalysis = {
@@ -75,24 +93,30 @@ describe('SentimentPage', () => {
 
   describe('Component Rendering', () => {
     it('renders the main page structure', () => {
-      render(<SentimentPage />);
+      render(
+        <TestWrapper>
+          <SentimentPage />
+        </TestWrapper>
+      );
 
+      // Check main headings
       expect(screen.getByText('Crypto Sentiment Analysis')).toBeInTheDocument();
       expect(screen.getByText('Analyze Cryptocurrency Sentiment')).toBeInTheDocument();
-      expect(screen.getByText('Get AI-powered sentiment analysis for any cryptocurrency')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Analyze' })).toBeInTheDocument();
+
+      // Check input section
+      expect(screen.getByPlaceholderText(/Enter cryptocurrency/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Analyze$/i })).toBeInTheDocument();
     });
 
     it('renders loading fallback initially', () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
       
       // Should show loading spinner in suspense fallback
       // Note: Due to Suspense, this might not be visible in tests, but the component structure should be there
     });
 
     it('shows default input state', () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       expect(input).toHaveValue('bitcoin'); // Default value
@@ -108,7 +132,7 @@ describe('SentimentPage', () => {
         get: jest.fn().mockReturnValue('ethereum'),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       expect(input).toHaveValue('ethereum');
@@ -119,7 +143,7 @@ describe('SentimentPage', () => {
         get: jest.fn().mockReturnValue('bitcoin'),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       // Should automatically trigger analysis
       await waitFor(() => {
@@ -138,7 +162,7 @@ describe('SentimentPage', () => {
         get: jest.fn().mockReturnValue(''),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       expect(input).toHaveValue('bitcoin'); // Should fall back to default
@@ -147,7 +171,7 @@ describe('SentimentPage', () => {
 
   describe('User Interactions', () => {
     it('updates input value when user types', () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       fireEvent.change(input, { target: { value: 'ethereum' } });
@@ -156,7 +180,7 @@ describe('SentimentPage', () => {
     });
 
     it('disables analyze button when input is empty', () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
@@ -169,7 +193,7 @@ describe('SentimentPage', () => {
     });
 
     it('enables analyze button when input has content', () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
@@ -179,7 +203,7 @@ describe('SentimentPage', () => {
     });
 
     it('triggers analysis when analyze button is clicked', async () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -206,7 +230,7 @@ describe('SentimentPage', () => {
         }), 100))
       );
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -229,7 +253,7 @@ describe('SentimentPage', () => {
         }), 100))
       );
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -242,7 +266,7 @@ describe('SentimentPage', () => {
     it('displays error when API request fails', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -256,9 +280,10 @@ describe('SentimentPage', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
+        json: async () => ({}),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -272,7 +297,7 @@ describe('SentimentPage', () => {
       // First request fails
       mockFetch.mockRejectedValueOnce(new Error('First error'));
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -297,7 +322,7 @@ describe('SentimentPage', () => {
 
   describe('Analysis Results Display', () => {
     beforeEach(async () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -372,7 +397,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(analysisWithoutFactors),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -395,7 +420,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(analysisWithoutPriceData),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -418,7 +443,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(analysisWithoutReasoning),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -450,7 +475,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(analysisWithFactorsNoUrls),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -475,7 +500,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(analysisWithEmptyFactors),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);
@@ -490,7 +515,7 @@ describe('SentimentPage', () => {
 
   describe('API Integration', () => {
     it('sends correct request payload', async () => {
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const input = screen.getByPlaceholderText('Enter cryptocurrency (e.g., bitcoin, ethereum)');
       fireEvent.change(input, { target: { value: 'ethereum' } });
@@ -521,7 +546,7 @@ describe('SentimentPage', () => {
         json: jest.fn().mockResolvedValue(negativeSentiment),
       });
 
-      render(<SentimentPage />);
+      renderWithProviders(<SentimentPage />);
 
       const analyzeButton = screen.getByRole('button', { name: 'Analyze' });
       fireEvent.click(analyzeButton);

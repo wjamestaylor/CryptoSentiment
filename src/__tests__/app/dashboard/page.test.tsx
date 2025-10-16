@@ -166,7 +166,7 @@ describe('CryptoDashboard', () => {
     });
     
     // Mock useUsageLimit to handle different usage types
-    mockUseUsageLimit.mockImplementation((usageType: string) => ({
+    mockUseUsageLimit.mockImplementation(() => ({
       isLoading: false,
       allowed: true,
       currentUsage: 0,

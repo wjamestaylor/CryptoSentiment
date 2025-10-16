@@ -1,10 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/nextauth';
 import { OpenRouterService } from '@/lib/api/openrouter';
 import { AlertService } from '@/services/notifications/alerts.service';
-import { SentimentLabel } from '@prisma/client';
+import { FeatureGateService } from '@/services/feature-gate/feature-gate.service';
+import { UsageType, SentimentLabel } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user can perform AI analysis
+    const featureGateService = new FeatureGateService();
+    const canAnalyze = await featureGateService.canPerformAIAnalysis(session.user.id);
+    
+    if (!canAnalyze) {
+      // Get usage information for the error response
+      const usageInfo = await featureGateService.getUserUsage(session.user.id, UsageType.AI_ANALYSIS);
+      
+      return NextResponse.json(
+        { 
+          error: 'AI analysis limit reached',
+          details: 'Upgrade your subscription to continue using AI analysis',
+          usageInfo: {
+            currentUsage: usageInfo.currentUsage,
+            limit: usageInfo.limit,
+            resetDate: usageInfo.resetDate.toISOString()
+          }
+        },
+        { status: 403 }
+      );
+    }
+
     const { cryptocurrency } = await request.json();
     
     if (!cryptocurrency) {
@@ -65,6 +99,13 @@ export async function POST(request: NextRequest) {
 
     const openRouterService = new OpenRouterService();
     const analysis = await openRouterService.analyzeSentiment(analysisData);
+    
+    // Track the AI analysis usage
+    await featureGateService.trackUsage(session.user.id, UsageType.AI_ANALYSIS, 'sentiment_analysis', {
+      cryptocurrency,
+      analysisId: Math.random().toString(36).substring(7),
+      timestamp: new Date().toISOString()
+    });
     
     // Trigger alert checking after successful sentiment analysis
     try {

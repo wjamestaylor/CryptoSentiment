@@ -17,6 +17,7 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     'src/__tests__/__mocks__/',
     'src/__tests__/_disabled/',
+    'src/__tests__/utils/',
     'node_modules/',
     '.*\\.mock\\.(js|jsx|ts|tsx)$',
   ],
@@ -41,7 +42,7 @@ const customJestConfig = {
   },
   coverageReporters: ['text', 'html', 'lcov'],
   transformIgnorePatterns: [
-    'node_modules/(?!(superjson|@trpc|@next|next|jose|openid-client|oauth|oidc-token-hash)/)'
+    'node_modules/(?!(superjson|@trpc|@next|next|jose|openid-client|oauth|oidc-token-hash|next-auth)/)'
   ],
 }
 

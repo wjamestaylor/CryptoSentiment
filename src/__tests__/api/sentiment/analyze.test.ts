@@ -1,5 +1,19 @@
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/sentiment/analyze/route';
+import { getServerSession } from 'next-auth';
+
+// Mock NextAuth
+jest.mock('next-auth', () => ({
+  getServerSession: jest.fn(),
+}));
+
+// Mock the FeatureGateService
+jest.mock('@/services/feature-gate/feature-gate.service', () => ({
+  FeatureGateService: jest.fn().mockImplementation(() => ({
+    canPerformAIAnalysis: jest.fn().mockResolvedValue(true),
+    trackUsage: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
 
 // Mock the OpenRouter service
 jest.mock('@/lib/api/openrouter', () => ({
@@ -11,6 +25,7 @@ jest.mock('@/lib/api/openrouter', () => ({
 // Mock global fetch for CoinGecko API
 global.fetch = jest.fn();
 const mockFetch = fetch as jest.Mock;
+const mockGetServerSession = getServerSession as jest.Mock;
 
 // Helper to create mock request
 const createMockRequest = (body: unknown) => {
@@ -28,6 +43,11 @@ describe('/api/sentiment/analyze', () => {
     jest.clearAllMocks();
     // Reset console.error mock
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    
+    // Mock authenticated session by default
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
+    });
   });
 
   afterEach(() => {
@@ -35,6 +55,19 @@ describe('/api/sentiment/analyze', () => {
   });
 
   describe('POST /api/sentiment/analyze', () => {
+    it('should return 401 when user is not authenticated', async () => {
+      // Mock no session
+      mockGetServerSession.mockResolvedValueOnce(null);
+      
+      const request = createMockRequest({ cryptocurrency: 'bitcoin' });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Authentication required');
+    });
+
     it('should return 400 when cryptocurrency is missing', async () => {
       const request = createMockRequest({});
 

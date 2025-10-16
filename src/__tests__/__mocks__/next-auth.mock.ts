@@ -8,11 +8,24 @@ jest.mock('next-auth/next', () => ({
   NextAuthHandler: jest.fn(),
 }));
 
-jest.mock('next-auth/providers/google', () => ({
-  default: jest.fn(() => ({ id: 'google', name: 'Google' })),
-}));
+jest.mock('next-auth/providers/google', () => {
+  const mockProvider = {
+    id: 'google',
+    name: 'Google',
+    type: 'oauth',
+    checks: ['pkce', 'state'],
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+  };
+  
+  return {
+    __esModule: true,
+    default: jest.fn(() => mockProvider),
+  };
+});
 
 jest.mock('next-auth/providers/email', () => ({
+  __esModule: true,
   default: jest.fn(() => ({ id: 'email', name: 'Email' })),
 }));
 

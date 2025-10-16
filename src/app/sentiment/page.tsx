@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SentimentLoading } from '@/components/ui/loading';
+import { useUsageLimit } from '@/hooks/use-usage-limit';
+import { UsageType } from '@prisma/client';
 
 interface SentimentFactor {
   description: string;
@@ -45,6 +48,10 @@ function SentimentPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Authentication and usage limits
+  const { data: session } = useSession();
+  const aiAnalysisUsage = useUsageLimit(UsageType.AI_ANALYSIS);
+
     const analyzeSentiment = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -59,7 +66,15 @@ function SentimentPageContent() {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 401) {
+          throw new Error('Please sign in to use AI sentiment analysis');
+        } else if (response.status === 403) {
+          throw new Error(errorData.details || 'AI analysis limit reached. Please upgrade your subscription.');
+        } else {
+          throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
+        }
       }
       
       const result = await response.json();
@@ -93,6 +108,16 @@ function SentimentPageContent() {
             <CardDescription className="text-sm sm:text-base">
               Get AI-powered sentiment analysis for any cryptocurrency
             </CardDescription>
+            {session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
+                <span>
+                  AI Analysis Usage: {aiAnalysisUsage.currentUsage}/{aiAnalysisUsage.limit}
+                </span>
+                {aiAnalysisUsage.currentUsage >= aiAnalysisUsage.limit && (
+                  <span className="text-orange-600 font-medium">Limit reached</span>
+                )}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -104,10 +129,29 @@ function SentimentPageContent() {
               />
               <Button 
                 onClick={analyzeSentiment}
-                disabled={loading || !cryptocurrency.trim()}
-                className="w-full sm:w-auto"
+                disabled={
+                  loading || 
+                  !cryptocurrency.trim() || 
+                  !session ||
+                  (session && aiAnalysisUsage?.allowed === false)
+                }
+                className={`w-full sm:w-auto ${
+                  !session || (session && aiAnalysisUsage?.allowed === false)
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+                title={
+                  !session 
+                    ? "Sign in to access AI analysis"
+                    : aiAnalysisUsage?.allowed === false
+                    ? `AI analysis limit reached (${aiAnalysisUsage.currentUsage}/${aiAnalysisUsage.limit}). Upgrade to analyze more.`
+                    : "Analyze cryptocurrency sentiment"
+                }
               >
-                {loading ? 'Analyzing...' : 'Analyze'}
+                {loading ? 'Analyzing...' : 
+                 !session ? 'Sign In to Analyze' :
+                 aiAnalysisUsage?.allowed === false ? 'Limit Reached' :
+                 'Analyze'}
               </Button>
             </div>
             
