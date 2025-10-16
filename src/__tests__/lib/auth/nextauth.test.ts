@@ -90,8 +90,8 @@ describe('NextAuth Configuration', () => {
       });
     });
 
-    it('should have exactly 1 provider (Google only, email disabled)', () => {
-      expect(authOptions.providers).toHaveLength(1);
+    it('should have exactly 2 providers (Google + Email)', () => {
+      expect(authOptions.providers).toHaveLength(2);
     });
 
     it('should have debug configuration', () => {
@@ -101,13 +101,23 @@ describe('NextAuth Configuration', () => {
   });
 
   describe('Provider Configuration', () => {
-    it('should have Google provider configured (email disabled)', () => {
-      expect(authOptions.providers).toHaveLength(1);
+    it('should have Google and Email providers configured', () => {
+      expect(authOptions.providers).toHaveLength(2);
       
       // Check provider types exist
       const providerIds = authOptions.providers.map(p => p.id);
       expect(providerIds).toContain('google');
-      // Email provider disabled due to NextAuth issues
+      expect(providerIds).toContain('email');
+      
+      // Check Google provider specifically
+      const googleProvider = authOptions.providers.find(p => p.id === 'google');
+      expect(googleProvider).toBeDefined();
+      expect(googleProvider?.type).toBe('oauth');
+      
+      // Check Email provider specifically  
+      const emailProvider = authOptions.providers.find(p => p.id === 'email');
+      expect(emailProvider).toBeDefined();
+      expect(emailProvider?.type).toBe('email');
     });
 
     it('should configure providers with environment variables', () => {
@@ -232,8 +242,8 @@ describe('NextAuth Configuration', () => {
       });
     });
 
-    it('should have all required providers (Google only)', () => {
-      expect(authOptions.providers).toHaveLength(1);
+    it('should have all required providers (Google + Email)', () => {
+      expect(authOptions.providers).toHaveLength(2);
       expect(authOptions.providers.every(p => p.id && p.name)).toBe(true);
     });
   });

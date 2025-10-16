@@ -11,7 +11,7 @@
 - 🤖 **AI Sentiment Analysis** - Real-time sentiment scoring with OpenRouter LLMs
 - 📊 **Live Market Data** - Real-time prices and market data from CoinGecko
 - 👁️ **Smart Watchlist** - Track cryptocurrencies with one-click AI analysis
-- 🔐 **Secure Authentication** - Google OAuth with NextAuth.js
+- 🔐 **Secure Authentication** - Google OAuth + Magic Link email auth with NextAuth.js
 - 📱 **Responsive Design** - Mobile-first with shadcn/ui components
 - 🚨 **Alert System** - Custom notifications across multiple channels
 - 📈 **Type-Safe API** - Full-stack TypeScript with tRPC
