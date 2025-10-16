@@ -30,4 +30,71 @@ export const authRouter = createTRPCRouter({
         data: input,
       })
     }),
+
+  getUserStats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    // Get counts for user statistics
+    const [followedCoinsCount, activeAlertsCount] = await Promise.all([
+      ctx.prisma.followedCoin.count({
+        where: { userId },
+      }),
+      ctx.prisma.alert.count({
+        where: { 
+          userId,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    return {
+      followedCoins: followedCoinsCount,
+      activeAlerts: activeAlertsCount,
+    };
+  }),
+
+  getPreferences: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    let preferences = await ctx.prisma.userPreferences.findUnique({
+      where: { userId },
+    });
+
+    // Create default preferences if they don't exist
+    if (!preferences) {
+      preferences = await ctx.prisma.userPreferences.create({
+        data: { userId },
+      });
+    }
+
+    return preferences;
+  }),
+
+  updatePreferences: protectedProcedure
+    .input(
+      z.object({
+        emailNotifications: z.boolean().optional(),
+        pushNotifications: z.boolean().optional(),
+        discordNotifications: z.boolean().optional(),
+        telegramNotifications: z.boolean().optional(),
+        sentimentThreshold: z.number().min(0).max(1).optional(),
+        priceChangeThreshold: z.number().min(0).max(1).optional(),
+        volumeThreshold: z.number().min(0).max(1).optional(),
+        theme: z.enum(["light", "dark"]).optional(),
+        currency: z.string().optional(),
+        timezone: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      return ctx.prisma.userPreferences.upsert({
+        where: { userId },
+        update: input,
+        create: {
+          userId,
+          ...input,
+        },
+      });
+    }),
 })

@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
 import { BotConnection } from "@/components/profile/BotConnection";
+import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
+import { AlertSettings } from "@/components/profile/AlertSettings";
+import { api } from "@/lib/trpc/provider";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Get user statistics
+  const { data: userStats, isLoading: statsLoading } = api.auth.getUserStats.useQuery(undefined, {
+    enabled: !!session,
+  });
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -55,11 +63,15 @@ export default function ProfilePage() {
           
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div className="text-center">
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">
+                {statsLoading ? '...' : userStats?.followedCoins ?? 0}
+              </p>
               <p className="text-sm text-gray-500">Followed Coins</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">
+                {statsLoading ? '...' : userStats?.activeAlerts ?? 0}
+              </p>
               <p className="text-sm text-gray-500">Active Alerts</p>
             </div>
           </div>
@@ -92,9 +104,7 @@ export default function ProfilePage() {
                   Receive email alerts for price changes and sentiment updates
                 </p>
               </div>
-              <Button variant="outline" size="sm">
-                Configure
-              </Button>
+              <NotificationPreferences />
             </div>
             
             <div className="flex items-center justify-between">
@@ -104,9 +114,7 @@ export default function ProfilePage() {
                   How often you want to receive notifications
                 </p>
               </div>
-              <Button variant="outline" size="sm">
-                Settings
-              </Button>
+              <AlertSettings />
             </div>
           </div>
         </CardContent>
