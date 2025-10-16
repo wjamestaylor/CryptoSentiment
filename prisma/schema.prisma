@@ -39,6 +39,7 @@ model User {
   // User alerts and notifications
   alerts        Alert[]
   notifications Notification[]
+  usageLogs     UsageLog[]
 
   // User sessions
   sessions Session[]
@@ -293,6 +294,20 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model UsageLog {
+  id       String    @id @default(cuid())
+  userId   String
+  type     UsageType
+  resource String    // e.g., "alert", "ai_analysis", "watchlist"
+  metadata String?   // Additional data as JSON
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("usage_logs")
+}
+
 enum SubscriptionTier {
   FREE
   PRO
@@ -328,4 +343,11 @@ enum NotificationType {
   SUBSCRIPTION_UPDATE
   SYSTEM_ANNOUNCEMENT
   SECURITY_NOTICE
+}
+
+enum UsageType {
+  ALERT_CREATION
+  AI_ANALYSIS
+  WATCHLIST_ADD
+  BOT_NOTIFICATION
 }

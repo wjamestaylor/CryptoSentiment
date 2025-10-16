@@ -26,10 +26,46 @@ import TelegramBot from 'node-telegram-bot-api';
 // Cast the mocked prisma to have jest mock methods
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
+// Types for Telegram bot mocks
+type MockTelegramBot = {
+  setMyCommands: jest.Mock;
+  sendMessage: jest.Mock;
+  on: jest.Mock;
+  stopPolling: jest.Mock;
+};
+
+type MockTelegramMessage = {
+  message_id: number;
+  from: {
+    id: number;
+    is_bot: boolean;
+    first_name: string;
+    username: string;
+  };
+  chat: {
+    id: number;
+    type: string;
+  };
+  date: number;
+  text: string;
+};
+
+// Type for accessing private Telegram service properties in tests
+type TelegramServicePrivate = {
+  isReady: boolean;
+  rateLimitMap: Map<string, { lastMessage?: number; count: number; resetTime?: number }>;
+  reconnectAttempts?: number;
+  maxReconnectAttempts?: number;
+  handleCommand: (message: MockTelegramMessage) => Promise<void>;
+  formatAlertMessage: (alert: unknown) => string;
+  isRateLimited: (userId: string) => boolean;
+  handleReconnection: () => Promise<void>;
+};
+
 // Mock variables
 let telegramService: TelegramService;
-let mockBot: any;
-let mockMessage: any;
+let mockBot: MockTelegramBot;
+let mockMessage: MockTelegramMessage;
 
 describe('TelegramService', () => {
   beforeEach(() => {
@@ -128,7 +164,7 @@ describe('TelegramService', () => {
     };
 
     it('should send alert successfully to Telegram user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'user-1',
         telegramUserId: '123456789',
         telegramVerified: true,
@@ -145,7 +181,7 @@ describe('TelegramService', () => {
       });
 
       // Mock bot as ready
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
       const result = await telegramService.sendAlert('user-1', validAlert);
 
@@ -168,7 +204,7 @@ describe('TelegramService', () => {
     });
 
     it('should return false when bot is not ready', async () => {
-      (telegramService as any).isReady = false;
+      (telegramService as unknown as TelegramServicePrivate).isReady = false;
 
       const result = await telegramService.sendAlert('user-1', validAlert);
 
@@ -177,7 +213,7 @@ describe('TelegramService', () => {
     });
 
     it('should return false when user has no Telegram ID', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'user-1',
         telegramUserId: null,
         telegramVerified: false,
@@ -193,7 +229,7 @@ describe('TelegramService', () => {
         updatedAt: new Date(),
       });
 
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
       const result = await telegramService.sendAlert('user-1', validAlert);
 
@@ -206,11 +242,11 @@ describe('TelegramService', () => {
         type: 'INVALID_TYPE',
         cryptocurrency: 'BTC',
         message: 'Invalid alert',
-      } as any;
+      };
 
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
-      const result = await telegramService.sendAlert('user-1', invalidAlert);
+      const result = await telegramService.sendAlert('user-1', invalidAlert as never);
 
       expect(result).toBe(false);
       expect(console.error).toHaveBeenCalledWith(
@@ -220,7 +256,7 @@ describe('TelegramService', () => {
     });
 
     it('should handle rate limiting', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'user-1',
         telegramUserId: '123456789',
         telegramVerified: true,
@@ -236,10 +272,10 @@ describe('TelegramService', () => {
         updatedAt: new Date(),
       });
 
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
       // Simulate rate limit exceeded
-      (telegramService as any).rateLimitMap.set('123456789', {
+      (telegramService as unknown as TelegramServicePrivate).rateLimitMap.set('123456789', {
         count: 30,
         resetTime: Date.now() + 1000,
       });
@@ -254,7 +290,7 @@ describe('TelegramService', () => {
     });
 
     it('should handle Telegram API errors gracefully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'user-1',
         telegramUserId: '123456789',
         telegramVerified: true,
@@ -270,7 +306,7 @@ describe('TelegramService', () => {
         updatedAt: new Date(),
       });
 
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
       mockBot.sendMessage.mockRejectedValue(new Error('Telegram API Error'));
 
       const result = await telegramService.sendAlert('user-1', validAlert);
@@ -285,7 +321,7 @@ describe('TelegramService', () => {
 
   describe('sendDirectMessage', () => {
     it('should send direct message successfully', async () => {
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
       const result = await telegramService.sendDirectMessage('123456789', 'Test message');
 
@@ -298,7 +334,7 @@ describe('TelegramService', () => {
     });
 
     it('should return false when bot is not ready', async () => {
-      (telegramService as any).isReady = false;
+      (telegramService as unknown as TelegramServicePrivate).isReady = false;
 
       const result = await telegramService.sendDirectMessage('123456789', 'Test message');
 
@@ -307,7 +343,7 @@ describe('TelegramService', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
       mockBot.sendMessage.mockRejectedValue(new Error('API Error'));
 
       const result = await telegramService.sendDirectMessage('123456789', 'Test message');
@@ -322,9 +358,9 @@ describe('TelegramService', () => {
 
   describe('registerUser', () => {
     it('should register Telegram user successfully', async () => {
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
 
-      const result = await telegramService.registerUser('123456789', 'testuser');
+      const result = await telegramService.registerUser('123456789');
 
       expect(result).toBe(true);
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
@@ -335,10 +371,10 @@ describe('TelegramService', () => {
     });
 
     it('should handle registration errors gracefully', async () => {
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
       mockBot.sendMessage.mockRejectedValue(new Error('Registration Error'));
 
-      const result = await telegramService.registerUser('123456789', 'testuser');
+      const result = await telegramService.registerUser('123456789');
 
       expect(result).toBe(false);
       expect(console.error).toHaveBeenCalledWith(
@@ -350,13 +386,13 @@ describe('TelegramService', () => {
 
   describe('Command Handling', () => {
     beforeEach(() => {
-      (telegramService as any).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
     });
 
     it('should handle /start command', async () => {
       mockMessage.text = '/start';
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         123456789,
@@ -368,7 +404,7 @@ describe('TelegramService', () => {
     it('should handle /register command', async () => {
       mockMessage.text = '/register';
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         '123456789',
@@ -380,7 +416,7 @@ describe('TelegramService', () => {
     it('should handle /alerts command for registered user', async () => {
       mockMessage.text = '/alerts';
 
-      mockPrisma.user.findFirst.mockResolvedValue({
+      (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue({
         id: 'user-1',
         telegramUserId: '123456789',
         telegramVerified: true,
@@ -399,7 +435,7 @@ describe('TelegramService', () => {
             id: 'alert-1',
             userId: 'user-1',
             cryptoId: 'crypto-1',
-            type: 'PRICE_CHANGE' as any,
+            type: 'PRICE_CHANGE' as const,
             condition: '{}',
             isActive: true,
             lastTriggered: null,
@@ -410,7 +446,7 @@ describe('TelegramService', () => {
         ],
       });
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         123456789,
@@ -425,9 +461,9 @@ describe('TelegramService', () => {
     it('should handle /alerts command for unregistered user', async () => {
       mockMessage.text = '/alerts';
 
-      mockPrisma.user.findFirst.mockResolvedValue(null);
+      (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue(null);
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         123456789,
@@ -439,7 +475,7 @@ describe('TelegramService', () => {
     it('should handle /help command', async () => {
       mockMessage.text = '/help';
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         123456789,
@@ -454,7 +490,7 @@ describe('TelegramService', () => {
     it('should handle unknown commands', async () => {
       mockMessage.text = '/unknown';
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(mockBot.sendMessage).toHaveBeenCalledWith(
         123456789,
@@ -470,7 +506,7 @@ describe('TelegramService', () => {
         .mockRejectedValueOnce(new Error('Telegram API Error'))
         .mockResolvedValue({ message_id: 123 });
 
-      await (telegramService as any).handleCommand(mockMessage);
+      await (telegramService as unknown as TelegramServicePrivate).handleCommand(mockMessage);
 
       expect(console.error).toHaveBeenCalledWith(
         'Error handling Telegram command:',
@@ -490,7 +526,7 @@ describe('TelegramService', () => {
         timestamp: new Date('2023-01-01T12:00:00Z'),
       };
 
-      const message = (telegramService as any).formatAlertMessage(alert);
+      const message = (telegramService as unknown as TelegramServicePrivate).formatAlertMessage(alert);
 
       expect(message).toContain('💰 *BTC Alert*');
       expect(message).toContain('📝 Bitcoin reached $50,000!');
@@ -508,7 +544,7 @@ describe('TelegramService', () => {
         timestamp: new Date('2023-01-01T12:00:00Z'),
       };
 
-      const message = (telegramService as any).formatAlertMessage(alert);
+      const message = (telegramService as unknown as TelegramServicePrivate).formatAlertMessage(alert);
 
       expect(message).toContain('🎭 *ETH Alert*');
       expect(message).toContain('🎭 Sentiment: Bullish');
@@ -523,7 +559,7 @@ describe('TelegramService', () => {
         timestamp: new Date('2023-01-01T12:00:00Z'),
       };
 
-      const message = (telegramService as any).formatAlertMessage(alert);
+      const message = (telegramService as unknown as TelegramServicePrivate).formatAlertMessage(alert);
 
       expect(message).toContain('📊 *BNB Alert*');
       expect(message).toContain('📊 Volume: $1,000,000');
@@ -532,38 +568,38 @@ describe('TelegramService', () => {
 
   describe('Rate Limiting', () => {
     it('should allow requests within rate limit', () => {
-      const isLimited = (telegramService as any).isRateLimited('user-1');
+      const isLimited = (telegramService as unknown as TelegramServicePrivate).isRateLimited('user-1');
       expect(isLimited).toBe(false);
     });
 
     it('should block requests when rate limit exceeded', () => {
       // Simulate rate limit exceeded
-      (telegramService as any).rateLimitMap.set('user-1', {
+      (telegramService as unknown as TelegramServicePrivate).rateLimitMap.set('user-1', {
         count: 30,
         resetTime: Date.now() + 1000,
       });
 
-      const isLimited = (telegramService as any).isRateLimited('user-1');
+      const isLimited = (telegramService as unknown as TelegramServicePrivate).isRateLimited('user-1');
       expect(isLimited).toBe(true);
     });
 
     it('should reset rate limit after time window', () => {
       // Simulate expired rate limit
-      (telegramService as any).rateLimitMap.set('user-1', {
+      (telegramService as unknown as TelegramServicePrivate).rateLimitMap.set('user-1', {
         count: 30,
         resetTime: Date.now() - 1000,
       });
 
-      const isLimited = (telegramService as any).isRateLimited('user-1');
+      const isLimited = (telegramService as unknown as TelegramServicePrivate).isRateLimited('user-1');
       expect(isLimited).toBe(false);
     });
   });
 
   describe('Bot Status and Health', () => {
     it('should return correct status information', () => {
-      (telegramService as any).isReady = true;
-      (telegramService as any).reconnectAttempts = 2;
-      (telegramService as any).rateLimitMap.set('user-1', { count: 1, resetTime: Date.now() });
+      (telegramService as unknown as TelegramServicePrivate).isReady = true;
+      (telegramService as unknown as TelegramServicePrivate).reconnectAttempts = 2;
+      (telegramService as unknown as TelegramServicePrivate).rateLimitMap.set('user-1', { count: 1, resetTime: Date.now() });
 
       const status = telegramService.getStatus();
 
@@ -596,7 +632,7 @@ describe('TelegramService', () => {
   describe('Error Handling', () => {
     it('should handle polling errors', () => {
       const errorHandler = mockBot.on.mock.calls.find(
-        (call: any) => call[0] === 'polling_error'
+        (call: [string, unknown]) => call[0] === 'polling_error'
       )?.[1];
 
       expect(errorHandler).toBeDefined();
@@ -612,7 +648,7 @@ describe('TelegramService', () => {
 
     it('should handle bot errors', () => {
       const errorHandler = mockBot.on.mock.calls.find(
-        (call: any) => call[0] === 'error'
+        (call: [string, unknown]) => call[0] === 'error'
       )?.[1];
 
       expect(errorHandler).toBeDefined();
@@ -630,13 +666,13 @@ describe('TelegramService', () => {
   describe('Reconnection Handling', () => {
     it('should attempt reconnection on failure', async () => {
       const originalSetTimeout = global.setTimeout;
-      const mockSetTimeout = jest.fn((callback) => callback());
-      global.setTimeout = mockSetTimeout as any;
+      const mockSetTimeout = jest.fn((callback: () => void) => callback());
+      global.setTimeout = mockSetTimeout as unknown as typeof setTimeout;
 
-      (telegramService as any).reconnectAttempts = 0;
-      (telegramService as any).maxReconnectAttempts = 5;
+      (telegramService as unknown as TelegramServicePrivate).reconnectAttempts = 0;
+      (telegramService as unknown as TelegramServicePrivate).maxReconnectAttempts = 5;
 
-      await (telegramService as any).handleReconnection();
+      await (telegramService as unknown as TelegramServicePrivate).handleReconnection();
 
       expect(mockSetTimeout).toHaveBeenCalled();
 
@@ -644,10 +680,10 @@ describe('TelegramService', () => {
     });
 
     it('should stop reconnecting after max attempts', async () => {
-      (telegramService as any).reconnectAttempts = 5;
-      (telegramService as any).maxReconnectAttempts = 5;
+      (telegramService as unknown as TelegramServicePrivate).reconnectAttempts = 5;
+      (telegramService as unknown as TelegramServicePrivate).maxReconnectAttempts = 5;
 
-      await (telegramService as any).handleReconnection();
+      await (telegramService as unknown as TelegramServicePrivate).handleReconnection();
 
       expect(console.error).toHaveBeenCalledWith(
         'Max reconnection attempts reached. Bot will remain offline.'

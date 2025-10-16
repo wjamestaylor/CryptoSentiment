@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 import { getCoinGeckoId } from '@/lib/crypto-mappings';
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
+import { UsageType } from '@prisma/client';
+import { TRPCError } from '@trpc/server';
+
+const featureGateService = new FeatureGateService();
 
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
@@ -103,6 +108,16 @@ export const cryptoRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       
       try {
+        // Check if user can add more coins to watchlist
+        const usageCheck = await featureGateService.canAddToWatchlist(userId);
+        
+        if (!usageCheck.allowed) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Watchlist limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to follow more cryptocurrencies.`,
+          });
+        }
+
         // Get the CoinGecko ID for this symbol
         const coinGeckoId = getCoinGeckoId(input.symbol);
         
@@ -133,6 +148,12 @@ export const cryptoRouter = createTRPCRouter({
             userId,
             cryptoId: crypto.id,
           },
+        });
+
+        // Track usage after successful addition
+        await featureGateService.trackUsage(userId, UsageType.WATCHLIST_ADD, {
+          cryptoSymbol: input.symbol,
+          cryptoName: input.name,
         });
 
         return {

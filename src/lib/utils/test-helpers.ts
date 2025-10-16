@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 // Mock Prisma context for tRPC testing
 export function createMockContext(overrides: {
-  session?: any;
+  session?: { user: { id: string; email: string }; expires: string } | null;
   prisma?: Partial<PrismaClient>;
 } = {}) {
   const mockPrisma = {
@@ -45,7 +45,7 @@ export function createMockContext(overrides: {
       create: jest.fn(),
     },
     ...overrides.prisma,
-  } as any;
+  } as Partial<PrismaClient>;
 
   const mockSession = overrides.session || null;
 

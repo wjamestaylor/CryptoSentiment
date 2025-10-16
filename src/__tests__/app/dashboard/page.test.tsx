@@ -4,6 +4,8 @@ import { useSession } from 'next-auth/react';
 import CryptoDashboard from '@/app/dashboard/page';
 import { api } from '@/lib/trpc/provider';
 import { useIsMobile } from '@/hooks/use-media-query';
+import { useToast } from '@/hooks/use-toast';
+import { useUsageLimit } from '@/components/feature-gating/FeatureGate';
 
 // Mock dependencies
 jest.mock('next-auth/react', () => ({
@@ -45,6 +47,15 @@ jest.mock('@/lib/trpc/provider', () => ({
 
 jest.mock('@/hooks/use-media-query', () => ({
   useIsMobile: jest.fn(),
+}));
+
+jest.mock('@/hooks/use-toast', () => ({
+  useToast: jest.fn(),
+}));
+
+jest.mock('@/components/feature-gating/FeatureGate', () => ({
+  FeatureGate: ({ children }: { children: React.ReactNode; fallback?: React.ReactNode }) => children,
+  useUsageLimit: jest.fn(),
 }));
 
 jest.mock('next/image', () => {
@@ -101,6 +112,8 @@ interface MockedApi {
 
 const mockApi = api as unknown as MockedApi;
 const mockUseIsMobile = useIsMobile as jest.Mock;
+const mockUseToast = useToast as jest.Mock;
+const mockUseUsageLimit = useUsageLimit as jest.Mock;
 
 describe('CryptoDashboard', () => {
   const mockCryptoData = [
@@ -146,6 +159,23 @@ describe('CryptoDashboard', () => {
     });
     
     mockUseIsMobile.mockReturnValue(false);
+    
+    // Mock useToast
+    mockUseToast.mockReturnValue({
+      toast: jest.fn(),
+    });
+    
+    // Mock useUsageLimit
+    mockUseUsageLimit.mockReturnValue({
+      data: {
+        allowed: true,
+        currentUsage: 0,
+        limit: 100,
+        remaining: 100,
+        resetDate: new Date(),
+      },
+      isLoading: false,
+    });
 
     // Mock console.error to suppress error logs in tests
     jest.spyOn(console, 'error').mockImplementation(() => {});

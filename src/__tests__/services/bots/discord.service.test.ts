@@ -59,6 +59,48 @@ import { Client } from 'discord.js';
 
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
+// Type for accessing private Discord service properties in tests
+type DiscordServicePrivate = {
+  isReady: boolean;
+  client: {
+    once: jest.Mock;
+    on: jest.Mock;
+    login: jest.Mock;
+    destroy: jest.Mock;
+    users: { 
+      fetch: jest.Mock;
+      cache: Map<string, unknown>;
+    };
+    user: {
+      setPresence: jest.Mock;
+      tag: string;
+    };
+    application: {
+      commands: {
+        set: jest.Mock;
+      };
+    };
+  };
+  rateLimitMap?: Map<string, number[]>;
+  reconnectAttempts?: number;
+  handleSlashCommand: (interaction: unknown) => Promise<void>;
+  createAlertEmbed: (alert: unknown) => { 
+    setTitle: jest.Mock; 
+    setDescription: jest.Mock; 
+    addFields: jest.Mock; 
+    setColor: jest.Mock; 
+    setTimestamp: jest.Mock; 
+  };
+  checkRateLimit: (userId: string) => boolean;
+};
+
+// Mock user type for database responses
+type MockUser = {
+  id: string;
+  discordUserId: string | null;
+  email: string;
+};
+
 // Store the original console methods
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
@@ -66,8 +108,29 @@ const originalConsoleLog = console.log;
 
 describe('DiscordService', () => {
   let discordService: DiscordService;
-  let mockClient: any;
-  let mockUser: any;
+  let mockClient: {
+    once: jest.Mock;
+    on: jest.Mock;
+    login: jest.Mock;
+    destroy: jest.Mock;
+    users: { 
+      fetch: jest.Mock;
+      cache: Map<string, unknown>;
+    };
+    user: {
+      setPresence: jest.Mock;
+      tag: string;
+    };
+    application: {
+      commands: {
+        set: jest.Mock;
+      };
+    };
+  };
+  let mockUser: {
+    id: string;
+    send: jest.Mock;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -168,18 +231,18 @@ describe('DiscordService', () => {
 
     it('should send alert successfully to Discord user', async () => {
       // Mock database response
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
         email: 'test@example.com',
-      } as any);
+      } as MockUser);
 
       // Mock Discord user fetch
       mockClient.users.fetch.mockResolvedValue(mockUser);
 
       // Simulate bot ready state
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as { isReady: boolean; client: typeof mockClient }).isReady = true;
+      (discordService as unknown as { isReady: boolean; client: typeof mockClient }).client = mockClient;
 
       const result = await discordService.sendAlert('crypto-user-123', validAlert);
 
@@ -195,7 +258,7 @@ describe('DiscordService', () => {
     });
 
     it('should return false when bot is not ready', async () => {
-      (discordService as any).isReady = false;
+      (discordService as unknown as DiscordServicePrivate).isReady = false;
 
       const result = await discordService.sendAlert('crypto-user-123', validAlert);
 
@@ -204,14 +267,14 @@ describe('DiscordService', () => {
     });
 
     it('should return false when user has no Discord ID', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: null,
         email: 'test@example.com',
-      } as any);
+      } as MockUser);
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       const result = await discordService.sendAlert('crypto-user-123', validAlert);
 
@@ -224,12 +287,12 @@ describe('DiscordService', () => {
         type: 'INVALID_TYPE',
         cryptocurrency: 'BTC',
         message: 'Test alert',
-      } as any;
+      };
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
-      const result = await discordService.sendAlert('crypto-user-123', invalidAlert);
+      const result = await discordService.sendAlert('crypto-user-123', invalidAlert as never);
 
       expect(result).toBe(false);
       expect(console.error).toHaveBeenCalledWith(
@@ -239,20 +302,20 @@ describe('DiscordService', () => {
     });
 
     it('should handle rate limiting', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
         email: 'test@example.com',
-      } as any);
+      } as MockUser);
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       // Simulate rate limit exceeded by calling multiple times quickly
       const rateLimitMap = new Map();
       const now = Date.now();
       rateLimitMap.set('discord-user-123', Array(10).fill(now));
-      (discordService as any).rateLimitMap = rateLimitMap;
+      (discordService as unknown as DiscordServicePrivate).rateLimitMap = rateLimitMap;
 
       const result = await discordService.sendAlert('crypto-user-123', validAlert);
 
@@ -263,16 +326,16 @@ describe('DiscordService', () => {
     });
 
     it('should handle Discord API errors gracefully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
         email: 'test@example.com',
-      } as any);
+      } as MockUser);
 
       mockClient.users.fetch.mockRejectedValue(new Error('Discord API Error'));
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       const result = await discordService.sendAlert('crypto-user-123', validAlert);
 
@@ -286,15 +349,15 @@ describe('DiscordService', () => {
 
   describe('sendDirectMessage', () => {
     it('should send direct message successfully', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
-      } as any);
+      } as MockUser);
 
       mockClient.users.fetch.mockResolvedValue(mockUser);
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       const result = await discordService.sendDirectMessage('crypto-user-123', 'Test message');
 
@@ -303,7 +366,7 @@ describe('DiscordService', () => {
     });
 
     it('should return false when bot is not ready', async () => {
-      (discordService as any).isReady = false;
+      (discordService as unknown as DiscordServicePrivate).isReady = false;
 
       const result = await discordService.sendDirectMessage('crypto-user-123', 'Test message');
 
@@ -312,13 +375,13 @@ describe('DiscordService', () => {
     });
 
     it('should handle missing Discord user ID', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: null,
-      } as any);
+      } as MockUser);
 
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       const result = await discordService.sendDirectMessage('crypto-user-123', 'Test message');
 
@@ -329,11 +392,12 @@ describe('DiscordService', () => {
 
   describe('registerUser', () => {
     it('should register Discord user successfully', async () => {
-      mockPrisma.user.update.mockResolvedValue({
+      (mockPrisma.user.update as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
         discordVerified: true,
-      } as any);
+        email: 'test@example.com',
+      } as MockUser);
 
       // Mock sendDirectMessage
       const sendDirectMessageSpy = jest.spyOn(discordService, 'sendDirectMessage');
@@ -358,7 +422,7 @@ describe('DiscordService', () => {
     });
 
     it('should handle database errors during registration', async () => {
-      mockPrisma.user.update.mockRejectedValue(new Error('Database error'));
+      (mockPrisma.user.update as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       const result = await discordService.registerUser('discord-user-123', 'crypto-user-123');
 
@@ -381,7 +445,12 @@ describe('DiscordService', () => {
   });
 
   describe('Slash Commands', () => {
-    let mockInteraction: any;
+    let mockInteraction: {
+      commandName: string;
+      user: { id: string };
+      reply: jest.Mock;
+      replied: boolean;
+    };
 
     beforeEach(() => {
       mockInteraction = {
@@ -395,7 +464,7 @@ describe('DiscordService', () => {
     it('should handle register command', async () => {
       mockInteraction.commandName = 'register';
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith({
         embeds: [expect.any(Object)],
@@ -406,9 +475,10 @@ describe('DiscordService', () => {
     it('should handle alerts command for registered user', async () => {
       mockInteraction.commandName = 'alerts';
 
-      mockPrisma.user.findFirst.mockResolvedValue({
+      (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue({
         id: 'crypto-user-123',
         discordUserId: 'discord-user-123',
+        email: 'test@example.com',
         alerts: [
           {
             id: 'alert-1',
@@ -417,9 +487,9 @@ describe('DiscordService', () => {
             threshold: 50000,
           },
         ],
-      } as any);
+      } as MockUser);
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith({
         embeds: [expect.any(Object)],
@@ -430,9 +500,9 @@ describe('DiscordService', () => {
     it('should handle alerts command for unregistered user', async () => {
       mockInteraction.commandName = 'alerts';
 
-      mockPrisma.user.findFirst.mockResolvedValue(null);
+      (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue(null);
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith({
         content: '❌ Account not linked. Use `/register` to link your CryptoSentiment account.',
@@ -443,7 +513,7 @@ describe('DiscordService', () => {
     it('should handle help command', async () => {
       mockInteraction.commandName = 'help';
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith({
         embeds: [expect.any(Object)],
@@ -454,7 +524,7 @@ describe('DiscordService', () => {
     it('should handle unknown commands', async () => {
       mockInteraction.commandName = 'unknown';
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(mockInteraction.reply).toHaveBeenCalledWith({
         content: 'Unknown command!',
@@ -470,7 +540,7 @@ describe('DiscordService', () => {
         .mockRejectedValueOnce(new Error('Discord API Error'))
         .mockResolvedValue(undefined);
 
-      await (discordService as any).handleSlashCommand(mockInteraction);
+      await (discordService as unknown as DiscordServicePrivate).handleSlashCommand(mockInteraction);
 
       expect(console.error).toHaveBeenCalledWith(
         'Error handling slash command:',
@@ -491,7 +561,7 @@ describe('DiscordService', () => {
         timestamp: new Date(),
       };
 
-      const embed = (discordService as any).createAlertEmbed(alert);
+      const embed = (discordService as unknown as DiscordServicePrivate).createAlertEmbed(alert);
 
       expect(embed.setTitle).toHaveBeenCalledWith('🚨 PRICE CHANGE Alert');
       expect(embed.setDescription).toHaveBeenCalledWith('Bitcoin price changed!');
@@ -509,7 +579,7 @@ describe('DiscordService', () => {
         timestamp: new Date(),
       };
 
-      const embed = (discordService as any).createAlertEmbed(alert);
+      const embed = (discordService as unknown as DiscordServicePrivate).createAlertEmbed(alert);
 
       expect(embed.setColor).toHaveBeenCalledWith(0xffff00); // Yellow for sentiment
     });
@@ -522,7 +592,7 @@ describe('DiscordService', () => {
         timestamp: new Date(),
       };
 
-      const embed = (discordService as any).createAlertEmbed(alert);
+      const embed = (discordService as unknown as DiscordServicePrivate).createAlertEmbed(alert);
 
       expect(embed.setColor).toHaveBeenCalledWith(0xff0000); // Red for volume spike
     });
@@ -534,7 +604,7 @@ describe('DiscordService', () => {
       
       // First few requests should be allowed
       for (let i = 0; i < 5; i++) {
-        const allowed = (discordService as any).checkRateLimit(userId);
+        const allowed = (discordService as unknown as DiscordServicePrivate).checkRateLimit(userId);
         expect(allowed).toBe(true);
       }
     });
@@ -544,11 +614,11 @@ describe('DiscordService', () => {
       
       // Fill up the rate limit
       for (let i = 0; i < 10; i++) {
-        (discordService as any).checkRateLimit(userId);
+        (discordService as unknown as DiscordServicePrivate).checkRateLimit(userId);
       }
       
       // Next request should be blocked
-      const blocked = (discordService as any).checkRateLimit(userId);
+      const blocked = (discordService as unknown as DiscordServicePrivate).checkRateLimit(userId);
       expect(blocked).toBe(false);
     });
 
@@ -558,19 +628,23 @@ describe('DiscordService', () => {
       
       // Manually set old timestamps (older than 1 minute)
       const oldTimestamps = Array(10).fill(now - 70000); // 70 seconds ago
-      (discordService as any).rateLimitMap.set(userId, oldTimestamps);
+      const servicePrivate = discordService as unknown as DiscordServicePrivate;
+      if (!servicePrivate.rateLimitMap) {
+        servicePrivate.rateLimitMap = new Map();
+      }
+      servicePrivate.rateLimitMap.set(userId, oldTimestamps);
       
       // Should allow new request after time window
-      const allowed = (discordService as any).checkRateLimit(userId);
+      const allowed = (discordService as unknown as DiscordServicePrivate).checkRateLimit(userId);
       expect(allowed).toBe(true);
     });
   });
 
   describe('Bot Status and Health', () => {
     it('should return correct status information', () => {
-      (discordService as any).isReady = true;
-      (discordService as any).reconnectAttempts = 2;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).reconnectAttempts = 2;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       const status = discordService.getStatus();
 
@@ -582,19 +656,19 @@ describe('DiscordService', () => {
     });
 
     it('should handle shutdown gracefully', async () => {
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       await discordService.shutdown();
 
       expect(mockClient.destroy).toHaveBeenCalled();
-      expect((discordService as any).isReady).toBe(false);
+      expect((discordService as unknown as DiscordServicePrivate).isReady).toBe(false);
     });
   });
 
   describe('Error Handling', () => {
     it('should handle client errors', () => {
       const errorHandler = mockClient.on.mock.calls.find(
-        (call: any) => call[0] === 'error'
+        (call: [string, unknown]) => call[0] === 'error'
       )?.[1];
 
       expect(errorHandler).toBeDefined();
@@ -602,13 +676,13 @@ describe('DiscordService', () => {
       // Simulate error
       errorHandler(new Error('Test error'));
 
-      expect((discordService as any).isReady).toBe(false);
+      expect((discordService as unknown as DiscordServicePrivate).isReady).toBe(false);
       expect(console.error).toHaveBeenCalledWith('Discord client error:', expect.any(Error));
     });
 
     it('should handle disconnection', () => {
       const disconnectHandler = mockClient.on.mock.calls.find(
-        (call: any) => call[0] === 'disconnect'
+        (call: [string, unknown]) => call[0] === 'disconnect'
       )?.[1];
 
       expect(disconnectHandler).toBeDefined();
@@ -616,15 +690,15 @@ describe('DiscordService', () => {
       // Simulate disconnect
       disconnectHandler();
 
-      expect((discordService as any).isReady).toBe(false);
+      expect((discordService as unknown as DiscordServicePrivate).isReady).toBe(false);
       expect(console.warn).toHaveBeenCalledWith('Discord bot disconnected');
     });
   });
 
   describe('Slash Command Registration', () => {
     it('should register slash commands successfully', async () => {
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       await discordService.registerSlashCommands();
 
@@ -638,8 +712,8 @@ describe('DiscordService', () => {
     });
 
     it('should handle registration errors', async () => {
-      (discordService as any).isReady = true;
-      (discordService as any).client = mockClient;
+      (discordService as unknown as DiscordServicePrivate).isReady = true;
+      (discordService as unknown as DiscordServicePrivate).client = mockClient;
 
       mockClient.application.commands.set.mockRejectedValue(new Error('Registration failed'));
 
@@ -649,7 +723,7 @@ describe('DiscordService', () => {
     });
 
     it('should throw error when bot not ready', async () => {
-      (discordService as any).isReady = false;
+      (discordService as unknown as DiscordServicePrivate).isReady = false;
 
       await expect(discordService.registerSlashCommands()).rejects.toThrow(
         'Discord bot not ready'

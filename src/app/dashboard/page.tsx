@@ -16,11 +16,18 @@ import { useIsMobile } from '@/hooks/use-media-query';
 import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { CoinGeckoPrice } from '@/types';
 import { SubscriptionIndicator } from '@/components/subscription/SubscriptionIndicator';
+import { useUsageLimit } from '@/components/feature-gating/FeatureGate';
+import { UsageType } from '@prisma/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CryptoDashboard() {
   const { data: session } = useSession();
   const [addingToWatchlist, setAddingToWatchlist] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+  
+  // Get usage limits for watchlist
+  const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
   
   // Get top cryptocurrencies
   const { data: topCryptos, isLoading, error, refetch } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
@@ -47,22 +54,52 @@ export default function CryptoDashboard() {
   const followMutation = api.crypto.followCrypto.useMutation({
     onSuccess: () => {
       refetchFollowed();
+      watchlistUsage.refetch(); // Refresh usage data
       setAddingToWatchlist(null);
+      toast({
+        title: "Success",
+        description: "Cryptocurrency added to watchlist",
+      });
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       console.error('Failed to follow crypto:', error);
       setAddingToWatchlist(null);
+      
+      // Show specific error message for feature gating
+      if (error?.shape?.data?.code === 'FORBIDDEN') {
+        toast({
+          title: "Limit Reached",
+          description: error.message || "Watchlist limit reached. Upgrade to add more cryptocurrencies.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add cryptocurrency to watchlist",
+          variant: "destructive",
+        });
+      }
     }
   });
 
   const unfollowMutation = api.crypto.unfollowCrypto.useMutation({
     onSuccess: () => {
       refetchFollowed();
+      watchlistUsage.refetch(); // Refresh usage data
       setAddingToWatchlist(null);
+      toast({
+        title: "Success",
+        description: "Cryptocurrency removed from watchlist",
+      });
     },
     onError: (error: unknown) => {
       console.error('Failed to unfollow crypto:', error);
       setAddingToWatchlist(null);
+      toast({
+        title: "Error",
+        description: "Failed to remove cryptocurrency from watchlist",
+        variant: "destructive",
+      });
     }
   });
 

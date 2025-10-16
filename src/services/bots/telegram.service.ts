@@ -346,7 +346,7 @@ export class TelegramService {
           await this.handleStartCommand(chatId);
           break;
         case '/register':
-          await this.handleRegisterCommand(chatId, userId, msg.from.username);
+          await this.handleRegisterCommand(chatId, userId);
           break;
         case '/alerts':
           await this.handleAlertsCommand(chatId, userId);
@@ -380,7 +380,7 @@ export class TelegramService {
   /**
    * Handle /register command
    */
-  private async handleRegisterCommand(chatId: number, userId: string, username?: string): Promise<void> {
+  private async handleRegisterCommand(chatId: number, userId: string): Promise<void> {
     await this.registerUser(userId);
   }
 

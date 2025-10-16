@@ -58,7 +58,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
         title: 'Verification Code Generated',
         description: result.instructions,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to generate verification code. Please try again.',
@@ -78,7 +78,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
         title: 'Account Unlinked',
         description: `Your ${botType} account has been unlinked successfully.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: `Failed to unlink ${botType} account. Please try again.`,
@@ -96,7 +96,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
         title: `${botType} Notifications`,
         description: `Notifications have been ${enabled ? 'enabled' : 'disabled'}.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update notification settings. Please try again.',
@@ -113,7 +113,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
         title: 'Test Message Sent',
         description: `Check your ${botType} for a test message!`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: `Failed to send test message to ${botType}.`,

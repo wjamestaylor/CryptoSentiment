@@ -119,7 +119,7 @@ export async function GET() {
         ready: !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')
       }
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Failed to check Resend configuration'

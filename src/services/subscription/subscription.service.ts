@@ -300,9 +300,38 @@ export class SubscriptionService {
       
       // Define feature access based on tiers
       const featureAccess: Record<string, string[]> = {
-        [SUBSCRIPTION_TIERS.FREE]: ['basic_alerts', 'basic_dashboard'],
-        [SUBSCRIPTION_TIERS.PRO]: ['basic_alerts', 'basic_dashboard', 'advanced_alerts', 'historical_data', 'api_access'],
-        [SUBSCRIPTION_TIERS.BUSINESS]: ['basic_alerts', 'basic_dashboard', 'advanced_alerts', 'historical_data', 'api_access', 'priority_support', 'custom_integrations'],
+        [SUBSCRIPTION_TIERS.FREE]: [
+          'basic_alerts', 
+          'basic_dashboard', 
+          'limited_watchlist',
+          'limited_ai_analysis'
+        ],
+        [SUBSCRIPTION_TIERS.PRO]: [
+          'basic_alerts', 
+          'basic_dashboard', 
+          'advanced_alerts', 
+          'historical_data', 
+          'api_access',
+          'unlimited_watchlist',
+          'enhanced_ai_analysis',
+          'discord_notifications',
+          'telegram_notifications'
+        ],
+        [SUBSCRIPTION_TIERS.BUSINESS]: [
+          'basic_alerts', 
+          'basic_dashboard', 
+          'advanced_alerts', 
+          'historical_data', 
+          'api_access', 
+          'priority_support', 
+          'custom_integrations',
+          'unlimited_watchlist',
+          'unlimited_ai_analysis',
+          'discord_notifications',
+          'telegram_notifications',
+          'webhook_integrations',
+          'advanced_analytics'
+        ],
       };
 
       const userTier = subscription.tier;
@@ -323,17 +352,20 @@ export class SubscriptionService {
       [SUBSCRIPTION_TIERS.FREE]: {
         alerts: 5,
         watchlist: 10,
-        apiCalls: 100,
+        aiAnalysisPerMonth: 10,
+        botNotifications: 0, // No bot notifications for free tier
       },
       [SUBSCRIPTION_TIERS.PRO]: {
         alerts: 50,
         watchlist: 100,
-        apiCalls: 1000,
+        aiAnalysisPerMonth: 100,
+        botNotifications: 50,
       },
       [SUBSCRIPTION_TIERS.BUSINESS]: {
         alerts: -1, // unlimited
         watchlist: -1, // unlimited
-        apiCalls: 10000,
+        aiAnalysisPerMonth: 1000,
+        botNotifications: -1, // unlimited
       },
     };
 

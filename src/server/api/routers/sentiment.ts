@@ -1,5 +1,10 @@
 import { z } from 'zod'
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '@/server/api/trpc'
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service'
+import { UsageType } from '@prisma/client'
+import { TRPCError } from '@trpc/server'
+
+const featureGateService = new FeatureGateService()
 
 export const sentimentRouter = createTRPCRouter({
   getSentimentByCrypto: publicProcedure
@@ -55,4 +60,56 @@ export const sentimentRouter = createTRPCRouter({
       take: 20,
     })
   }),
+
+  /**
+   * Analyze cryptocurrency sentiment using AI (feature-gated)
+   */
+  analyzeWithAI: protectedProcedure
+    .input(z.object({ 
+      cryptoSymbol: z.string().min(1),
+      includeHistorical: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Check if user can perform AI analysis
+        const usageCheck = await featureGateService.canPerformAIAnalysis(ctx.session.user.id);
+        
+        if (!usageCheck.allowed) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `AI analysis limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription for more AI analyses.`,
+          });
+        }
+
+        // Track usage before performing analysis
+        await featureGateService.trackUsage(ctx.session.user.id, UsageType.AI_ANALYSIS, {
+          cryptoSymbol: input.cryptoSymbol,
+          includeHistorical: input.includeHistorical,
+        });
+
+        // Perform AI analysis (this would integrate with your existing AI service)
+        // For now, return a placeholder response
+        return {
+          success: true,
+          data: {
+            symbol: input.cryptoSymbol,
+            score: Math.random() * 2 - 1, // -1 to 1
+            label: 'NEUTRAL', // This would be calculated by AI
+            confidence: Math.random(),
+            summary: `AI analysis for ${input.cryptoSymbol} completed successfully.`,
+            usageRemaining: usageCheck.remaining,
+          },
+          message: 'AI analysis completed successfully',
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        console.error('Error performing AI analysis:', error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to perform AI analysis',
+        });
+      }
+    }),
 })

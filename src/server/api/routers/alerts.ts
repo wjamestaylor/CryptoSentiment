@@ -1,9 +1,12 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc'
-import { AlertType, SentimentLabel } from '@prisma/client'
+import { AlertType, SentimentLabel, UsageType } from '@prisma/client'
 import { AlertService } from '@/services/notifications/alerts.service'
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service'
+import { TRPCError } from '@trpc/server'
 
 const alertService = new AlertService()
+const featureGateService = new FeatureGateService()
 
 // Enhanced input validation schemas
 const createAlertSchema = z.object({
@@ -43,6 +46,16 @@ export const alertsRouter = createTRPCRouter({
     .input(createAlertSchema)
     .mutation(async ({ ctx, input }) => {
       try {
+        // Check if user can create more alerts
+        const usageCheck = await featureGateService.canCreateAlert(ctx.session.user.id);
+        
+        if (!usageCheck.allowed) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Alert limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to create more alerts.`,
+          });
+        }
+
         const alert = await alertService.createAlertWithSymbol({
           userId: ctx.session.user.id,
           cryptoSymbol: input.cryptoSymbol,
@@ -51,12 +64,21 @@ export const alertsRouter = createTRPCRouter({
           condition: input.condition,
         })
 
+        // Track usage after successful creation
+        await featureGateService.trackUsage(ctx.session.user.id, UsageType.ALERT_CREATION, {
+          cryptoSymbol: input.cryptoSymbol,
+          alertType: input.type,
+        });
+
         return {
           success: true,
           alert,
           message: 'Alert created successfully',
         }
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         const message = error instanceof Error ? error.message : 'Unknown error'
         throw new Error(`Failed to create alert: ${message}`)
       }
