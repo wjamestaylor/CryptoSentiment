@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
 import { BotConnection } from "@/components/profile/BotConnection";
 
 export default function ProfilePage() {
@@ -30,7 +31,6 @@ export default function ProfilePage() {
     <div className="container mx-auto py-10 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Profile</h1>
-        <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">Free Tier</span>
       </div>
 
       {/* User Information Card */}
@@ -38,7 +38,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
           <CardDescription>
-            Your account details and subscription information
+            Your account details and basic statistics
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -53,7 +53,7 @@ export default function ProfilePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div className="text-center">
               <p className="text-2xl font-bold">0</p>
               <p className="text-sm text-gray-500">Followed Coins</p>
@@ -62,13 +62,12 @@ export default function ProfilePage() {
               <p className="text-2xl font-bold">0</p>
               <p className="text-sm text-gray-500">Active Alerts</p>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-medium">Subscription</p>
-              <p className="text-lg">Free</p>
-            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Subscription Status with Usage Details */}
+      <SubscriptionStatus />
 
       {/* Bot Integration */}
       <BotConnection initialStatus={{
