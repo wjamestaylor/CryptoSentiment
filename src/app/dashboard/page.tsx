@@ -26,8 +26,9 @@ export default function CryptoDashboard() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   
-  // Get usage limits for watchlist
+  // Get usage limits for features
   const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
+  const aiAnalysisUsage = useUsageLimit(UsageType.AI_ANALYSIS);
   
   // Get top cryptocurrencies
   const { data: topCryptos, isLoading, error, refetch } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
@@ -143,6 +144,17 @@ export default function CryptoDashboard() {
       if (isInWatchlist(cryptoSymbol)) {
         await unfollowMutation.mutateAsync({ symbol: cryptoSymbol });
       } else {
+        // Check if user can add more items to watchlist before attempting
+        if (watchlistUsage.allowed === false) {
+          setAddingToWatchlist(null);
+          toast({
+            title: "Watchlist Limit Reached",
+            description: `You've reached your watchlist limit (${watchlistUsage.currentUsage}/${watchlistUsage.limit}). Upgrade to add more cryptocurrencies.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         await followMutation.mutateAsync({ 
           symbol: cryptoSymbol,
           name: crypto.name 
@@ -233,8 +245,22 @@ export default function CryptoDashboard() {
             <Card className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Watchlist</p>
-                  <p className="text-xl sm:text-2xl font-bold">{followedCryptos?.data?.length || 0}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Watchlist
+                    {session && watchlistUsage.limit > 0 && (
+                      <span className="ml-1">({watchlistUsage.currentUsage}/{watchlistUsage.limit})</span>
+                    )}
+                  </p>
+                  <p className={`text-xl sm:text-2xl font-bold ${
+                    session && watchlistUsage.limit > 0 && watchlistUsage.currentUsage >= watchlistUsage.limit 
+                      ? 'text-orange-500' 
+                      : ''
+                  }`}>
+                    {followedCryptos?.data?.length || 0}
+                  </p>
+                  {session && watchlistUsage.limit > 0 && watchlistUsage.currentUsage >= watchlistUsage.limit && (
+                    <p className="text-xs text-orange-600 mt-1">Limit reached</p>
+                  )}
                 </div>
                 <div className="text-xl sm:text-2xl self-end sm:self-center">⭐</div>
               </div>
@@ -242,12 +268,24 @@ export default function CryptoDashboard() {
             <Card className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Gainers</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-500">
-                    {allDisplayedCryptos.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h > 0).length}
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    AI Analysis
+                    {session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && (
+                      <span className="ml-1">({aiAnalysisUsage.currentUsage}/{aiAnalysisUsage.limit})</span>
+                    )}
                   </p>
+                  <p className={`text-xl sm:text-2xl font-bold ${
+                    session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && aiAnalysisUsage.currentUsage >= aiAnalysisUsage.limit 
+                      ? 'text-orange-500' 
+                      : ''
+                  }`}>
+                    {session && aiAnalysisUsage ? aiAnalysisUsage.currentUsage : 0}
+                  </p>
+                  {session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && aiAnalysisUsage.currentUsage >= aiAnalysisUsage.limit && (
+                    <p className="text-xs text-orange-600 mt-1">Limit reached</p>
+                  )}
                 </div>
-                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
+                <div className="text-xl sm:text-2xl self-end sm:self-center">🤖</div>
               </div>
             </Card>
             <Card className="p-3 sm:p-4">
@@ -327,8 +365,26 @@ export default function CryptoDashboard() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="flex-1 text-xs sm:text-sm py-1 sm:py-2"
-                    onClick={() => window.open(`/sentiment?crypto=${crypto.id}`, '_blank')}
+                    className={`flex-1 text-xs sm:text-sm py-1 sm:py-2 ${
+                      aiAnalysisUsage?.allowed === false && session
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      if (session && aiAnalysisUsage?.allowed === false) {
+                        // Show upgrade prompt or handle limit reached
+                        return;
+                      }
+                      window.open(`/sentiment?crypto=${crypto.id}`, '_blank');
+                    }}
+                    disabled={!!(session && aiAnalysisUsage?.allowed === false)}
+                    title={
+                      !session 
+                        ? "Sign in to access AI analysis"
+                        : aiAnalysisUsage?.allowed === false
+                        ? `AI analysis limit reached (${aiAnalysisUsage.currentUsage}/${aiAnalysisUsage.limit}). Upgrade to analyze more.`
+                        : "Get AI-powered sentiment analysis"
+                    }
                   >
                     🤖 {isMobile ? 'AI' : 'AI Analysis'}
                   </Button>
@@ -336,13 +392,32 @@ export default function CryptoDashboard() {
                     size="sm" 
                     variant={isInWatchlist(crypto.symbol) ? "default" : "outline"}
                     onClick={() => handleWatchlistToggle(crypto)}
-                    disabled={addingToWatchlist === crypto.symbol}
-                    className={`px-2 sm:px-3 py-1 sm:py-2 ${isInWatchlist(crypto.symbol) ? "bg-yellow-500 hover:bg-yellow-600 text-white" : ""}`}
+                    disabled={
+                      addingToWatchlist === crypto.symbol || 
+                      !!(session && !isInWatchlist(crypto.symbol) && watchlistUsage.allowed === false)
+                    }
+                    className={`px-2 sm:px-3 py-1 sm:py-2 ${
+                      isInWatchlist(crypto.symbol) 
+                        ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
+                        : (watchlistUsage.allowed === false && session)
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    title={
+                      !session 
+                        ? "Sign in to add to watchlist"
+                        : !isInWatchlist(crypto.symbol) && watchlistUsage.allowed === false
+                        ? `Watchlist limit reached (${watchlistUsage.currentUsage}/${watchlistUsage.limit}). Upgrade to add more.`
+                        : isInWatchlist(crypto.symbol)
+                        ? "Remove from watchlist"
+                        : "Add to watchlist"
+                    }
                   >
                     {addingToWatchlist === crypto.symbol ? (
                       <LoadingSpinner className="h-3 w-3 sm:h-4 sm:w-4" />
                     ) : session ? (
-                      isInWatchlist(crypto.symbol) ? "⭐" : "☆"
+                      isInWatchlist(crypto.symbol) ? "⭐" : 
+                      (watchlistUsage.allowed === false ? "🔒" : "☆")
                     ) : "🔐"}
                   </Button>
                 </div>

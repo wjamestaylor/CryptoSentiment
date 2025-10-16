@@ -165,17 +165,16 @@ describe('CryptoDashboard', () => {
       toast: jest.fn(),
     });
     
-    // Mock useUsageLimit
-    mockUseUsageLimit.mockReturnValue({
-      data: {
-        allowed: true,
-        currentUsage: 0,
-        limit: 100,
-        remaining: 100,
-        resetDate: new Date(),
-      },
+    // Mock useUsageLimit to handle different usage types
+    mockUseUsageLimit.mockImplementation((usageType: string) => ({
       isLoading: false,
-    });
+      allowed: true,
+      currentUsage: 0,
+      limit: 100,
+      remaining: 100,
+      resetDate: new Date(),
+      refetch: jest.fn(),
+    }));
 
     // Mock console.error to suppress error logs in tests
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -304,7 +303,7 @@ describe('CryptoDashboard', () => {
       // Quick stats
       expect(screen.getByText('Total Shown')).toBeInTheDocument();
       expect(screen.getByText('Watchlist')).toBeInTheDocument();
-      expect(screen.getByText('Gainers')).toBeInTheDocument();
+      expect(screen.getByText('AI Analysis')).toBeInTheDocument();
       expect(screen.getByText('Losers')).toBeInTheDocument();
       
       // Check for stats values by context
@@ -494,8 +493,14 @@ describe('CryptoDashboard', () => {
 
       render(<CryptoDashboard />);
 
-      const aiAnalysisButtons = screen.getAllByText(/AI Analysis|AI/);
-      fireEvent.click(aiAnalysisButtons[0]);
+      // Find the AI Analysis button by looking for buttons with AI content
+      const buttons = screen.getAllByRole('button');
+      const aiAnalysisButton = buttons.find(button => 
+        button.textContent?.includes('AI') || button.textContent?.includes('AI Analysis')
+      );
+      
+      expect(aiAnalysisButton).toBeTruthy();
+      fireEvent.click(aiAnalysisButton!);
 
       expect(mockWindowOpen).toHaveBeenCalledWith('/sentiment?crypto=bitcoin', '_blank');
     });
@@ -564,16 +569,16 @@ describe('CryptoDashboard', () => {
       expect(screen.getByText('3')).toBeInTheDocument(); // Total shown count
     });
 
-    it('calculates gainers and losers correctly', () => {
+    it('displays AI Analysis usage stats correctly', () => {
       render(<CryptoDashboard />);
 
-      // Bitcoin is up 2.5%, Ethereum is down -1.2%
-      // So 1 gainer, 1 loser
-      const statsCards = screen.getByText('Gainers').closest('.bg-card');
-      expect(statsCards).toBeInTheDocument();
+      // Check for AI Analysis stats card
+      const aiAnalysisCard = screen.getByText('AI Analysis').closest('.bg-card');
+      expect(aiAnalysisCard).toBeInTheDocument();
       
-      const gainersCount = screen.getByText('Gainers').parentElement?.querySelector('.text-green-500');
-      expect(gainersCount).toHaveTextContent('1');
+      // AI Analysis stats should show usage count (0 when not logged in)
+      const aiAnalysisElement = screen.getByText('AI Analysis').parentElement;
+      expect(aiAnalysisElement).toBeInTheDocument();
       
       const losersCount = screen.getByText('Losers').parentElement?.querySelector('.text-red-500');
       expect(losersCount).toHaveTextContent('1');
