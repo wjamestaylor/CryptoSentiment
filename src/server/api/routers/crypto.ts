@@ -334,4 +334,146 @@ export const cryptoRouter = createTRPCRouter({
         throw new Error(`Failed to fetch debug data: ${error}`);
       }
     }),
+
+  // Portfolio management endpoints
+  addPortfolioHolding: protectedProcedure
+    .input(z.object({
+      cryptoSymbol: z.string(),
+      amount: z.number().positive(),
+      purchasePrice: z.number().positive(),
+      purchaseDate: z.date(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Find the cryptocurrency
+        const crypto = await ctx.prisma.cryptocurrency.findUnique({
+          where: { symbol: input.cryptoSymbol.toUpperCase() },
+        });
+
+        if (!crypto) {
+          throw new Error(`Cryptocurrency ${input.cryptoSymbol} not found`);
+        }
+
+        // Create portfolio holding
+        const holding = await ctx.prisma.portfolioHolding.create({
+          data: {
+            userId,
+            cryptoId: crypto.id,
+            amount: input.amount,
+            purchasePrice: input.purchasePrice,
+            purchaseDate: input.purchaseDate,
+            notes: input.notes,
+          },
+          include: {
+            crypto: true,
+          },
+        });
+
+        return {
+          success: true,
+          message: `Added ${input.amount} ${input.cryptoSymbol.toUpperCase()} to portfolio`,
+          data: holding,
+        };
+      } catch (error) {
+        throw new Error(`Failed to add portfolio holding: ${error}`);
+      }
+    }),
+
+  getPortfolioHoldings: protectedProcedure
+    .query(async ({ ctx }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        const holdings = await ctx.prisma.portfolioHolding.findMany({
+          where: { userId },
+          include: {
+            crypto: true,
+          },
+          orderBy: {
+            purchaseDate: 'desc',
+          },
+        });
+
+        return {
+          success: true,
+          data: holdings,
+        };
+      } catch (error) {
+        throw new Error(`Failed to fetch portfolio holdings: ${error}`);
+      }
+    }),
+
+  updatePortfolioHolding: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      amount: z.number().positive().optional(),
+      purchasePrice: z.number().positive().optional(),
+      purchaseDate: z.date().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const { id, ...updateData } = input;
+      
+      try {
+        // Verify ownership
+        const holding = await ctx.prisma.portfolioHolding.findFirst({
+          where: { id, userId },
+        });
+
+        if (!holding) {
+          throw new Error('Portfolio holding not found or access denied');
+        }
+
+        // Update holding
+        const updatedHolding = await ctx.prisma.portfolioHolding.update({
+          where: { id },
+          data: updateData,
+          include: {
+            crypto: true,
+          },
+        });
+
+        return {
+          success: true,
+          message: 'Portfolio holding updated',
+          data: updatedHolding,
+        };
+      } catch (error) {
+        throw new Error(`Failed to update portfolio holding: ${error}`);
+      }
+    }),
+
+  deletePortfolioHolding: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Verify ownership
+        const holding = await ctx.prisma.portfolioHolding.findFirst({
+          where: { id: input.id, userId },
+          include: { crypto: true },
+        });
+
+        if (!holding) {
+          throw new Error('Portfolio holding not found or access denied');
+        }
+
+        // Delete holding
+        await ctx.prisma.portfolioHolding.delete({
+          where: { id: input.id },
+        });
+
+        return {
+          success: true,
+          message: `Removed ${holding.crypto.symbol} from portfolio`,
+        };
+      } catch (error) {
+        throw new Error(`Failed to delete portfolio holding: ${error}`);
+      }
+    }),
 });

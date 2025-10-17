@@ -41,6 +41,9 @@ model User {
   notifications Notification[]
   usageLogs     UsageLog[]
 
+  // Portfolio holdings
+  portfolioHoldings PortfolioHolding[]
+
   // User sessions
   sessions Session[]
   accounts Account[]
@@ -145,10 +148,11 @@ model Cryptocurrency {
   rank        Int?
 
   // Relationships
-  followedBy    FollowedCoin[]
-  alerts        Alert[]
-  sentimentData SentimentAnalysis[]
-  priceData     PriceData[]
+  followedBy        FollowedCoin[]
+  portfolioHoldings PortfolioHolding[]
+  alerts            Alert[]
+  sentimentData     SentimentAnalysis[]
+  priceData         PriceData[]
 
   @@map("cryptocurrencies")
 }
@@ -350,4 +354,26 @@ enum UsageType {
   AI_ANALYSIS
   WATCHLIST_ADD
   BOT_NOTIFICATION
+}
+
+model PortfolioHolding {
+  id       String @id @default(cuid())
+  userId   String
+  cryptoId String
+
+  // Holding details
+  amount      Float    // Amount of cryptocurrency owned
+  purchasePrice Float? // Price when purchased (in USD)
+  purchaseDate  DateTime? // When the holding was added/purchased
+  notes        String?  // Optional notes about the purchase
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cryptoId])
+  @@map("portfolio_holdings")
 }

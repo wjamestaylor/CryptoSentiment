@@ -1,513 +1,413 @@
 "use client";
 
 import { api } from '@/lib/trpc/provider';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
-import Image from 'next/image';
 import { 
   DashboardStatsLoading, 
-  LoadingSpinner, 
   CryptoPriceLoading 
 } from '@/components/ui/loading';
 import { ErrorBoundary, ApiErrorFallback } from '@/components/ui/error-boundary';
-import { useIsMobile } from '@/hooks/use-media-query';
-import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown, Plus, Wallet, Star, BarChart3 } from 'lucide-react';
 import { CoinGeckoPrice } from '@/types';
-import { SubscriptionIndicator } from '@/components/subscription/SubscriptionIndicator';
-import { useUsageLimit } from '@/components/feature-gating/FeatureGate';
-import { UsageType } from '@prisma/client';
-import { PortfolioSummary } from '@/components/analytics/PortfolioSummary';
 import { PriceChart } from '@/components/analytics/PriceChart';
-import { UsageDashboard } from '@/components/subscription/UsageDashboard';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
-export default function CryptoDashboard() {
+export default function Dashboard() {
   const { data: session } = useSession();
-  const [addingToWatchlist, setAddingToWatchlist] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const { toast } = useToast();
-  
-  // Get usage limits for features
-  const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
-  const aiAnalysisUsage = useUsageLimit(UsageType.AI_ANALYSIS);
-  
-  // Get top cryptocurrencies
-  const { data: topCryptos, isLoading, error, refetch } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
-  
-  // Get user's followed cryptocurrencies
-  const { data: followedCryptos, refetch: refetchFollowed } = api.crypto.getFollowedCryptos.useQuery(undefined, {
-    enabled: !!session
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Queries
+  const { 
+    data: followedCryptosData, 
+    isLoading: followedLoading, 
+    error: followedError,
+    refetch: refetchFollowed 
+  } = api.crypto.getFollowedCryptos.useQuery(undefined, {
+    enabled: !!session?.user,
   });
 
-  // Get current prices for followed cryptocurrencies
-  const followedCryptoIds = followedCryptos?.data
-    ?.map(crypto => crypto.coinGeckoId)
-    .filter(Boolean) || []; // Filter out null/undefined values
-  
-  const { data: followedCryptoPrices } = api.crypto.getCryptosByIds.useQuery(
-    { ids: followedCryptoIds as string[] },
+  const followedCryptos = followedCryptosData?.data || [];
+
+  // Get current prices for followed cryptos
+  const cryptoIds = followedCryptos.map(crypto => crypto.id).filter(Boolean);
+  const { 
+    data: pricesData, 
+    isLoading: pricesLoading, 
+    refetch: refetchPrices 
+  } = api.crypto.getCryptosByIds.useQuery(
+    { ids: cryptoIds },
     { 
-      enabled: !!session && followedCryptoIds.length > 0,
-      refetchInterval: 30000, // Refetch every 30 seconds
+      enabled: cryptoIds.length > 0,
+      refetchInterval: 30000, // Refresh every 30 seconds
     }
   );
 
-  // Mutations for following/unfollowing
-  const followMutation = api.crypto.followCrypto.useMutation({
-    onSuccess: () => {
-      refetchFollowed();
-      watchlistUsage.refetch(); // Refresh usage data
-      setAddingToWatchlist(null);
-      toast({
-        title: "Success",
-        description: "Cryptocurrency added to watchlist",
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to follow crypto:', error);
-      setAddingToWatchlist(null);
-      
-      // Show specific error message for feature gating
-      if (error?.shape?.data?.code === 'FORBIDDEN') {
-        toast({
-          title: "Limit Reached",
-          description: error.message || "Watchlist limit reached. Upgrade to add more cryptocurrencies.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to add cryptocurrency to watchlist",
-          variant: "destructive",
-        });
-      }
-    }
-  });
+  const cryptoPrices = pricesData?.data || [];
 
+  // Mutations
   const unfollowMutation = api.crypto.unfollowCrypto.useMutation({
     onSuccess: () => {
       refetchFollowed();
-      watchlistUsage.refetch(); // Refresh usage data
-      setAddingToWatchlist(null);
       toast({
         title: "Success",
-        description: "Cryptocurrency removed from watchlist",
+        description: "Removed from watchlist",
       });
     },
-    onError: (error: unknown) => {
-      console.error('Failed to unfollow crypto:', error);
-      setAddingToWatchlist(null);
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to remove cryptocurrency from watchlist",
+        description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
-  // Merge top cryptocurrencies with watched ones, ensuring no duplicates
-  const getAllDisplayedCryptos = () => {
-    const topCryptosData = topCryptos?.data || [];
-    const watchedCryptosData = followedCryptoPrices?.data || [];
-    
-    // Create a map of existing crypto IDs from top cryptocurrencies
-    const topCryptoIds = new Set(topCryptosData.map((crypto: CoinGeckoPrice) => crypto.id));
-    
-    // Filter watched cryptos that are not already in the top cryptocurrencies
-    const additionalWatchedCryptos = watchedCryptosData.filter(
-      (crypto: CoinGeckoPrice) => !topCryptoIds.has(crypto.id)
-    );
-    
-    // Combine top cryptocurrencies with additional watched ones
-    return [...topCryptosData, ...additionalWatchedCryptos];
+  // Combine crypto data with prices
+  const cryptosWithPrices = followedCryptos.map(crypto => {
+    const priceData = cryptoPrices.find((p: CoinGeckoPrice) => p.id === crypto.id) as CoinGeckoPrice;
+    return {
+      ...crypto,
+      currentPrice: priceData?.current_price,
+      priceChange24h: priceData?.current_price ? (priceData.current_price * priceData.price_change_percentage_24h / 100) : undefined,
+      priceChangePercentage24h: priceData?.price_change_percentage_24h,
+      marketCap: priceData?.market_cap,
+      volume24h: priceData?.total_volume,
+    };
+  });
+
+  // Calculate portfolio stats
+  const portfolioValue = cryptosWithPrices.reduce((sum, crypto) => {
+    return sum + (crypto.currentPrice || 0);
+  }, 0);
+
+  const totalGain = cryptosWithPrices.reduce((sum, crypto) => {
+    return sum + (crypto.priceChange24h || 0);
+  }, 0);
+
+  const avgPercentageChange = cryptosWithPrices.length > 0 
+    ? cryptosWithPrices.reduce((sum, crypto) => sum + (crypto.priceChangePercentage24h || 0), 0) / cryptosWithPrices.length
+    : 0;
+
+  const handleUnfollow = (symbol: string) => {
+    unfollowMutation.mutate({ symbol });
   };
 
-  const allDisplayedCryptos = getAllDisplayedCryptos();
-
-  // Check if a crypto is in the watchlist
-  const isInWatchlist = (cryptoSymbol: string) => {
-    return followedCryptos?.data?.some((followed: { symbol: string }) => 
-      followed.symbol.toLowerCase() === cryptoSymbol.toLowerCase()
-    ) || false;
-  };
-
-  // Handle watchlist toggle
-  const handleWatchlistToggle = async (crypto: { symbol: string; name: string }) => {
-    if (!session) {
-      window.open('/auth/signin', '_blank');
-      return;
-    }
-
-    const cryptoSymbol = crypto.symbol;
-    setAddingToWatchlist(cryptoSymbol);
-
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
-      if (isInWatchlist(cryptoSymbol)) {
-        await unfollowMutation.mutateAsync({ symbol: cryptoSymbol });
-      } else {
-        // Check if user can add more items to watchlist before attempting
-        if (watchlistUsage.allowed === false) {
-          setAddingToWatchlist(null);
-          toast({
-            title: "Watchlist Limit Reached",
-            description: `You've reached your watchlist limit (${watchlistUsage.currentUsage}/${watchlistUsage.limit}). Upgrade to add more cryptocurrencies.`,
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        await followMutation.mutateAsync({ 
-          symbol: cryptoSymbol,
-          name: crypto.name 
-        });
-      }
-    } catch (error) {
-      console.error('Watchlist operation failed:', error);
+      await Promise.all([refetchFollowed(), refetchPrices()]);
+      toast({
+        title: "Refreshed",
+        description: "Data updated successfully",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to refresh data",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  if (isLoading) {
+  if (!session?.user) {
     return (
-      <div className="container mx-auto py-6 px-4">
-        <div className="mb-8">
-          <div className="h-8 w-64 bg-muted animate-pulse rounded mb-2"></div>
-          <div className="h-4 w-96 bg-muted animate-pulse rounded"></div>
+      <div className="container mx-auto py-12 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl font-bold mb-4">Welcome to CryptoSentiment</h1>
+          <p className="text-xl text-muted-foreground mb-8">
+            Sign in to start tracking your cryptocurrency portfolio and sentiment analysis.
+          </p>
         </div>
-        <DashboardStatsLoading />
-        <div className="mt-8">
-          <div className="h-6 w-48 bg-muted animate-pulse rounded mb-4"></div>
-          <CryptoPriceLoading />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-6 px-4">
-        <h1 className="text-3xl font-bold mb-6">Cryptocurrency Dashboard</h1>
-        <ErrorBoundary fallback={ApiErrorFallback}>
-          <Card className="p-6 border-destructive/20 bg-destructive/5">
-            <div className="flex items-center space-x-3 mb-4">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-              <h3 className="text-lg font-semibold text-destructive">
-                Failed to load data
-              </h3>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Error loading cryptocurrencies: {error.message}
-            </p>
-            <Button 
-              onClick={() => refetch()} 
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Retry</span>
-            </Button>
-          </Card>
-        </ErrorBoundary>
       </div>
     );
   }
 
   return (
-    <ErrorBoundary>
-      <div className="container mx-auto py-4 px-3 sm:py-6 sm:px-4 space-y-6 sm:space-y-8">
+    <div className="container mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Cryptocurrency Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Track top cryptocurrencies and manage your watchlist
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground mt-1">
+              Track your cryptocurrency portfolio and market insights
             </p>
           </div>
-          
-          {/* Subscription Indicator - Only show for authenticated users */}
-          {session && (
-            <div className="flex justify-center sm:justify-end">
-              <SubscriptionIndicator />
+          <div className="flex items-center gap-3 mt-4 md:mt-0">
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Portfolio Stats Cards */}
+        <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
+          {followedLoading ? (
+            <DashboardStatsLoading />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Portfolio Value</p>
+                      <p className="text-2xl font-bold">
+                        ${portfolioValue.toLocaleString()}
+                      </p>
+                    </div>
+                    <Wallet className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">24h Change</p>
+                      <p className={`text-2xl font-bold ${totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${totalGain >= 0 ? '+' : ''}${totalGain.toFixed(2)}
+                      </p>
+                    </div>
+                    {totalGain >= 0 ? (
+                      <TrendingUp className="h-8 w-8 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-8 w-8 text-red-600" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Avg % Change</p>
+                      <p className={`text-2xl font-bold ${avgPercentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {avgPercentageChange >= 0 ? '+' : ''}{avgPercentageChange.toFixed(2)}%
+                      </p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Watching</p>
+                      <p className="text-2xl font-bold">{followedCryptos.length}</p>
+                    </div>
+                    <Star className="h-8 w-8 text-yellow-600" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
-        </div>
+        </ErrorBoundary>
 
-        {/* Quick Stats */}
-        {allDisplayedCryptos && allDisplayedCryptos.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Shown</p>
-                  <p className="text-xl sm:text-2xl font-bold">{allDisplayedCryptos.length}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Watchlist */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Watchlist</CardTitle>
+                  <CardDescription>
+                    Cryptocurrencies you&apos;re tracking
+                  </CardDescription>
                 </div>
-                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-500 self-end sm:self-center" />
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Watchlist
-                    {session && watchlistUsage.limit > 0 && (
-                      <span className="ml-1">({watchlistUsage.currentUsage}/{watchlistUsage.limit})</span>
-                    )}
-                  </p>
-                  <p className={`text-xl sm:text-2xl font-bold ${
-                    session && watchlistUsage.limit > 0 && watchlistUsage.currentUsage >= watchlistUsage.limit 
-                      ? 'text-orange-500' 
-                      : ''
-                  }`}>
-                    {followedCryptos?.data?.length || 0}
-                  </p>
-                  {session && watchlistUsage.limit > 0 && watchlistUsage.currentUsage >= watchlistUsage.limit && (
-                    <p className="text-xs text-orange-600 mt-1">Limit reached</p>
-                  )}
-                </div>
-                <div className="text-xl sm:text-2xl self-end sm:self-center">⭐</div>
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    AI Analysis
-                    {session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && (
-                      <span className="ml-1">({aiAnalysisUsage.currentUsage}/{aiAnalysisUsage.limit})</span>
-                    )}
-                  </p>
-                  <p className={`text-xl sm:text-2xl font-bold ${
-                    session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && aiAnalysisUsage.currentUsage >= aiAnalysisUsage.limit 
-                      ? 'text-orange-500' 
-                      : ''
-                  }`}>
-                    {session && aiAnalysisUsage ? aiAnalysisUsage.currentUsage : 0}
-                  </p>
-                  {session && aiAnalysisUsage && aiAnalysisUsage.limit > 0 && aiAnalysisUsage.currentUsage >= aiAnalysisUsage.limit && (
-                    <p className="text-xs text-orange-600 mt-1">Limit reached</p>
-                  )}
-                </div>
-                <div className="text-xl sm:text-2xl self-end sm:self-center">🤖</div>
-              </div>
-            </Card>
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="mb-2 sm:mb-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Losers</p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-500">
-                    {allDisplayedCryptos.filter((c: CoinGeckoPrice) => c.price_change_percentage_24h < 0).length}
-                  </p>
-                </div>
-                <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 self-end sm:self-center" />
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Usage Dashboard - Show subscription usage and limits */}
-        {session && (
-          <div className="space-y-4">
-            <UsageDashboard />
-          </div>
-        )}
-
-        {/* Analytics Section - Only show for authenticated users */}
-        {session && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Portfolio Analytics</h2>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open('/analytics', '_blank')}
-              >
-                View Full Analytics
-              </Button>
-            </div>
-            
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Portfolio Summary */}
-              <PortfolioSummary className="lg:col-span-1" showFullDetails={false} />
-              
-              {/* Price Chart for top performer */}
-              {followedCryptoPrices?.data && followedCryptoPrices.data.length > 0 && (
-                <PriceChart 
-                  className="lg:col-span-2"
-                  cryptoId={followedCryptoPrices.data[0].id}
-                  cryptoName={followedCryptoPrices.data[0].name}
-                  cryptoSymbol={followedCryptoPrices.data[0].symbol}
-                />
-              )}
-              
-              {/* If no followed cryptos, show Bitcoin chart */}
-              {(!followedCryptoPrices?.data || followedCryptoPrices.data.length === 0) && (
-                <PriceChart 
-                  className="lg:col-span-2"
-                  cryptoId="bitcoin"
-                  cryptoName="Bitcoin"
-                  cryptoSymbol="BTC"
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Cryptocurrency Grid */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">
-            {session && followedCryptos?.data?.length ? 
-              'Top Cryptocurrencies & Your Watchlist' : 
-              'Top Cryptocurrencies'
-            }
-          </h2>
-          <div className={`grid gap-3 sm:gap-4 ${
-            isMobile 
-              ? 'grid-cols-1' 
-              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          }`}>
-            {allDisplayedCryptos?.map((crypto: CoinGeckoPrice) => (
-              <Card key={crypto.id} className="p-3 sm:p-4 hover:shadow-lg transition-all duration-200 hover:scale-[1.02] dark:hover:shadow-primary/25">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-                    <div className="relative flex-shrink-0">
-                      <Image 
-                        src={crypto.image} 
-                        alt={crypto.name}
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
-                      />
-                      <div className="absolute -top-1 -right-1 bg-muted rounded-full px-1 text-xs font-bold">
-                        #{crypto.market_cap_rank}
-                      </div>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/watchlist">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add More
+                  </a>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
+                  {followedLoading || pricesLoading ? (
+                    <CryptoPriceLoading />
+                  ) : followedError ? (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
+                      <p className="text-muted-foreground">Failed to load watchlist</p>
+                      <Button onClick={() => refetchFollowed()} variant="outline" className="mt-2">
+                        Try Again
+                      </Button>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm sm:text-base truncate">{crypto.name}</h3>
-                        {isInWatchlist(crypto.symbol) && (
-                          <div className="bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
-                            ⭐
+                  ) : cryptosWithPrices.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-2">No cryptocurrencies in your watchlist</p>
+                      <Button asChild>
+                        <a href="/watchlist">Add Some Coins</a>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {cryptosWithPrices.slice(0, 6).map((crypto) => (
+                        <div key={crypto.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold">
+                                {crypto.symbol?.substring(0, 2).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                              <p className="text-sm text-muted-foreground">{crypto.name}</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">{crypto.symbol.toUpperCase()}</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-sm sm:text-lg">${crypto.current_price.toLocaleString()}</p>
-                    <p className={`text-xs sm:text-sm flex items-center justify-end ${
-                      crypto.price_change_percentage_24h >= 0 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {crypto.price_change_percentage_24h >= 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <p className="font-medium">
+                                ${crypto.currentPrice?.toLocaleString() || 'N/A'}
+                              </p>
+                              {crypto.priceChangePercentage24h !== undefined && (
+                                <Badge 
+                                  variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
+                                  className="text-xs"
+                                >
+                                  {crypto.priceChangePercentage24h >= 0 ? '+' : ''}
+                                  {crypto.priceChangePercentage24h.toFixed(2)}%
+                                </Badge>
+                              )}
+                            </div>
+                            <Button
+                              onClick={() => handleUnfollow(crypto.symbol)}
+                              variant="ghost"
+                              size="sm"
+                              disabled={unfollowMutation.isPending}
+                            >
+                              <Star className="h-4 w-4 fill-current" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {cryptosWithPrices.length > 6 && (
+                        <div className="text-center pt-4">
+                          <Button variant="outline" asChild>
+                            <a href="/watchlist">
+                              View All ({cryptosWithPrices.length})
+                            </a>
+                          </Button>
+                        </div>
                       )}
-                      {Math.abs(crypto.price_change_percentage_24h)?.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <div className="flex gap-2 mb-3">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className={`flex-1 text-xs sm:text-sm py-1 sm:py-2 ${
-                      aiAnalysisUsage?.allowed === false && session
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      if (session && aiAnalysisUsage?.allowed === false) {
-                        // Show upgrade prompt or handle limit reached
-                        return;
-                      }
-                      window.open(`/sentiment?crypto=${crypto.id}`, '_blank');
-                    }}
-                    disabled={!!(session && aiAnalysisUsage?.allowed === false)}
-                    title={
-                      !session 
-                        ? "Sign in to access AI analysis"
-                        : aiAnalysisUsage?.allowed === false
-                        ? `AI analysis limit reached (${aiAnalysisUsage.currentUsage}/${aiAnalysisUsage.limit}). Upgrade to analyze more.`
-                        : "Get AI-powered sentiment analysis"
-                    }
-                  >
-                    🤖 {isMobile ? 'AI' : 'AI Analysis'}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={isInWatchlist(crypto.symbol) ? "default" : "outline"}
-                    onClick={() => handleWatchlistToggle(crypto)}
-                    disabled={
-                      addingToWatchlist === crypto.symbol || 
-                      !!(session && !isInWatchlist(crypto.symbol) && watchlistUsage.allowed === false)
-                    }
-                    className={`px-2 sm:px-3 py-1 sm:py-2 ${
-                      isInWatchlist(crypto.symbol) 
-                        ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
-                        : (watchlistUsage.allowed === false && session)
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                    title={
-                      !session 
-                        ? "Sign in to add to watchlist"
-                        : !isInWatchlist(crypto.symbol) && watchlistUsage.allowed === false
-                        ? `Watchlist limit reached (${watchlistUsage.currentUsage}/${watchlistUsage.limit}). Upgrade to add more.`
-                        : isInWatchlist(crypto.symbol)
-                        ? "Remove from watchlist"
-                        : "Add to watchlist"
-                    }
-                  >
-                    {addingToWatchlist === crypto.symbol ? (
-                      <LoadingSpinner className="h-3 w-3 sm:h-4 sm:w-4" />
-                    ) : session ? (
-                      isInWatchlist(crypto.symbol) ? "⭐" : 
-                      (watchlistUsage.allowed === false ? "🔒" : "☆")
-                    ) : "🔐"}
-                  </Button>
-                </div>
-                
-                <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                  <div className="flex justify-between">
-                    <span>Market Cap:</span>
-                    <span className="font-medium">${(crypto.market_cap / 1e9).toFixed(2)}B</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>24h Volume:</span>
-                    <span className="font-medium">${(crypto.total_volume / 1e6).toFixed(2)}M</span>
-                  </div>
-                </div>
+                    </div>
+                  )}
+                </ErrorBoundary>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions & Portfolio Summary */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button asChild className="w-full" variant="outline">
+                  <a href="/watchlist">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add to Watchlist
+                  </a>
+                </Button>
+                <Button asChild className="w-full" variant="outline">
+                  <a href="/alerts">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Set Price Alert
+                  </a>
+                </Button>
+                <Button asChild className="w-full" variant="outline">
+                  <a href="/sentiment">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Sentiment Analysis
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Top Performer */}
+            {cryptosWithPrices.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Performer Today</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const topPerformer = cryptosWithPrices.reduce((max, crypto) => 
+                      (crypto.priceChangePercentage24h || 0) > (max.priceChangePercentage24h || 0) 
+                        ? crypto 
+                        : max
+                    );
+                    
+                    return (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                          <span className="font-semibold">
+                            {topPerformer.symbol?.substring(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{topPerformer.symbol?.toUpperCase()}</p>
+                          <p className="text-sm text-muted-foreground">{topPerformer.name}</p>
+                          <Badge 
+                            variant={topPerformer.priceChangePercentage24h && topPerformer.priceChangePercentage24h >= 0 ? "default" : "destructive"}
+                            className="mt-1"
+                          >
+                            {topPerformer.priceChangePercentage24h && topPerformer.priceChangePercentage24h >= 0 ? '+' : ''}
+                            {topPerformer.priceChangePercentage24h?.toFixed(2)}%
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
               </Card>
-            ))}
+            )}
           </div>
         </div>
 
-        {allDisplayedCryptos?.length === 0 && !isLoading && (
-          <Card className="p-8 text-center">
-            <div className="space-y-4">
-              <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">No data available</h3>
-                <p className="text-muted-foreground">
-                  No cryptocurrency data available at the moment
-                </p>
-              </div>
-              <Button onClick={() => refetch()} variant="outline">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Data
-              </Button>
-            </div>
-          </Card>
+        {/* Price Chart for Top Crypto */}
+        {cryptosWithPrices.length > 0 && (
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Price Chart</CardTitle>
+                <CardDescription>
+                  Detailed price analysis for {cryptosWithPrices[0]?.name}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
+                  <PriceChart 
+                    cryptoId={cryptosWithPrices[0].id}
+                    cryptoName={cryptosWithPrices[0].name}
+                    cryptoSymbol={cryptosWithPrices[0].symbol}
+                  />
+                </ErrorBoundary>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
-    </ErrorBoundary>
+    </div>
   );
 }
