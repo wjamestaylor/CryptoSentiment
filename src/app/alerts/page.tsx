@@ -13,6 +13,7 @@ import { AlertPageLoading } from '@/components/ui/loading'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { AlertType } from '@prisma/client'
+import { FeatureGate } from '@/components/feature-gating/FeatureGate'
 import { 
   Trash2, 
   Plus, 
@@ -329,14 +330,16 @@ export default function AlertsPage() {
             <Zap className="h-4 w-4 mr-2" />
             Templates
           </Button>
-          <Button 
-            onClick={() => setShowCreateForm(true)}
-            className="w-full sm:w-auto"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Alert
-          </Button>
+          <FeatureGate usageType="ALERT_CREATION">
+            <Button 
+              onClick={() => setShowCreateForm(true)}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Alert
+            </Button>
+          </FeatureGate>
         </div>
       </div>
 
@@ -598,9 +601,11 @@ function TemplateQuickSetup({
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit">
-              Create Alert
-            </Button>
+            <FeatureGate usageType="ALERT_CREATION">
+              <Button type="submit">
+                Create Alert
+              </Button>
+            </FeatureGate>
           </div>
         </form>
       </CardContent>
@@ -783,9 +788,11 @@ function CreateAlertForm({
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creating...' : 'Create Alert'}
-            </Button>
+            <FeatureGate usageType="ALERT_CREATION">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Creating...' : 'Create Alert'}
+              </Button>
+            </FeatureGate>
           </div>
         </form>
       </CardContent>

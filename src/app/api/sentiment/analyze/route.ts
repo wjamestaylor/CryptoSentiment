@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { OpenRouterService } from '@/lib/api/openrouter';
 import { AlertService } from '@/services/notifications/alerts.service';
-import { FeatureGateService } from '@/services/feature-gate/feature-gate.service';
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
 import { UsageType, SentimentLabel } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
@@ -19,20 +19,18 @@ export async function POST(request: NextRequest) {
 
     // Check if user can perform AI analysis
     const featureGateService = new FeatureGateService();
-    const canAnalyze = await featureGateService.canPerformAIAnalysis(session.user.id);
+    const usageCheck = await featureGateService.canPerformAIAnalysis(session.user.id);
     
-    if (!canAnalyze) {
-      // Get usage information for the error response
-      const usageInfo = await featureGateService.getUserUsage(session.user.id, UsageType.AI_ANALYSIS);
-      
+    if (!usageCheck.allowed) {
       return NextResponse.json(
         { 
           error: 'AI analysis limit reached',
           details: 'Upgrade your subscription to continue using AI analysis',
           usageInfo: {
-            currentUsage: usageInfo.currentUsage,
-            limit: usageInfo.limit,
-            resetDate: usageInfo.resetDate.toISOString()
+            currentUsage: usageCheck.currentUsage,
+            limit: usageCheck.limit,
+            remaining: usageCheck.remaining,
+            resetDate: usageCheck.resetDate?.toISOString()
           }
         },
         { status: 403 }
@@ -101,7 +99,7 @@ export async function POST(request: NextRequest) {
     const analysis = await openRouterService.analyzeSentiment(analysisData);
     
     // Track the AI analysis usage
-    await featureGateService.trackUsage(session.user.id, UsageType.AI_ANALYSIS, 'sentiment_analysis', {
+    await featureGateService.trackUsage(session.user.id, UsageType.AI_ANALYSIS, {
       cryptocurrency,
       analysisId: Math.random().toString(36).substring(7),
       timestamp: new Date().toISOString()

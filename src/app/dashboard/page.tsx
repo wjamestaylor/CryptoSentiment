@@ -21,6 +21,7 @@ import { UsageType } from '@prisma/client';
 import { PortfolioSummary } from '@/components/analytics/PortfolioSummary';
 import { PriceChart } from '@/components/analytics/PriceChart';
 import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { UsageDashboard } from '@/components/subscription/UsageDashboard';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CryptoDashboard() {
@@ -302,6 +303,13 @@ export default function CryptoDashboard() {
                 <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 self-end sm:self-center" />
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* Usage Dashboard - Show subscription usage and limits */}
+        {session && (
+          <div className="space-y-4">
+            <UsageDashboard />
           </div>
         )}
 
