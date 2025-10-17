@@ -49,6 +49,17 @@ export default function Dashboard() {
 
   const cryptoPrices = pricesData?.data || [];
 
+  // Get portfolio holdings
+  const { 
+    data: portfolioData, 
+    isLoading: portfolioLoading,
+    refetch: refetchPortfolio 
+  } = api.crypto.getPortfolioHoldings.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+
+  const portfolioHoldings = portfolioData?.data || [];
+
   // Mutations
   const unfollowMutation = api.crypto.unfollowCrypto.useMutation({
     onSuccess: () => {
@@ -80,13 +91,17 @@ export default function Dashboard() {
     };
   });
 
-  // Calculate portfolio stats
-  const portfolioValue = cryptosWithPrices.reduce((sum, crypto) => {
-    return sum + (crypto.currentPrice || 0);
+  // Calculate portfolio stats based on actual holdings
+  const portfolioValue = portfolioHoldings.reduce((sum, holding) => {
+    const currentPrice = cryptoPrices.find((p: any) => p.id === holding.crypto.id)?.current_price || 0;
+    return sum + (holding.amount * currentPrice);
   }, 0);
 
-  const totalGain = cryptosWithPrices.reduce((sum, crypto) => {
-    return sum + (crypto.priceChange24h || 0);
+  const totalGain = portfolioHoldings.reduce((sum, holding) => {
+    const currentPrice = cryptoPrices.find((p: any) => p.id === holding.crypto.id)?.current_price || 0;
+    const purchaseValue = holding.amount * (holding.purchasePrice || 0);
+    const currentValue = holding.amount * currentPrice;
+    return sum + (currentValue - purchaseValue);
   }, 0);
 
   const avgPercentageChange = cryptosWithPrices.length > 0 
@@ -100,7 +115,7 @@ export default function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchFollowed(), refetchPrices()]);
+      await Promise.all([refetchFollowed(), refetchPrices(), refetchPortfolio()]);
       toast({
         title: "Refreshed",
         description: "Data updated successfully",
@@ -209,10 +224,10 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Watching</p>
-                      <p className="text-2xl font-bold">{followedCryptos.length}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Holdings</p>
+                      <p className="text-2xl font-bold">{portfolioHoldings.length}</p>
                     </div>
-                    <Star className="h-8 w-8 text-yellow-600" />
+                    <Wallet className="h-8 w-8 text-orange-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -223,7 +238,43 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Watchlist */}
           <div className="lg:col-span-2">
-            <Card>
+            {portfolioHoldings.length === 0 ? (
+              // Show portfolio setup when no holdings exist
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Set Up Your Portfolio
+                  </CardTitle>
+                  <CardDescription>
+                    Start tracking your cryptocurrency investments by adding your holdings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center py-8">
+                  <Wallet className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Portfolio Holdings Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Add your cryptocurrency holdings to track performance, calculate gains/losses, and get portfolio insights.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button asChild size="lg">
+                      <a href="/portfolio">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Your First Holding
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="lg">
+                      <a href="/watchlist">
+                        <Star className="h-4 w-4 mr-2" />
+                        Browse Cryptocurrencies
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              // Show watchlist when portfolio exists
+              <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Watchlist</CardTitle>
@@ -313,10 +364,41 @@ export default function Dashboard() {
                 </ErrorBoundary>
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Quick Actions & Portfolio Summary */}
           <div className="space-y-6">
+            {/* Portfolio Holdings Summary */}
+            {portfolioHoldings.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Portfolio Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Holdings</span>
+                      <span className="font-medium">{portfolioHoldings.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Value</span>
+                      <span className="font-medium">${portfolioValue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Gain/Loss</span>
+                      <span className={`font-medium ${totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {totalGain >= 0 ? '+' : ''}${totalGain.toFixed(2)}
+                      </span>
+                    </div>
+                    <Button asChild className="w-full mt-4">
+                      <a href="/portfolio">View Full Portfolio</a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Actions */}
             <Card>
               <CardHeader>
@@ -327,6 +409,12 @@ export default function Dashboard() {
                   <a href="/watchlist">
                     <Plus className="h-4 w-4 mr-2" />
                     Add to Watchlist
+                  </a>
+                </Button>
+                <Button asChild className="w-full" variant="outline">
+                  <a href="/portfolio">
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Manage Portfolio
                   </a>
                 </Button>
                 <Button asChild className="w-full" variant="outline">

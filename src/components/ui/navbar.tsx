@@ -16,6 +16,7 @@ export function Navbar() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/sentiment', label: 'AI Analysis' },
     ...(session ? [{ href: '/watchlist', label: 'Watchlist' }] : []),
+    ...(session ? [{ href: '/portfolio', label: 'Portfolio' }] : []),
     { href: '/alerts', label: 'Alerts' },
     ...(session ? [{ href: '/profile', label: 'Profile' }] : []),
     { href: '/pricing', label: 'Pricing' },
