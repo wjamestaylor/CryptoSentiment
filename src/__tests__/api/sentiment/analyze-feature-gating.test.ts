@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/sentiment/analyze/route';
 import { getServerSession } from 'next-auth';
-import { FeatureGateService } from '@/services/feature-gate/feature-gate.service';
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
 
 // Mock dependencies
 jest.mock('next-auth');
-jest.mock('@/services/feature-gate/feature-gate.service');
+jest.mock('@/services/feature-gating/feature-gate.service');
 
 // Mock the OpenRouter service  
 jest.mock('@/lib/api/openrouter', () => ({
@@ -61,12 +61,11 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     } as any);
 
     // Mock service to return false (limit reached)
-    mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue(false);
-    
-    // Mock getUserUsage to return usage info for the error response
-    mockFeatureGateService.getUserUsage = jest.fn().mockResolvedValue({
+    mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue({
+      allowed: false,
       currentUsage: 5,
       limit: 5,
+      remaining: 0,
       resetDate: new Date(),
     });
 
@@ -85,6 +84,7 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     expect(data.usageInfo).toEqual({
       currentUsage: 5,
       limit: 5,
+      remaining: 0,
       resetDate: expect.any(String), // Dates are serialized as strings in JSON
     });
   });
@@ -96,7 +96,12 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     } as any);
 
     // Mock usage check allowing access
-    mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue(true);
+    mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue({
+      allowed: true,
+      currentUsage: 2,
+      limit: 5,
+      remaining: 3,
+    });
 
     // Mock successful tracking
     mockFeatureGateService.trackUsage.mockResolvedValue();
@@ -138,7 +143,6 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     expect(mockFeatureGateService.trackUsage).toHaveBeenCalledWith(
       'user-123',
       'AI_ANALYSIS',
-      'sentiment_analysis',
       expect.objectContaining({
         cryptocurrency: 'bitcoin',
         analysisId: expect.any(String),

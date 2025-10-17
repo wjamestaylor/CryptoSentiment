@@ -31,6 +31,11 @@ jest.mock('@/lib/trpc/provider', () => ({
         useMutation: jest.fn(),
       },
     },
+    subscription: {
+      checkUsageLimit: {
+        useQuery: jest.fn(),
+      },
+    },
   },
 }))
 
@@ -54,6 +59,11 @@ interface MockedApi {
     }
     deleteAlert: {
       useMutation: jest.Mock
+    }
+  }
+  subscription: {
+    checkUsageLimit: {
+      useQuery: jest.Mock
     }
   }
 }
@@ -176,6 +186,17 @@ describe('AlertsPage', () => {
       },
       deleteAlert: {
         useMutation: jest.fn().mockReturnValue(mockDeleteAlert)
+      }
+    }
+
+    // Setup subscription API mocks
+    mockApi.subscription = {
+      checkUsageLimit: {
+        useQuery: jest.fn().mockReturnValue({
+          data: { allowed: true, currentUsage: 0, limit: 5, remaining: 5 },
+          isLoading: false,
+          error: null
+        })
       }
     }
   })
