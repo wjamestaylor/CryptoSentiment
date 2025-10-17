@@ -1,4 +1,4 @@
-import { AlertTemplateService, AlertTemplate } from '@/services/alerts/alert-template.service';
+import { AlertTemplateService } from '@/services/alerts/alert-template.service';
 import { AlertType } from '@prisma/client';
 
 describe('AlertTemplateService', () => {

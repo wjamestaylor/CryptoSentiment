@@ -10,7 +10,12 @@ jest.mock('next-auth', () => ({
 // Mock the FeatureGateService
 jest.mock('@/services/feature-gating/feature-gate.service', () => ({
   FeatureGateService: jest.fn().mockImplementation(() => ({
-    canPerformAIAnalysis: jest.fn().mockResolvedValue(true),
+    canPerformAIAnalysis: jest.fn().mockResolvedValue({
+      allowed: true,
+      currentUsage: 0,
+      limit: 5,
+      remaining: 5,
+    }),
     trackUsage: jest.fn().mockResolvedValue(undefined),
   })),
 }));
@@ -48,18 +53,6 @@ describe('/api/sentiment/analyze', () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
     });
-
-    // Mock FeatureGateService to allow AI analysis by default
-    const { FeatureGateService } = require('@/services/feature-gating/feature-gate.service');
-    FeatureGateService.mockImplementation(() => ({
-      canPerformAIAnalysis: jest.fn().mockResolvedValue({
-        allowed: true,
-        currentUsage: 0,
-        limit: 5,
-        remaining: 5,
-      }),
-      trackUsage: jest.fn().mockResolvedValue(undefined),
-    }));
   });
 
   afterEach(() => {

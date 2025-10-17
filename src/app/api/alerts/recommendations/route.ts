@@ -1,12 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { alertTemplateService } from '@/services/alerts/alert-template.service';
 import { AlertService } from '@/services/notifications/alerts.service';
 
+interface UserAlert {
+  id: string;
+  type: string;
+  isActive: boolean;
+  triggerCount: number;
+  crypto: {
+    symbol: string;
+    name: string;
+  };
+}
+
+interface UserStats {
+  totalAlerts: number;
+  activeAlerts: number;
+  totalTriggers: number;
+  alertsByType: {
+    sentiment: number;
+    price: number;
+    volume: number;
+  };
+}
+
 const alertService = new AlertService();
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -54,7 +76,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateUserInsights(userAlerts: any[], stats: any) {
+function generateUserInsights(userAlerts: UserAlert[], stats: UserStats) {
   const insights = [];
 
   // Check if user has no alerts
@@ -71,7 +93,7 @@ function generateUserInsights(userAlerts: any[], stats: any) {
 
   // Check alert diversity
   const alertTypes = Object.values(stats.alertsByType);
-  const nonZeroTypes = alertTypes.filter((count: any) => count > 0).length;
+  const nonZeroTypes = alertTypes.filter((count: number) => count > 0).length;
   
   if (nonZeroTypes === 1) {
     insights.push({
@@ -133,7 +155,7 @@ function generateUserInsights(userAlerts: any[], stats: any) {
   return insights;
 }
 
-function getRecommendationReason(userAlerts: any[]) {
+function getRecommendationReason(userAlerts: UserAlert[]) {
   if (userAlerts.length === 0) {
     return 'These popular templates are perfect for getting started with cryptocurrency alerts.';
   }

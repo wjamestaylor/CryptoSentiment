@@ -7,6 +7,11 @@ jest.mock('@/services/notifications/alerts.service');
 jest.mock('@/services/feature-gating/feature-gate.service');
 
 import { GET, POST } from '@/app/api/alerts/templates/route';
+import { getServerSession } from 'next-auth';
+import { alertTemplateService } from '@/services/alerts/alert-template.service';
+
+const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
+const mockAlertTemplateService = alertTemplateService as jest.Mocked<typeof alertTemplateService>;
 
 describe('/api/alerts/templates', () => {
   beforeEach(() => {
@@ -15,9 +20,6 @@ describe('/api/alerts/templates', () => {
 
   describe('GET /api/alerts/templates', () => {
     it('should return templates by category by default', async () => {
-      // Import and setup mocks
-      const { alertTemplateService } = require('@/services/alerts/alert-template.service');
-      
       const mockCategories = [
         {
           name: 'Price Alerts',
@@ -50,8 +52,8 @@ describe('/api/alerts/templates', () => {
         },
       ];
 
-      alertTemplateService.getTemplatesByCategory = jest.fn().mockReturnValue(mockCategories);
-      alertTemplateService.getAllTemplates = jest.fn().mockReturnValue(mockAllTemplates);
+      mockAlertTemplateService.getTemplatesByCategory = jest.fn().mockReturnValue(mockCategories);
+      mockAlertTemplateService.getAllTemplates = jest.fn().mockReturnValue(mockAllTemplates);
 
       const request = new NextRequest('http://localhost:3000/api/alerts/templates');
       const response = await GET(request);
@@ -64,9 +66,7 @@ describe('/api/alerts/templates', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { alertTemplateService } = require('@/services/alerts/alert-template.service');
-      
-      alertTemplateService.getTemplatesByCategory = jest.fn().mockImplementation(() => {
+      mockAlertTemplateService.getTemplatesByCategory = jest.fn().mockImplementation(() => {
         throw new Error('Service error');
       });
 
@@ -81,8 +81,7 @@ describe('/api/alerts/templates', () => {
 
   describe('POST /api/alerts/templates', () => {
     it('should reject unauthenticated requests', async () => {
-      const { getServerSession } = require('next-auth');
-      getServerSession.mockResolvedValue(null);
+      mockGetServerSession.mockResolvedValue(null);
 
       const requestBody = {
         templateId: 'template-1',
@@ -103,8 +102,7 @@ describe('/api/alerts/templates', () => {
     });
 
     it('should reject requests missing required fields', async () => {
-      const { getServerSession } = require('next-auth');
-      getServerSession.mockResolvedValue({
+      mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
         expires: '2024-12-31T23:59:59.999Z',
       });
@@ -128,15 +126,12 @@ describe('/api/alerts/templates', () => {
     });
 
     it('should handle template not found', async () => {
-      const { getServerSession } = require('next-auth');
-      const { alertTemplateService } = require('@/services/alerts/alert-template.service');
-
-      getServerSession.mockResolvedValue({
+      mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', email: 'test@example.com' },
         expires: '2024-12-31T23:59:59.999Z',
       });
 
-      alertTemplateService.getTemplateById = jest.fn().mockReturnValue(undefined);
+      mockAlertTemplateService.getTemplateById = jest.fn().mockReturnValue(undefined);
 
       const requestBody = {
         templateId: 'non-existent-template',

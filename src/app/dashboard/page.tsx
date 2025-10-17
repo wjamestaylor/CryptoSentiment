@@ -20,7 +20,6 @@ import { useUsageLimit } from '@/components/feature-gating/FeatureGate';
 import { UsageType } from '@prisma/client';
 import { PortfolioSummary } from '@/components/analytics/PortfolioSummary';
 import { PriceChart } from '@/components/analytics/PriceChart';
-import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
 import { UsageDashboard } from '@/components/subscription/UsageDashboard';
 import { useToast } from '@/hooks/use-toast';
 

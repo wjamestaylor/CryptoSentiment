@@ -98,7 +98,7 @@ export class FeatureGateService {
   /**
    * Track usage for a user and usage type
    */
-  async trackUsage(userId: string, usageType: UsageType, resource: string, metadata?: Record<string, any>): Promise<void> {
+  async trackUsage(userId: string, usageType: UsageType, resource: string, metadata?: Record<string, unknown>): Promise<void> {
     try {
       await prisma.usageLog.create({
         data: {

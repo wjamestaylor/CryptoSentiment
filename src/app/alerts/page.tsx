@@ -22,13 +22,7 @@ import {
   Volume2, 
   Zap, 
   Star,
-  Activity,
   Target,
-  Lightbulb,
-  BarChart3,
-  Settings,
-  AlertCircle,
-  CheckCircle,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -67,7 +61,7 @@ interface AlertTemplate {
   name: string
   description: string
   alertType: AlertType
-  condition: any
+  condition: Record<string, unknown>
   tags: string[]
   isPopular: boolean
   useCase: string
@@ -93,7 +87,6 @@ export default function AlertsPage() {
   const [monitoringStatus, setMonitoringStatus] = useState<MonitoringStatus | null>(null)
   
   // Fetch alert templates
-  const [templates, setTemplates] = useState<AlertTemplate[]>([])
   const [popularTemplates, setPopularTemplates] = useState<AlertTemplate[]>([])
 
   // Load templates and monitoring status
@@ -228,7 +221,7 @@ export default function AlertsPage() {
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to create alert from template',
@@ -261,7 +254,7 @@ export default function AlertsPage() {
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to toggle monitoring',

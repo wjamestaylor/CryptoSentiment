@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -35,7 +34,6 @@ interface AnalyticsDashboardProps {
 
 export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
   const { data: session } = useSession();
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [performanceTimeframe, setPerformanceTimeframe] = useState<'24h' | '7d' | '30d' | '1y'>('30d');
 

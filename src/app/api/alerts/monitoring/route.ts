@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { alertMonitor } from '@/services/monitoring/alert-monitor.service';
 import { AlertService } from '@/services/notifications/alerts.service';
-import { prisma } from '@/lib/db/prisma';
 
 const alertService = new AlertService();
 

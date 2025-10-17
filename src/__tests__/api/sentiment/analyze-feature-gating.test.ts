@@ -31,8 +31,7 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     mockFeatureGateService = {
       canPerformAIAnalysis: jest.fn(),
       trackUsage: jest.fn(),
-      getUserUsage: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<FeatureGateService>;
     MockFeatureGateService.mockImplementation(() => mockFeatureGateService);
     
     // Setup global fetch mock
@@ -58,7 +57,7 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
   it('returns 403 when user has reached AI analysis limit', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123' },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof getServerSession>>);
 
     // Mock service to return false (limit reached)
     mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue({
@@ -93,7 +92,7 @@ describe('/api/sentiment/analyze - Feature Gating', () => {
     // Mock successful authentication
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123' },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof getServerSession>>);
 
     // Mock usage check allowing access
     mockFeatureGateService.canPerformAIAnalysis.mockResolvedValue({

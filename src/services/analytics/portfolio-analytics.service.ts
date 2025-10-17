@@ -1,5 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 
+interface CryptoPriceData {
+  id: string;
+  symbol: string;
+  name: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+  market_cap: number;
+  total_volume: number;
+}
+
 // Types for analytics data
 export interface PortfolioMetrics {
   totalValue: number;
@@ -161,7 +171,7 @@ export class PortfolioAnalyticsService {
       priceChange24h: number;
     }> = [];
 
-    priceData.forEach((crypto: any) => {
+    priceData.forEach((crypto: CryptoPriceData) => {
       const value = crypto.current_price * equalWeight * 10000; // Simulate $10k portfolio
       const gainLoss = (crypto.price_change_percentage_24h / 100) * value;
       

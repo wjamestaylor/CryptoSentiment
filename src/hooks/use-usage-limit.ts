@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { UsageType } from '@prisma/client';
 
 interface UsageLimit {
@@ -22,7 +22,7 @@ export function useUsageLimit(usageType: UsageType): UseUsageLimitReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsageLimit = async () => {
+  const fetchUsageLimit = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -51,11 +51,11 @@ export function useUsageLimit(usageType: UsageType): UseUsageLimitReturn {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [usageType]);
 
   useEffect(() => {
     fetchUsageLimit();
-  }, [usageType]);
+  }, [fetchUsageLimit]);
 
   return {
     currentUsage: data?.currentUsage || 0,
