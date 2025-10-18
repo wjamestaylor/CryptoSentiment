@@ -66,10 +66,10 @@ describe('Navbar', () => {
       expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/pricing');
     });
 
-    it('does not display watchlist link for unauthenticated users', () => {
+    it('does not display crypto manager link for unauthenticated users', () => {
       render(<Navbar />);
 
-      expect(screen.queryByRole('link', { name: 'Watchlist' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Crypto Manager' })).not.toBeInTheDocument();
     });
 
     it('displays sign in and get started buttons', () => {
@@ -117,10 +117,10 @@ describe('Navbar', () => {
       });
     });
 
-    it('displays watchlist link for authenticated users', () => {
+    it('displays crypto manager link for authenticated users', () => {
       render(<Navbar />);
 
-      expect(screen.getByRole('link', { name: 'Watchlist' })).toHaveAttribute('href', '/watchlist');
+      expect(screen.getByRole('link', { name: 'Crypto Manager' })).toHaveAttribute('href', '/crypto');
     });
 
     it('displays welcome message with username', () => {
@@ -394,7 +394,7 @@ describe('Navbar', () => {
 
       expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'AI Analysis' })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Watchlist' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Crypto Manager' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
     });
@@ -409,7 +409,7 @@ describe('Navbar', () => {
 
       expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'AI Analysis' })).toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'Watchlist' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Crypto Manager' })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
     });

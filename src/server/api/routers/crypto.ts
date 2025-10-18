@@ -202,11 +202,33 @@ export const cryptoRouter = createTRPCRouter({
     }),
 
   // Protected endpoint to get user's followed cryptocurrencies
+  // UPDATED: Now uses unified CryptoTracking model for backward compatibility
   getFollowedCryptos: protectedProcedure
     .query(async ({ ctx }) => {
       const userId = ctx.session.user.id;
       
       try {
+        // First try the new unified model
+        const trackingEntries = await ctx.prisma.cryptoTracking.findMany({
+          where: { userId },
+          include: { crypto: true },
+          orderBy: { addedAt: 'desc' },
+        });
+
+        if (trackingEntries.length > 0) {
+          // Return in the same format as the old FollowedCoin query
+          return {
+            success: true,
+            data: trackingEntries.map((tracking) => ({
+              ...tracking.crypto,
+              // Add tracking metadata for compatibility
+              followedAt: tracking.addedAt,
+              hasHoldings: tracking.holdingAmount !== null,
+            })),
+          };
+        }
+
+        // Fallback to old model for backward compatibility during migration
         const followedCryptos = await ctx.prisma.followedCoin.findMany({
           where: { userId },
           include: {
@@ -219,7 +241,11 @@ export const cryptoRouter = createTRPCRouter({
 
         return {
           success: true,
-          data: followedCryptos.map((following) => following.crypto),
+          data: followedCryptos.map((following) => ({
+            ...following.crypto,
+            followedAt: following.createdAt,
+            hasHoldings: false,
+          })),
         };
       } catch (error) {
         throw new Error(`Failed to fetch followed cryptocurrencies: ${error}`);
@@ -387,6 +413,34 @@ export const cryptoRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       
       try {
+        // First try the new unified model
+        const trackingEntries = await ctx.prisma.cryptoTracking.findMany({
+          where: { 
+            userId,
+            holdingAmount: { not: null },
+          },
+          include: { crypto: true },
+          orderBy: { firstPurchaseDate: 'desc' },
+        });
+
+        if (trackingEntries.length > 0) {
+          // Return in the same format as the old PortfolioHolding query
+          return {
+            success: true,
+            data: trackingEntries.map((tracking) => ({
+              id: tracking.id,
+              amount: tracking.holdingAmount!,
+              purchasePrice: tracking.averagePurchasePrice,
+              purchaseDate: tracking.firstPurchaseDate,
+              notes: tracking.notes,
+              createdAt: tracking.addedAt,
+              updatedAt: tracking.updatedAt,
+              crypto: tracking.crypto,
+            })),
+          };
+        }
+
+        // Fallback to old model for backward compatibility during migration
         const holdings = await ctx.prisma.portfolioHolding.findMany({
           where: { userId },
           include: {
@@ -474,6 +528,333 @@ export const cryptoRouter = createTRPCRouter({
         };
       } catch (error) {
         throw new Error(`Failed to delete portfolio holding: ${error}`);
+      }
+    }),
+
+  // ===== NEW UNIFIED CRYPTO TRACKING ENDPOINTS =====
+  
+  // Add crypto to unified tracking (replaces both followCrypto and addPortfolioHolding)
+  addCryptoToTracking: protectedProcedure
+    .input(z.object({
+      cryptoSymbol: z.string(),
+      cryptoName: z.string().optional(),
+      trackingType: z.enum(['WATCH_ONLY', 'ADD_HOLDING']),
+      // Optional holding data (required when trackingType = 'ADD_HOLDING')
+      holdingAmount: z.number().positive().optional(),
+      purchasePrice: z.number().positive().optional(),
+      purchaseDate: z.date().optional(),
+      notes: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Validate holding data if adding holding
+        if (input.trackingType === 'ADD_HOLDING') {
+          if (!input.holdingAmount || !input.purchasePrice) {
+            throw new Error('Amount and purchase price are required when adding holdings');
+          }
+        }
+
+        // Check usage limits for watchlist additions
+        if (input.trackingType === 'WATCH_ONLY') {
+          const usageCheck = await featureGateService.canAddToWatchlist(userId);
+          if (!usageCheck.allowed) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: `Watchlist limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to follow more cryptocurrencies.`,
+            });
+          }
+        }
+
+        // Get the CoinGecko ID for this symbol
+        const coinGeckoId = getCoinGeckoId(input.cryptoSymbol);
+        
+        // Ensure the cryptocurrency exists in our database
+        const crypto = await ctx.prisma.cryptocurrency.upsert({
+          where: { symbol: input.cryptoSymbol.toUpperCase() },
+          update: {
+            name: input.cryptoName || input.cryptoSymbol,
+            coinGeckoId: coinGeckoId,
+          },
+          create: {
+            symbol: input.cryptoSymbol.toUpperCase(),
+            name: input.cryptoName || input.cryptoSymbol,
+            coinGeckoId: coinGeckoId,
+          },
+        });
+
+        // Check if tracking already exists
+        const existingTracking = await ctx.prisma.cryptoTracking.findUnique({
+          where: {
+            userId_cryptoId: {
+              userId,
+              cryptoId: crypto.id,
+            },
+          },
+        });
+
+        let result;
+        
+        if (existingTracking) {
+          // Update existing tracking
+          if (input.trackingType === 'ADD_HOLDING') {
+            // Convert from watching to holding or update existing holding
+            result = await ctx.prisma.cryptoTracking.update({
+              where: { id: existingTracking.id },
+              data: {
+                holdingAmount: input.holdingAmount,
+                averagePurchasePrice: input.purchasePrice,
+                totalInvested: input.holdingAmount && input.purchasePrice 
+                  ? input.holdingAmount * input.purchasePrice 
+                  : null,
+                firstPurchaseDate: input.purchaseDate || new Date(),
+                notes: input.notes || existingTracking.notes,
+                tags: input.tags || existingTracking.tags,
+                lastViewedAt: new Date(),
+              },
+              include: { crypto: true },
+            });
+          } else {
+            // Just update last viewed for watching
+            result = await ctx.prisma.cryptoTracking.update({
+              where: { id: existingTracking.id },
+              data: {
+                lastViewedAt: new Date(),
+                notes: input.notes || existingTracking.notes,
+                tags: input.tags || existingTracking.tags,
+              },
+              include: { crypto: true },
+            });
+          }
+        } else {
+          // Create new tracking entry
+          result = await ctx.prisma.cryptoTracking.create({
+            data: {
+              userId,
+              cryptoId: crypto.id,
+              isWatching: true,
+              // Portfolio fields
+              holdingAmount: input.trackingType === 'ADD_HOLDING' ? input.holdingAmount : null,
+              averagePurchasePrice: input.trackingType === 'ADD_HOLDING' ? input.purchasePrice : null,
+              totalInvested: input.trackingType === 'ADD_HOLDING' && input.holdingAmount && input.purchasePrice
+                ? input.holdingAmount * input.purchasePrice 
+                : null,
+              firstPurchaseDate: input.trackingType === 'ADD_HOLDING' ? (input.purchaseDate || new Date()) : null,
+              // Metadata
+              addedAt: new Date(),
+              notes: input.notes,
+              tags: input.tags || [],
+              lastViewedAt: new Date(),
+              priceAlerts: [],
+              // Migration tracking
+              migratedFromFollowed: false,
+              migratedFromHolding: false,
+            },
+            include: { crypto: true },
+          });
+        }
+
+        // Track usage for watchlist additions
+        if (input.trackingType === 'WATCH_ONLY' || !existingTracking) {
+          await featureGateService.trackUsage(userId, UsageType.WATCHLIST_ADD, {
+            cryptoSymbol: input.cryptoSymbol,
+            cryptoName: input.cryptoName,
+            trackingType: input.trackingType,
+          });
+        }
+
+        const actionText = input.trackingType === 'ADD_HOLDING' 
+          ? `Added ${input.holdingAmount} ${input.cryptoSymbol.toUpperCase()} to portfolio`
+          : `Added ${input.cryptoSymbol.toUpperCase()} to watchlist`;
+
+        return {
+          success: true,
+          message: actionText,
+          data: result,
+        };
+      } catch (error) {
+        throw new Error(`Failed to add crypto tracking: ${error}`);
+      }
+    }),
+
+  // Update existing crypto tracking
+  updateCryptoTracking: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      trackingType: z.enum(['WATCH_ONLY', 'ADD_HOLDING', 'REMOVE_HOLDING']).optional(),
+      // Holdings data
+      holdingAmount: z.number().positive().optional(),
+      purchasePrice: z.number().positive().optional(),
+      purchaseDate: z.date().optional(),
+      notes: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const { id, trackingType, ...updateData } = input;
+      
+      try {
+        // Verify ownership
+        const tracking = await ctx.prisma.cryptoTracking.findFirst({
+          where: { id, userId },
+          include: { crypto: true },
+        });
+
+        if (!tracking) {
+          throw new Error('Crypto tracking entry not found or access denied');
+        }
+
+        // Prepare update data based on tracking type
+        let finalUpdateData: any = { ...updateData };
+
+        if (trackingType === 'REMOVE_HOLDING') {
+          // Convert from holding back to watching only
+          finalUpdateData = {
+            ...finalUpdateData,
+            holdingAmount: null,
+            averagePurchasePrice: null,
+            totalInvested: null,
+            firstPurchaseDate: null,
+          };
+        } else if (trackingType === 'ADD_HOLDING' && updateData.holdingAmount && updateData.purchasePrice) {
+          // Add or update holding
+          finalUpdateData = {
+            ...finalUpdateData,
+            totalInvested: updateData.holdingAmount * updateData.purchasePrice,
+            firstPurchaseDate: updateData.purchaseDate || tracking.firstPurchaseDate || new Date(),
+          };
+        }
+
+        // Always update last viewed
+        finalUpdateData.lastViewedAt = new Date();
+
+        // Update tracking
+        const updatedTracking = await ctx.prisma.cryptoTracking.update({
+          where: { id },
+          data: finalUpdateData,
+          include: { crypto: true },
+        });
+
+        let message = 'Crypto tracking updated';
+        if (trackingType === 'REMOVE_HOLDING') {
+          message = `Removed holdings for ${tracking.crypto.symbol}, now watching only`;
+        } else if (trackingType === 'ADD_HOLDING') {
+          message = `Updated holdings for ${tracking.crypto.symbol}`;
+        }
+
+        return {
+          success: true,
+          message,
+          data: updatedTracking,
+        };
+      } catch (error) {
+        throw new Error(`Failed to update crypto tracking: ${error}`);
+      }
+    }),
+
+  // Get user's unified crypto tracking (replaces both getFollowedCryptos and getPortfolioHoldings)
+  getUserCryptoTracking: protectedProcedure
+    .input(z.object({
+      filter: z.enum(['ALL', 'WATCHING_ONLY', 'HOLDINGS_ONLY']).default('ALL'),
+      includePerformance: z.boolean().default(true),
+    }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Build where clause based on filter
+        const whereClause: any = { userId };
+        
+        if (input.filter === 'WATCHING_ONLY') {
+          whereClause.holdingAmount = null;
+        } else if (input.filter === 'HOLDINGS_ONLY') {
+          whereClause.holdingAmount = { not: null };
+        }
+
+        const trackingEntries = await ctx.prisma.cryptoTracking.findMany({
+          where: whereClause,
+          include: {
+            crypto: true,
+          },
+          orderBy: [
+            { holdingAmount: { sort: 'desc', nulls: 'last' } }, // Holdings first
+            { lastViewedAt: 'desc' }, // Then by recent activity
+          ],
+        });
+
+        // Separate into categories for easier frontend handling
+        const watchingOnly = trackingEntries.filter(entry => !entry.holdingAmount);
+        const holdings = trackingEntries.filter(entry => entry.holdingAmount);
+
+        // Calculate summary metrics
+        const totalTracked = trackingEntries.length;
+        const totalWatching = watchingOnly.length;
+        const totalHoldings = holdings.length;
+        
+        const totalInvested = holdings.reduce((sum, entry) => 
+          sum + (entry.totalInvested || 0), 0
+        );
+
+        return {
+          success: true,
+          data: {
+            // All entries
+            trackingEntries,
+            // Categorized
+            watchingOnly,
+            holdings,
+            // Summary
+            summary: {
+              totalTracked,
+              totalWatching,
+              totalHoldings,
+              totalInvested,
+            },
+          },
+        };
+      } catch (error) {
+        throw new Error(`Failed to fetch crypto tracking: ${error}`);
+      }
+    }),
+
+  // Remove crypto from tracking (replaces both unfollowCrypto and deletePortfolioHolding)
+  removeCryptoTracking: protectedProcedure
+    .input(z.object({ 
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Verify ownership and get crypto info
+        const tracking = await ctx.prisma.cryptoTracking.findFirst({
+          where: { id: input.id, userId },
+          include: { crypto: true },
+        });
+
+        if (!tracking) {
+          throw new Error('Crypto tracking entry not found or access denied');
+        }
+
+        // Delete tracking entry
+        await ctx.prisma.cryptoTracking.delete({
+          where: { id: input.id },
+        });
+
+        const hadHoldings = tracking.holdingAmount !== null;
+        const message = hadHoldings 
+          ? `Removed ${tracking.crypto.symbol} from portfolio and watchlist`
+          : `Removed ${tracking.crypto.symbol} from watchlist`;
+
+        return {
+          success: true,
+          message,
+          data: { crypto: tracking.crypto, hadHoldings },
+        };
+      } catch (error) {
+        throw new Error(`Failed to remove crypto tracking: ${error}`);
       }
     }),
 });

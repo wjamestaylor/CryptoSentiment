@@ -15,8 +15,7 @@ export function Navbar() {
   const navigationLinks = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/sentiment', label: 'AI Analysis' },
-    ...(session ? [{ href: '/watchlist', label: 'Watchlist' }] : []),
-    ...(session ? [{ href: '/portfolio', label: 'Portfolio' }] : []),
+    ...(session ? [{ href: '/crypto', label: 'Crypto Manager' }] : []),
     { href: '/alerts', label: 'Alerts' },
     ...(session ? [{ href: '/profile', label: 'Profile' }] : []),
     { href: '/pricing', label: 'Pricing' },

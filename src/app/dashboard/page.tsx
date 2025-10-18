@@ -258,13 +258,13 @@ export default function Dashboard() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button asChild size="lg">
-                      <a href="/portfolio">
+                      <a href="/crypto">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Your First Holding
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="lg">
-                      <a href="/watchlist">
+                      <a href="/crypto">
                         <Star className="h-4 w-4 mr-2" />
                         Browse Cryptocurrencies
                       </a>
@@ -306,7 +306,7 @@ export default function Dashboard() {
                       <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-muted-foreground mb-2">No cryptocurrencies in your watchlist</p>
                       <Button asChild>
-                        <a href="/watchlist">Add Some Coins</a>
+                        <a href="/crypto">Add Some Coins</a>
                       </Button>
                     </div>
                   ) : (

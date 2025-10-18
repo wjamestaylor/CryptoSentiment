@@ -36,6 +36,9 @@ model User {
   // Followed cryptocurrencies
   followedCoins FollowedCoin[]
 
+  // Unified crypto tracking (replaces both followedCoins and portfolioHoldings)
+  cryptoTracking CryptoTracking[]
+
   // User alerts and notifications
   alerts        Alert[]
   notifications Notification[]
@@ -150,6 +153,7 @@ model Cryptocurrency {
   // Relationships
   followedBy        FollowedCoin[]
   portfolioHoldings PortfolioHolding[]
+  cryptoTracking    CryptoTracking[]
   alerts            Alert[]
   sentimentData     SentimentAnalysis[]
   priceData         PriceData[]
@@ -157,10 +161,50 @@ model Cryptocurrency {
   @@map("cryptocurrencies")
 }
 
+model CryptoTracking {
+  id       String @id @default(cuid())
+  userId   String
+  cryptoId String
+
+  // Tracking settings
+  isWatching Boolean @default(true)  // Always true - everyone tracks
+  
+  // Portfolio holdings (optional - null means watching only)
+  holdingAmount        Float?    // Amount owned (null = watching only)
+  averagePurchasePrice Float?    // Average cost basis
+  totalInvested        Float?    // Total USD invested
+  firstPurchaseDate    DateTime? // When first purchased
+  
+  // Tracking metadata
+  addedAt     DateTime @default(now())
+  notes       String?
+  tags        String[] // ["DeFi", "Research", "Long-term"]
+  
+  // Performance tracking
+  lastViewedAt DateTime @default(now())
+  priceAlerts  Json[]   // Alert configurations
+  
+  // Migration tracking
+  migratedFromFollowed Boolean @default(false)
+  migratedFromHolding  Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crypto Cryptocurrency @relation(fields: [cryptoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cryptoId])
+  @@map("crypto_tracking")
+}
+
 model FollowedCoin {
   id     String @id @default(cuid())
   userId String
   cryptoId String
+
+  // Migration support
+  migratedToCryptoTracking Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -366,6 +410,9 @@ model PortfolioHolding {
   purchasePrice Float? // Price when purchased (in USD)
   purchaseDate  DateTime? // When the holding was added/purchased
   notes        String?  // Optional notes about the purchase
+
+  // Migration support
+  migratedToCryptoTracking Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
