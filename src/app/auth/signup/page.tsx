@@ -9,10 +9,10 @@ import Link from 'next/link';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const callbackUrl = '/dashboard';
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,17 +27,22 @@ export default function SignUpPage() {
     }
 
     try {
-      // Use NextAuth signIn with email - this handles both sign-up and sign-in automatically
-      const result = await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl: callbackUrl
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name: name || undefined }),
       });
 
-      if (result?.error) {
-        setError('Failed to send verification email. Please try again.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create account. Please try again.');
       } else {
-        setMessage(`Welcome! We've sent a secure link to ${email} to complete your account setup.`);
+        setMessage(data.message || `Account created! Check your email to verify your account.`);
+        setEmail('');
+        setName('');
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -63,13 +68,29 @@ export default function SignUpPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
+            <CardTitle>Create Account</CardTitle>
             <CardDescription>
-              Enter your email to create your CryptoSentiment account
+              Get started with AI-powered crypto analysis
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleEmailSignUp} className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Full Name (Optional)
+                </label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  className="mt-1"
+                />
+              </div>
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -97,7 +118,7 @@ export default function SignUpPage() {
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <div className="text-sm text-green-600">{message}</div>
                   <div className="text-xs text-green-500 mt-1">
-                    Click the link in your email to activate your account and start tracking crypto sentiment!
+                    Check your spam folder if you don&apos;t see the email within a few minutes.
                   </div>
                 </div>
               )}
@@ -107,14 +128,14 @@ export default function SignUpPage() {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin -ml-1 mr-3 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    Creating your account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
+                                  {isLoading ? (
+                    <>
+                      <div className="animate-spin -ml-1 mr-3 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      Creating account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
               </Button>
             </form>
 

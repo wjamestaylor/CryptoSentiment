@@ -29,16 +29,20 @@ function SignInForm() {
     }
 
     try {
-      const result = await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl
+      const response = await fetch('/api/auth/signin-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.error) {
-        setError('Failed to send sign-in email. Please try again.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to send sign-in email. Please try again.');
       } else {
-        setMessage(`Check your email! We've sent a sign-in link to ${email}`);
+        setMessage(data.message || `Check your email! We've sent a sign-in link to ${email}`);
       }
     } catch {
       setError('Something went wrong. Please try again.');
