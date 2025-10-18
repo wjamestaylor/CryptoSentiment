@@ -1,9 +1,9 @@
 import { NotificationService, NotificationData } from '@/services/notifications/notification.service';
-import { EmailService } from '@/services/email/email.service';
+import { ResendEmailService } from '@/services/email/resend.service';
 import { AlertType, NotificationType } from '@prisma/client';
 
-// Mock EmailService
-jest.mock('@/services/email/email.service');
+// Mock ResendEmailService
+jest.mock('@/services/email/resend.service');
 
 // Mock the database
 jest.mock('@/lib/db/prisma', () => ({
@@ -26,23 +26,22 @@ jest.mock('@/lib/db/prisma', () => ({
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const mockDb = require('@/lib/db/prisma').prisma;
 
-const MockedEmailService = EmailService as jest.MockedClass<typeof EmailService>;
+const MockedResendEmailService = ResendEmailService as jest.MockedClass<typeof ResendEmailService>;
 
 describe('NotificationService', () => {
   let notificationService: NotificationService;
-  let mockEmailService: jest.Mocked<EmailService>;
+  let mockEmailService: jest.Mocked<ResendEmailService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     
     // Create mock email service instance
-    mockEmailService = new EmailService() as jest.Mocked<EmailService>;
-    jest.spyOn(mockEmailService, 'sendEmail').mockImplementation(jest.fn());
-    jest.spyOn(mockEmailService, 'sendAlertEmail').mockImplementation(jest.fn());
+    mockEmailService = new ResendEmailService() as jest.Mocked<ResendEmailService>;
+    jest.spyOn(mockEmailService, 'sendAlertTriggeredEmail').mockImplementation(jest.fn());
+    jest.spyOn(mockEmailService, 'sendNotificationEmail').mockImplementation(jest.fn());
     jest.spyOn(mockEmailService, 'sendWelcomeEmail').mockImplementation(jest.fn());
-    jest.spyOn(mockEmailService, 'testConnection').mockImplementation(jest.fn());
     
-    MockedEmailService.mockImplementation(() => mockEmailService);
+    MockedResendEmailService.mockImplementation(() => mockEmailService);
     
     notificationService = new NotificationService();
   });
@@ -136,7 +135,7 @@ describe('NotificationService', () => {
       };
 
       mockDb.alert.findUnique.mockResolvedValue(mockAlert);
-      mockEmailService.sendAlertEmail.mockResolvedValue(true);
+      mockEmailService.sendAlertTriggeredEmail.mockResolvedValue();
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -151,24 +150,25 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendAlertEmail).toHaveBeenCalledWith({
-        userEmail: 'user@example.com',
-        userName: 'John Doe',
-        cryptoName: 'Bitcoin',
-        cryptoSymbol: 'BTC',
-        alertType: AlertType.SENTIMENT_CHANGE,
-        alertDetails: {
-          title: 'Bitcoin Alert',
-          message: 'Bitcoin sentiment changed',
-          timestamp: expect.any(Date),
-          triggerCount: 6, // triggerCount + 1
-        },
-        dashboardUrl: 'http://localhost:3000/dashboard',
-      });
+      expect(mockEmailService.sendAlertTriggeredEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'John Doe',
+        {
+          cryptoName: 'Bitcoin',
+          cryptoSymbol: 'BTC',
+          alertType: AlertType.SENTIMENT_CHANGE,
+          alertDetails: {
+            title: 'Bitcoin Alert',
+            message: 'Bitcoin sentiment changed',
+            timestamp: expect.any(Date),
+            triggerCount: 6, // triggerCount + 1
+          },
+        }
+      );
     });
 
     it('should send generic email for non-alert notifications', async () => {
-      mockEmailService.sendEmail.mockResolvedValue(true);
+      mockEmailService.sendNotificationEmail.mockResolvedValue();
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -180,11 +180,12 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendEmail).toHaveBeenCalledWith({
-        to: 'user@example.com',
-        subject: 'CryptoSentiment: System Update',
-        html: expect.stringContaining('System Update'),
-      });
+      expect(mockEmailService.sendNotificationEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'John Doe',
+        'System Update',
+        'System will be updated tonight'
+      );
     });
 
     it('should not send email when user has email notifications disabled', async () => {
@@ -207,8 +208,8 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendAlertEmail).not.toHaveBeenCalled();
-      expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendAlertTriggeredEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendNotificationEmail).not.toHaveBeenCalled();
     });
 
     it('should not send email when user has no email address', async () => {
@@ -229,12 +230,12 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendAlertEmail).not.toHaveBeenCalled();
-      expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendAlertTriggeredEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendNotificationEmail).not.toHaveBeenCalled();
     });
 
     it('should continue if email sending fails', async () => {
-      mockEmailService.sendEmail.mockResolvedValue(false);
+      mockEmailService.sendNotificationEmail.mockRejectedValue(new Error('Email failed'));
 
       const notificationData: NotificationData = {
         userId: 'user-1',
@@ -276,8 +277,8 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendEmail).toHaveBeenCalled(); // Should fall back to generic email
-      expect(mockEmailService.sendAlertEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendNotificationEmail).toHaveBeenCalled(); // Should fall back to generic email
+      expect(mockEmailService.sendAlertTriggeredEmail).not.toHaveBeenCalled();
     });
 
     it('should handle alert not found for alert emails', async () => {
@@ -296,14 +297,14 @@ describe('NotificationService', () => {
       const result = await notificationService.sendNotification(notificationData);
 
       expect(result).toBe(true);
-      expect(mockEmailService.sendEmail).toHaveBeenCalled(); // Should fall back to generic email
-      expect(mockEmailService.sendAlertEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.sendNotificationEmail).toHaveBeenCalled(); // Should fall back to generic email
+      expect(mockEmailService.sendAlertTriggeredEmail).not.toHaveBeenCalled();
     });
   });
 
   describe('sendWelcomeEmail', () => {
     it('should delegate to email service', async () => {
-      mockEmailService.sendWelcomeEmail.mockResolvedValue(true);
+      mockEmailService.sendWelcomeEmail.mockResolvedValue();
 
       const result = await notificationService.sendWelcomeEmail('user@example.com', 'John Doe');
 
@@ -312,7 +313,7 @@ describe('NotificationService', () => {
     });
 
     it('should handle email service failure', async () => {
-      mockEmailService.sendWelcomeEmail.mockResolvedValue(false);
+      mockEmailService.sendWelcomeEmail.mockRejectedValue(new Error('Email failed'));
 
       const result = await notificationService.sendWelcomeEmail('user@example.com');
 

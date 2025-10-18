@@ -110,6 +110,59 @@ export class ResendEmailService {
   }
 
   /**
+   * Send alert triggered email with enhanced context
+   */
+  async sendAlertTriggeredEmail(
+    email: string, 
+    userName: string | undefined,
+    alertContext: {
+      cryptoName: string;
+      cryptoSymbol: string;
+      alertType: any;
+      alertDetails: {
+        title: string;
+        message: string;
+        timestamp: Date;
+        triggerCount: number;
+      };
+    }
+  ): Promise<void> {
+    try {
+      await this.getResend().emails.send({
+        from: process.env.EMAIL_FROM || 'CryptoSentiment <alerts@cryptosentiment.app>',
+        to: email,
+        subject: `🚨 ${alertContext.cryptoName} Alert Triggered - CryptoSentiment`,
+        html: this.getAlertTriggeredEmailTemplate(userName, alertContext),
+      });
+    } catch (error) {
+      console.error('Failed to send alert triggered email:', error);
+      throw new Error('Failed to send alert triggered email');
+    }
+  }
+
+  /**
+   * Send generic notification email
+   */
+  async sendNotificationEmail(
+    email: string,
+    userName: string | undefined,
+    title: string,
+    content: string
+  ): Promise<void> {
+    try {
+      await this.getResend().emails.send({
+        from: process.env.EMAIL_FROM || 'CryptoSentiment <noreply@cryptosentiment.app>',
+        to: email,
+        subject: `CryptoSentiment: ${title}`,
+        html: this.getNotificationEmailTemplate(userName, title, content),
+      });
+    } catch (error) {
+      console.error('Failed to send notification email:', error);
+      throw new Error('Failed to send notification email');
+    }
+  }
+
+  /**
    * Magic link email template
    */
   private getMagicLinkEmailTemplate(magicLinkUrl: string): string {
@@ -386,6 +439,151 @@ export class ResendEmailService {
             <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
               <p style="color: #718096; font-size: 12px; margin: 0;">
                 © 2025 CryptoSentiment. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Enhanced alert triggered email template
+   */
+  private getAlertTriggeredEmailTemplate(
+    userName: string | undefined,
+    alertContext: {
+      cryptoName: string;
+      cryptoSymbol: string;
+      alertType: any;
+      alertDetails: {
+        title: string;
+        message: string;
+        timestamp: Date;
+        triggerCount: number;
+      };
+    }
+  ): string {
+    const formatAlertType = (type: any): string => {
+      if (typeof type === 'string') return type;
+      return type?.toString() || 'Alert';
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>🚨 ${alertContext.cryptoName} Alert Triggered</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #f56565 0%, #c53030 100%); padding: 40px 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">🚨 Alert Triggered</h1>
+              <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0 0; font-size: 16px;">${alertContext.cryptoSymbol} ${formatAlertType(alertContext.alertType)}</p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 40px 20px;">
+              ${userName ? `<h2 style="color: #1a202c; margin: 0 0 20px 0; font-size: 24px;">Hi ${userName}! 👋</h2>` : ''}
+              
+              <p style="color: #4a5568; margin: 0 0 20px 0; font-size: 16px;">
+                Your alert for <strong>${alertContext.cryptoName} (${alertContext.cryptoSymbol})</strong> has been triggered!
+              </p>
+              
+              <div style="background-color: #fed7d7; border: 1px solid #feb2b2; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #742a2a; margin: 0 0 15px 0; font-size: 18px;">${alertContext.alertDetails.title}</h3>
+                <p style="color: #742a2a; margin: 0 0 15px 0; font-size: 16px;">
+                  ${alertContext.alertDetails.message}
+                </p>
+                <div style="font-size: 14px; color: #a0aec0;">
+                  <p style="margin: 0;">
+                    Triggered: ${alertContext.alertDetails.timestamp.toLocaleString()}
+                  </p>
+                  <p style="margin: 5px 0 0 0;">
+                    Total Triggers: ${alertContext.alertDetails.triggerCount}
+                  </p>
+                </div>
+              </div>
+              
+              <div style="text-align: center; margin: 40px 0;">
+                <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  View Dashboard
+                </a>
+              </div>
+              
+              <p style="color: #718096; font-size: 14px; margin: 30px 0 0 0; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                This alert was sent based on your CryptoSentiment notification preferences. You can manage your alerts and notification settings in your dashboard.
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #718096; font-size: 12px; margin: 0;">
+                © 2025 CryptoSentiment. All rights reserved.<br>
+                <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generic notification email template
+   */
+  private getNotificationEmailTemplate(
+    userName: string | undefined,
+    title: string,
+    content: string
+  ): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>CryptoSentiment Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; line-height: 1.6;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">📊 CryptoSentiment</h1>
+              <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0 0; font-size: 16px;">Notification</p>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 40px 20px;">
+              ${userName ? `<h2 style="color: #1a202c; margin: 0 0 20px 0; font-size: 24px;">Hi ${userName}! 👋</h2>` : ''}
+              
+              <h3 style="color: #2d3748; margin: 0 0 20px 0; font-size: 20px;">${title}</h3>
+              
+              <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <p style="color: #4a5568; margin: 0; font-size: 16px;">
+                  ${content}
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin: 40px 0;">
+                <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  View Dashboard
+                </a>
+              </div>
+              
+              <p style="color: #718096; font-size: 14px; margin: 30px 0 0 0; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                You're receiving this notification because you have notifications enabled. You can manage your notification preferences in your dashboard.
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #718096; font-size: 12px; margin: 0;">
+                © 2025 CryptoSentiment. All rights reserved.<br>
+                <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
               </p>
             </div>
           </div>

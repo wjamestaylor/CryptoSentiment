@@ -27,6 +27,8 @@ describe('ResendEmailService Structure', () => {
     expect(servicePrototype).toHaveProperty('sendMagicLinkEmail');
     expect(servicePrototype).toHaveProperty('sendPasswordResetEmail');
     expect(servicePrototype).toHaveProperty('sendAlertEmail');
+    expect(servicePrototype).toHaveProperty('sendAlertTriggeredEmail');
+    expect(servicePrototype).toHaveProperty('sendNotificationEmail');
   });
 
   it('should validate email templates contain required elements', () => {
@@ -179,6 +181,57 @@ describe('ResendEmailService Structure', () => {
       secureUrlPatterns.forEach(pattern => {
         expect(pattern).toContain('token=');
         expect(pattern).toMatch(/^\/auth\//);
+            });
+    });
+  });
+
+  describe('Alert email validation', () => {
+    it('should validate alert triggered email structure', () => {
+      const alertContext = {
+        cryptoName: 'Bitcoin',
+        cryptoSymbol: 'BTC',
+        alertType: 'PRICE_CHANGE',
+        alertDetails: {
+          title: 'Bitcoin Price Alert',
+          message: 'Bitcoin price has increased by 10%',
+          timestamp: new Date(),
+          triggerCount: 5,
+        },
+      };
+
+      // Validate required properties
+      expect(alertContext.cryptoName).toBeDefined();
+      expect(alertContext.cryptoSymbol).toBeDefined();
+      expect(alertContext.alertType).toBeDefined();
+      expect(alertContext.alertDetails.title).toBeDefined();
+      expect(alertContext.alertDetails.message).toBeDefined();
+      expect(alertContext.alertDetails.timestamp).toBeInstanceOf(Date);
+      expect(alertContext.alertDetails.triggerCount).toBeGreaterThan(0);
+    });
+
+    it('should validate notification email parameters', () => {
+      const notificationParams = {
+        email: 'user@example.com',
+        userName: 'John Doe',
+        title: 'System Update',
+        content: 'The system will be updated tonight',
+      };
+
+      expect(notificationParams.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+      expect(notificationParams.title).toBeTruthy();
+      expect(notificationParams.content).toBeTruthy();
+    });
+
+    it('should handle optional userName in alert emails', () => {
+      const testCases = [
+        { userName: 'John Doe', expected: true },
+        { userName: undefined, expected: false },
+        { userName: '', expected: false },
+      ];
+
+      testCases.forEach(({ userName, expected }) => {
+        const hasValidUserName = Boolean(userName && userName.trim());
+        expect(hasValidUserName).toBe(expected);
       });
     });
   });

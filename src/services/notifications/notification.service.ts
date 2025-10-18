@@ -1,6 +1,6 @@
 import { prisma as db } from '@/lib/db/prisma';
 import { NotificationType, AlertType } from '@prisma/client';
-import { EmailService, AlertEmailData } from '@/services/email/email.service';
+import { ResendEmailService } from '@/services/email/resend.service';
 
 export interface NotificationData {
   userId: string;
@@ -13,6 +13,18 @@ export interface NotificationData {
   alertType?: AlertType;
 }
 
+export interface AlertEmailContext {
+  cryptoName: string;
+  cryptoSymbol: string;
+  alertType: AlertType;
+  alertDetails: {
+    title: string;
+    message: string;
+    timestamp: Date;
+    triggerCount: number;
+  };
+}
+
 // User type for notification methods
 interface NotificationUser {
   email: string | null;
@@ -23,10 +35,10 @@ interface NotificationUser {
 }
 
 export class NotificationService {
-  private emailService: EmailService;
+  private emailService: ResendEmailService;
 
   constructor() {
-    this.emailService = new EmailService();
+    this.emailService = new ResendEmailService();
   }
   /**
    * Create a notification in the database
@@ -76,7 +88,7 @@ export class NotificationService {
       if (user.email && user.preferences?.emailNotifications !== false) {
         try {
           if (data.type === NotificationType.ALERT_TRIGGERED && data.alertId && data.cryptoId && data.alertType) {
-            // Try to send specialized alert email
+            // Try to send specialized alert email using ResendEmailService
             try {
               await this.sendAlertEmail(data, user);
             } catch (alertEmailError) {
@@ -85,7 +97,7 @@ export class NotificationService {
               await this.sendGenericEmail(data, user);
             }
           } else {
-            // Send generic notification email
+            // Send generic notification email using ResendEmailService
             await this.sendGenericEmail(data, user);
           }
         } catch (emailError) {
@@ -110,7 +122,7 @@ export class NotificationService {
   }
 
   /**
-   * Send specialized alert email
+   * Send specialized alert email using ResendEmailService
    */
   private async sendAlertEmail(data: NotificationData, user: NotificationUser) {
     if (!data.alertId || !data.cryptoId || !data.alertType) {
@@ -131,9 +143,7 @@ export class NotificationService {
       throw new Error('Alert or crypto not found for email');
     }
 
-    const alertEmailData: AlertEmailData = {
-      userEmail: user.email,
-      userName: user.name || undefined,
+    const alertContext: AlertEmailContext = {
       cryptoName: alert.crypto.name,
       cryptoSymbol: alert.crypto.symbol,
       alertType: data.alertType,
@@ -141,135 +151,44 @@ export class NotificationService {
         title: data.title,
         message: data.content,
         timestamp: new Date(),
-        triggerCount: alert.triggerCount + 1, // Include the current trigger
+        triggerCount: alert.triggerCount + 1,
       },
-      dashboardUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard`,
     };
 
-    return await this.emailService.sendAlertEmail(alertEmailData);
+    await this.emailService.sendAlertTriggeredEmail(
+      user.email,
+      user.name || undefined,
+      alertContext
+    );
   }
 
   /**
-   * Send generic notification email
+   * Send generic notification email using ResendEmailService
    */
   private async sendGenericEmail(data: NotificationData, user: NotificationUser) {
     if (!user.email) {
       throw new Error('User email is required for notification email');
     }
 
-    const subject = `CryptoSentiment: ${data.title}`;
-    const html = this.generateGenericEmailHTML(data, user);
-
-    return await this.emailService.sendEmail({
-      to: user.email,
-      subject,
-      html,
-    });
+    await this.emailService.sendNotificationEmail(
+      user.email,
+      user.name || undefined,
+      data.title,
+      data.content
+    );
   }
 
   /**
-   * Generate HTML for generic notification emails
-   */
-  private generateGenericEmailHTML(data: NotificationData, user: NotificationUser): string {
-    const dashboardLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard`;
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoSentiment Notification</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8fafc;
-        }
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2563eb;
-            margin-bottom: 10px;
-        }
-        .notification-content {
-            background: #f1f5f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .cta-button {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            margin: 20px 0;
-        }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            font-size: 12px;
-            color: #64748b;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">📊 CryptoSentiment</div>
-        </div>
-
-        ${user.name ? `<p>Hi ${user.name},</p>` : '<p>Hello,</p>'}
-
-        <h2>${data.title}</h2>
-
-        <div class="notification-content">
-            <p>${data.content}</p>
-        </div>
-
-        <div style="text-align: center;">
-            <a href="${dashboardLink}" class="cta-button">View Dashboard</a>
-        </div>
-
-        <div class="footer">
-            <p>You're receiving this email because you have notifications enabled.<br>
-            <a href="${dashboardLink}/profile">Manage notification preferences</a></p>
-            
-            <p>CryptoSentiment - AI-Powered Cryptocurrency Sentiment Analysis<br>
-            <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}">cryptosentiment.com</a></p>
-        </div>
-    </div>
-</body>
-</html>
-    `;
-  }
-
-  /**
-   * Send welcome email to new users
+   * Send welcome email to new users using ResendEmailService
    */
   async sendWelcomeEmail(userEmail: string, userName?: string): Promise<boolean> {
-    return await this.emailService.sendWelcomeEmail(userEmail, userName);
+    try {
+      await this.emailService.sendWelcomeEmail(userEmail, userName);
+      return true;
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      return false;
+    }
   }
 
   /**
