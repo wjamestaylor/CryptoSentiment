@@ -241,10 +241,23 @@ export function CryptoManager() {
 
     if (editingId) {
       // Update existing tracking entry
+      // Determine the correct trackingType for update
+      let updateTrackingType: 'WATCH_ONLY' | 'ADD_HOLDING' | 'REMOVE_HOLDING' | undefined;
+      
+      if (trackingType === 'ADD_HOLDING' && data.holdingAmount && data.purchasePrice) {
+        updateTrackingType = 'ADD_HOLDING';
+      } else if (trackingType === 'WATCH_ONLY') {
+        updateTrackingType = 'REMOVE_HOLDING'; // Convert holding back to watching
+      }
+
       updateTrackingMutation.mutate({
         id: editingId,
-        ...data,
-        trackingType: data.trackingType as 'WATCH_ONLY' | 'ADD_HOLDING' | 'REMOVE_HOLDING',
+        trackingType: updateTrackingType,
+        holdingAmount: data.holdingAmount,
+        purchasePrice: data.purchasePrice,
+        purchaseDate: data.purchaseDate,
+        notes: data.notes,
+        tags: data.tags,
       });
     } else {
       // Add new tracking entry and track usage

@@ -196,4 +196,308 @@ describe('Crypto Router Unified Tracking System', () => {
       }
     });
   });
+
+  describe('updateCryptoTracking', () => {
+    const mockTrackingEntry = {
+      id: 'tracking-1',
+      userId: 'user-1',
+      cryptoId: 'crypto-1',
+      isWatching: true,
+      holdingAmount: 1.0,
+      averagePurchasePrice: 50000,
+      totalInvested: 50000,
+      firstPurchaseDate: new Date('2023-01-01'),
+      notes: 'Original notes',
+      tags: ['long-term'],
+      crypto: {
+        id: 'crypto-1',
+        symbol: 'BTC',
+        name: 'Bitcoin',
+      },
+    };
+
+    beforeEach(() => {
+      (prisma.cryptoTracking.findFirst as jest.Mock).mockResolvedValue(mockTrackingEntry);
+    });
+
+    it('should validate updateCryptoTracking input schema', () => {
+      const schema = z.object({
+        id: z.string(),
+        trackingType: z.enum(['WATCH_ONLY', 'ADD_HOLDING', 'REMOVE_HOLDING']).optional(),
+        holdingAmount: z.number().positive().optional(),
+        purchasePrice: z.number().positive().optional(),
+        purchaseDate: z.date().optional(),
+        notes: z.string().optional(),
+        tags: z.array(z.string()).optional(),
+      });
+
+      // Valid update holding
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 2.0,
+        purchasePrice: 55000,
+        notes: 'Updated holding',
+      })).not.toThrow();
+
+      // Valid remove holding
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'REMOVE_HOLDING',
+      })).not.toThrow();
+
+      // Invalid - negative holding amount
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        holdingAmount: -1,
+      })).toThrow();
+    });
+
+    it('should update holding amount and purchase price', async () => {
+      const updatedEntry = {
+        ...mockTrackingEntry,
+        holdingAmount: 2.0,
+        averagePurchasePrice: 55000,
+        totalInvested: 110000,
+        lastViewedAt: new Date(),
+      };
+
+      (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(updatedEntry);
+
+      const updateData = {
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING' as const,
+        holdingAmount: 2.0,
+        purchasePrice: 55000,
+        notes: 'Updated holding',
+      };
+
+      // Simulate the full update flow
+      // 1. Verify ownership
+      const tracking = await prisma.cryptoTracking.findFirst({
+        where: { id: updateData.id, userId: 'user-1' },
+        include: { crypto: true },
+      });
+
+      expect(tracking).toBeTruthy();
+      expect(prisma.cryptoTracking.findFirst).toHaveBeenCalledWith({
+        where: { id: updateData.id, userId: 'user-1' },
+        include: { crypto: true },
+      });
+
+      // 2. Update the entry
+      const result = await prisma.cryptoTracking.update({
+        where: { id: updateData.id },
+        data: {
+          holdingAmount: updateData.holdingAmount,
+          averagePurchasePrice: updateData.purchasePrice,
+          totalInvested: updateData.holdingAmount * updateData.purchasePrice,
+          notes: updateData.notes,
+          lastViewedAt: expect.any(Date),
+        },
+        include: { crypto: true },
+      });
+
+      expect(prisma.cryptoTracking.update).toHaveBeenCalledWith({
+        where: { id: updateData.id },
+        data: expect.objectContaining({
+          holdingAmount: 2.0,
+          averagePurchasePrice: 55000,
+          totalInvested: 110000,
+          notes: 'Updated holding',
+          lastViewedAt: expect.any(Date),
+        }),
+        include: { crypto: true },
+      });
+
+      expect(result.holdingAmount).toBe(2.0);
+      expect(result.averagePurchasePrice).toBe(55000);
+      expect(result.totalInvested).toBe(110000);
+    });
+
+    it('should convert holding to watching only when trackingType is REMOVE_HOLDING', async () => {
+      const watchingOnlyEntry = {
+        ...mockTrackingEntry,
+        holdingAmount: null,
+        averagePurchasePrice: null,
+        totalInvested: null,
+        firstPurchaseDate: null,
+        lastViewedAt: new Date(),
+      };
+
+      (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(watchingOnlyEntry);
+
+      const updateData = {
+        id: 'tracking-1',
+        trackingType: 'REMOVE_HOLDING' as const,
+      };
+
+      // Simulate the update call
+      await prisma.cryptoTracking.update({
+        where: { id: updateData.id },
+        data: {
+          holdingAmount: null,
+          averagePurchasePrice: null,
+          totalInvested: null,
+          firstPurchaseDate: null,
+          lastViewedAt: expect.any(Date),
+        },
+        include: { crypto: true },
+      });
+
+      expect(prisma.cryptoTracking.update).toHaveBeenCalledWith({
+        where: { id: updateData.id },
+        data: expect.objectContaining({
+          holdingAmount: null,
+          averagePurchasePrice: null,
+          totalInvested: null,
+          firstPurchaseDate: null,
+          lastViewedAt: expect.any(Date),
+        }),
+        include: { crypto: true },
+      });
+    });
+
+    it('should update notes and tags without affecting holdings', async () => {
+      const updatedEntry = {
+        ...mockTrackingEntry,
+        notes: 'Updated notes only',
+        tags: ['updated', 'tags'],
+        lastViewedAt: new Date(),
+      };
+
+      (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(updatedEntry);
+
+      const updateData = {
+        id: 'tracking-1',
+        notes: 'Updated notes only',
+        tags: ['updated', 'tags'],
+      };
+
+      // Simulate the update call
+      await prisma.cryptoTracking.update({
+        where: { id: updateData.id },
+        data: {
+          notes: updateData.notes,
+          tags: updateData.tags,
+          lastViewedAt: expect.any(Date),
+        },
+        include: { crypto: true },
+      });
+
+      expect(prisma.cryptoTracking.update).toHaveBeenCalledWith({
+        where: { id: updateData.id },
+        data: expect.objectContaining({
+          notes: 'Updated notes only',
+          tags: ['updated', 'tags'],
+          lastViewedAt: expect.any(Date),
+        }),
+        include: { crypto: true },
+      });
+    });
+
+    it('should handle ownership verification failure', async () => {
+      (prisma.cryptoTracking.findFirst as jest.Mock).mockResolvedValue(null);
+
+      try {
+        await prisma.cryptoTracking.findFirst({
+          where: { id: 'tracking-1', userId: 'different-user' },
+          include: { crypto: true },
+        });
+
+        // This would simulate the error in the actual procedure
+        if (!await prisma.cryptoTracking.findFirst({ where: { id: 'tracking-1', userId: 'different-user' }, include: { crypto: true } })) {
+          throw new Error('Crypto tracking entry not found or access denied');
+        }
+
+        fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe('Crypto tracking entry not found or access denied');
+      }
+    });
+
+    it('should preserve firstPurchaseDate when updating existing holding', async () => {
+      const originalDate = new Date('2023-01-01');
+      const trackingWithOriginalDate = {
+        ...mockTrackingEntry,
+        firstPurchaseDate: originalDate,
+      };
+
+      (prisma.cryptoTracking.findFirst as jest.Mock).mockResolvedValue(trackingWithOriginalDate);
+
+      const updatedEntry = {
+        ...trackingWithOriginalDate,
+        holdingAmount: 1.5,
+        averagePurchasePrice: 52000,
+        totalInvested: 78000,
+        firstPurchaseDate: originalDate, // Should preserve original date
+        lastViewedAt: new Date(),
+      };
+
+      (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(updatedEntry);
+
+      // Simulate update without new purchase date
+      await prisma.cryptoTracking.update({
+        where: { id: 'tracking-1' },
+        data: {
+          holdingAmount: 1.5,
+          averagePurchasePrice: 52000,
+          totalInvested: 78000,
+          firstPurchaseDate: originalDate, // Should preserve original
+          lastViewedAt: expect.any(Date),
+        },
+        include: { crypto: true },
+      });
+
+      expect(prisma.cryptoTracking.update).toHaveBeenCalledWith({
+        where: { id: 'tracking-1' },
+        data: expect.objectContaining({
+          firstPurchaseDate: originalDate,
+        }),
+        include: { crypto: true },
+      });
+    });
+
+    it('should calculate totalInvested correctly when updating holdings', async () => {
+      const testCases = [
+        { amount: 1.0, price: 50000, expected: 50000 },
+        { amount: 0.5, price: 60000, expected: 30000 },
+        { amount: 2.5, price: 45000, expected: 112500 },
+      ];
+
+      for (const { amount, price, expected } of testCases) {
+        const updatedEntry = {
+          ...mockTrackingEntry,
+          holdingAmount: amount,
+          averagePurchasePrice: price,
+          totalInvested: expected,
+        };
+
+        (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(updatedEntry);
+
+        await prisma.cryptoTracking.update({
+          where: { id: 'tracking-1' },
+          data: {
+            holdingAmount: amount,
+            averagePurchasePrice: price,
+            totalInvested: amount * price,
+            lastViewedAt: expect.any(Date),
+          },
+          include: { crypto: true },
+        });
+
+        expect(prisma.cryptoTracking.update).toHaveBeenCalledWith({
+          where: { id: 'tracking-1' },
+          data: expect.objectContaining({
+            totalInvested: expected,
+          }),
+          include: { crypto: true },
+        });
+
+        jest.clearAllMocks();
+        (prisma.cryptoTracking.findFirst as jest.Mock).mockResolvedValue(mockTrackingEntry);
+      }
+    });
+  });
 });

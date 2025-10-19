@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import { CryptoManager } from '@/components/crypto/CryptoManager';
 import { api } from '@/lib/trpc/provider';
@@ -65,10 +65,11 @@ jest.mock('@/lib/trpc/provider', () => ({
 }));
 
 // Mock useToast
+const mockToast = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({
-    toast: jest.fn(),
-  }),
+  useToast: jest.fn(() => ({
+    toast: mockToast,
+  })),
 }));
 
 // Mock Next.js components
@@ -468,6 +469,409 @@ describe('CryptoManager Component', () => {
       
       // Should show "+1 more alerts" for the third alert
       expect(screen.getByText('+1 more alerts')).toBeInTheDocument();
+    });
+  });
+
+  describe('Holding Updates', () => {
+    const mockUpdateMutation = jest.fn();
+
+    beforeEach(() => {
+      mockUpdateMutation.mockClear();
+
+      // Mock the update mutation
+      (api.crypto.updateCryptoTracking.useMutation as jest.Mock).mockReturnValue({
+        mutate: mockUpdateMutation,
+        isLoading: false,
+        error: null,
+      });
+
+      // Mock other mutations to avoid side effects
+      (api.crypto.addCryptoToTracking.useMutation as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        isLoading: false,
+        error: null,
+      });
+
+      (api.crypto.removeCryptoTracking.useMutation as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        isLoading: false,
+        error: null,
+      });
+    });
+
+    it('should handle updating holding amount and purchase price', async () => {
+      // Mock initial tracking data with a holding
+      const mockHolding = {
+        id: 'tracking-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        isWatching: true,
+        holdingAmount: 1.0,
+        averagePurchasePrice: 50000,
+        totalInvested: 50000,
+        firstPurchaseDate: new Date('2023-01-01'),
+        notes: 'Original notes',
+        tags: ['long-term'],
+        lastViewedAt: new Date(),
+        addedAt: new Date(),
+        crypto: {
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
+          logoUrl: null,
+          marketCap: null,
+          rank: null,
+        },
+        currentPrice: 55000,
+        currentValue: 55000,
+        gainLoss: 5000,
+        gainLossPercentage: 10,
+        priceChangePercentage24h: 2.5,
+      };
+
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          data: {
+            trackingEntries: [mockHolding],
+            summary: {
+              totalTracked: 1,
+              totalWatching: 0,
+              totalHoldings: 1,
+              totalInvested: 50000,
+            }
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Click edit button for the holding
+      const editButton = screen.getByRole('button', { name: 'Edit holdings' });
+      fireEvent.click(editButton);
+
+      // Wait for the manage tab to be active and form to appear
+      await waitFor(() => {
+        // Form should be populated with existing data
+        expect(screen.getByDisplayValue('1')).toBeInTheDocument(); // holding amount
+        expect(screen.getByDisplayValue('50000')).toBeInTheDocument(); // purchase price
+      });
+
+      // Update the holding amount and price
+      const holdingAmountInput = screen.getByLabelText(/Amount/);
+      const purchasePriceInput = screen.getByLabelText(/Price per Coin/);
+
+      fireEvent.change(holdingAmountInput, { target: { value: '2.0' } });
+      fireEvent.change(purchasePriceInput, { target: { value: '52000' } });
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /Update Holdings/i });
+      fireEvent.click(submitButton);
+
+      // Verify the update mutation was called with correct data
+      expect(mockUpdateMutation).toHaveBeenCalledWith({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 2.0,
+        purchasePrice: 52000,
+        purchaseDate: expect.any(Date),
+        notes: 'Original notes',
+      });
+    });
+
+    it('should handle converting holding to watching only', async () => {
+      const mockHolding = {
+        id: 'tracking-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        isWatching: true,
+        holdingAmount: 1.0,
+        averagePurchasePrice: 50000,
+        totalInvested: 50000,
+        firstPurchaseDate: new Date('2023-01-01'),
+        notes: 'Converting to watch only',
+        tags: ['test'],
+        lastViewedAt: new Date(),
+        addedAt: new Date(),
+        crypto: {
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
+          logoUrl: null,
+          marketCap: null,
+          rank: null,
+        },
+        currentPrice: 55000,
+        currentValue: 55000,
+        gainLoss: 5000,
+        gainLossPercentage: 10,
+        priceChangePercentage24h: 2.5,
+      };
+
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          trackingEntries: [mockHolding],
+          summary: {
+            totalTracked: 1,
+            totalWatching: 0,
+            totalHoldings: 1,
+            totalInvested: 50000,
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Click edit button
+      const editButton = screen.getByRole('button', { name: 'Edit holdings' });
+      fireEvent.click(editButton);
+
+      // Switch to watch only mode
+      const watchOnlyRadio = screen.getByLabelText(/watch only/i);
+      fireEvent.click(watchOnlyRadio);
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /update tracking/i });
+      fireEvent.click(submitButton);
+
+      // Verify the update mutation was called to remove holdings
+      expect(mockUpdateMutation).toHaveBeenCalledWith({
+        id: 'tracking-1',
+        trackingType: 'REMOVE_HOLDING',
+        holdingAmount: undefined,
+        purchasePrice: undefined,
+        purchaseDate: expect.any(Date),
+        notes: 'Converting to watch only',
+        tags: ['test'],
+      });
+    });
+
+    it('should validate required fields when updating holdings', async () => {
+      const mockHolding = {
+        id: 'tracking-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        isWatching: true,
+        holdingAmount: 1.0,
+        averagePurchasePrice: 50000,
+        totalInvested: 50000,
+        firstPurchaseDate: new Date('2023-01-01'),
+        notes: '',
+        tags: [],
+        lastViewedAt: new Date(),
+        addedAt: new Date(),
+        crypto: {
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
+          logoUrl: null,
+          marketCap: null,
+          rank: null,
+        },
+        currentPrice: 55000,
+        currentValue: 55000,
+        gainLoss: 5000,
+        gainLossPercentage: 10,
+        priceChangePercentage24h: 2.5,
+      };
+
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          trackingEntries: [mockHolding],
+          summary: {
+            totalTracked: 1,
+            totalWatching: 0,
+            totalHoldings: 1,
+            totalInvested: 50000,
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Click edit button
+      const editButton = screen.getByRole('button', { name: 'Edit holdings' });
+      fireEvent.click(editButton);
+
+      // Clear the required fields
+      const holdingAmountInput = screen.getByLabelText(/holding amount/i);
+      const purchasePriceInput = screen.getByLabelText(/purchase price/i);
+
+      fireEvent.change(holdingAmountInput, { target: { value: '' } });
+      fireEvent.change(purchasePriceInput, { target: { value: '' } });
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /update tracking/i });
+      fireEvent.click(submitButton);
+
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText(/holding amount and purchase price are required/i)).toBeInTheDocument();
+      });
+
+      // Mutation should not be called
+      expect(mockUpdateMutation).not.toHaveBeenCalled();
+    });
+
+    it('should preserve notes and tags when updating holdings', async () => {
+      const mockHolding = {
+        id: 'tracking-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        isWatching: true,
+        holdingAmount: 1.0,
+        averagePurchasePrice: 50000,
+        totalInvested: 50000,
+        firstPurchaseDate: new Date('2023-01-01'),
+        notes: 'My Bitcoin investment',
+        tags: ['DCA', 'long-term'],
+        lastViewedAt: new Date(),
+        addedAt: new Date(),
+        crypto: {
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
+          logoUrl: null,
+          marketCap: null,
+          rank: null,
+        },
+        currentPrice: 55000,
+        currentValue: 55000,
+        gainLoss: 5000,
+        gainLossPercentage: 10,
+        priceChangePercentage24h: 2.5,
+      };
+
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          trackingEntries: [mockHolding],
+          summary: {
+            totalTracked: 1,
+            totalWatching: 0,
+            totalHoldings: 1,
+            totalInvested: 50000,
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Click edit button
+      const editButton = screen.getByRole('button', { name: 'Edit holdings' });
+      fireEvent.click(editButton);
+
+      // Verify form is populated with existing notes and tags
+      expect(screen.getByDisplayValue('My Bitcoin investment')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('DCA, long-term')).toBeInTheDocument();
+
+      // Update only the notes
+      const notesInput = screen.getByLabelText(/notes/i);
+      fireEvent.change(notesInput, { target: { value: 'Updated investment notes' } });
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /update tracking/i });
+      fireEvent.click(submitButton);
+
+      // Verify the update mutation preserves all data
+      expect(mockUpdateMutation).toHaveBeenCalledWith({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 1.0,
+        purchasePrice: 50000,
+        purchaseDate: expect.any(Date),
+        notes: 'Updated investment notes',
+        tags: ['DCA', 'long-term'],
+      });
+    });
+
+    it('should handle update errors gracefully', async () => {
+      // Mock error mutation
+      (api.crypto.updateCryptoTracking.useMutation as jest.Mock).mockReturnValue({
+        mutate: mockUpdateMutation,
+        isLoading: false,
+        error: new Error('Update failed'),
+      });
+
+      // Reset mock before test
+      mockToast.mockClear();
+
+      const mockHolding = {
+        id: 'tracking-1',
+        userId: 'user-1',
+        cryptoId: 'crypto-1',
+        isWatching: true,
+        holdingAmount: 1.0,
+        averagePurchasePrice: 50000,
+        totalInvested: 50000,
+        firstPurchaseDate: new Date('2023-01-01'),
+        notes: '',
+        tags: [],
+        lastViewedAt: new Date(),
+        addedAt: new Date(),
+        crypto: {
+          id: 'crypto-1',
+          symbol: 'BTC',
+          name: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
+          logoUrl: null,
+          marketCap: null,
+          rank: null,
+        },
+        currentPrice: 55000,
+        currentValue: 55000,
+        gainLoss: 5000,
+        gainLossPercentage: 10,
+        priceChangePercentage24h: 2.5,
+      };
+
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          trackingEntries: [mockHolding],
+          summary: {
+            totalTracked: 1,
+            totalWatching: 0,
+            totalHoldings: 1,
+            totalInvested: 50000,
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      mockUpdateMutation.mockImplementation(() => {
+        throw new Error('Update failed');
+      });
+
+      render(<CryptoManager />);
+
+      // Click edit button
+      const editButton = screen.getByRole('button', { name: 'Edit holdings' });
+      fireEvent.click(editButton);
+
+      // Update holding amount
+      const holdingAmountInput = screen.getByLabelText(/holding amount/i);
+      fireEvent.change(holdingAmountInput, { target: { value: '2.0' } });
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /update tracking/i });
+      fireEvent.click(submitButton);
+
+      // Should call the mutation
+      expect(mockUpdateMutation).toHaveBeenCalled();
+
+      // Error should be handled by the mutation's onError callback
+      // (This would be tested at the integration level)
     });
   });
 });

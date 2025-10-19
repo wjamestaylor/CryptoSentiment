@@ -664,8 +664,19 @@ export const cryptoRouter = createTRPCRouter({
           // Add or update holding
           finalUpdateData = {
             ...finalUpdateData,
+            holdingAmount: updateData.holdingAmount,
+            averagePurchasePrice: updateData.purchasePrice,
             totalInvested: updateData.holdingAmount * updateData.purchasePrice,
             firstPurchaseDate: updateData.purchaseDate || tracking.firstPurchaseDate || new Date(),
+          };
+        } else if (updateData.holdingAmount && updateData.purchasePrice) {
+          // Update existing holding without explicit trackingType
+          finalUpdateData = {
+            ...finalUpdateData,
+            holdingAmount: updateData.holdingAmount,
+            averagePurchasePrice: updateData.purchasePrice,
+            totalInvested: updateData.holdingAmount * updateData.purchasePrice,
+            firstPurchaseDate: updateData.purchaseDate || tracking.firstPurchaseDate,
           };
         }
 
