@@ -17,8 +17,8 @@ describe('PortfolioAnalyticsService', () => {
   });
 
   describe('getPortfolioMetrics', () => {
-    it('should return empty portfolio metrics when no followed coins', async () => {
-      mockPrisma.followedCoin.findMany.mockResolvedValue([]);
+    it('should return default metrics for user with no tracked cryptocurrencies', async () => {
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue([]);
 
       const result = await service.getPortfolioMetrics('user-1');
 
@@ -32,8 +32,8 @@ describe('PortfolioAnalyticsService', () => {
       });
     });
 
-    it('should calculate portfolio metrics for followed coins', async () => {
-      const mockFollowedCoins = [
+    it('should calculate portfolio metrics correctly', async () => {
+      const mockTrackedCryptos = [
         {
           crypto: {
             id: 'crypto-1',
@@ -73,7 +73,7 @@ describe('PortfolioAnalyticsService', () => {
         },
       ];
 
-      mockPrisma.followedCoin.findMany.mockResolvedValue(mockFollowedCoins as any);
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockTrackedCryptos as any);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -89,7 +89,7 @@ describe('PortfolioAnalyticsService', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      const mockFollowedCoins = [
+      const mockTrackedCryptos = [
         {
           crypto: {
             id: 'crypto-1',
@@ -100,7 +100,7 @@ describe('PortfolioAnalyticsService', () => {
         },
       ];
 
-      mockPrisma.followedCoin.findMany.mockResolvedValue(mockFollowedCoins as any);
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockTrackedCryptos as any);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -158,7 +158,7 @@ describe('PortfolioAnalyticsService', () => {
 
   describe('getSentimentAnalytics', () => {
     it('should calculate sentiment analytics for user portfolio', async () => {
-      const mockFollowedCoins = [
+      const mockTrackedCryptos = [
         {
           crypto: {
             id: 'crypto-1',
@@ -168,7 +168,7 @@ describe('PortfolioAnalyticsService', () => {
         },
       ];
 
-      mockPrisma.followedCoin.findMany.mockResolvedValue(mockFollowedCoins as any);
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockTrackedCryptos as any);
       mockPrisma.usageLog.count.mockResolvedValue(15);
 
       const result = await service.getSentimentAnalytics('user-1');
@@ -288,7 +288,7 @@ describe('PortfolioAnalyticsService', () => {
   describe('getAnalyticsData', () => {
     it('should return comprehensive analytics data', async () => {
       // Mock all dependencies
-      mockPrisma.followedCoin.findMany.mockResolvedValue([]);
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue([]);
       mockPrisma.usageLog.count.mockResolvedValue(0);
       mockPrisma.alert.count.mockResolvedValue(0);
       mockPrisma.alert.findMany.mockResolvedValue([]);

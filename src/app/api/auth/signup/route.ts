@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         });
 
         await resendEmailService.sendVerificationEmail(email, verificationToken);
+        console.log(`✅ Verification email resent to: ${email}`);
 
         return NextResponse.json({
           message: 'Verification email sent! Please check your inbox.',
@@ -77,7 +78,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Send verification email
-    await resendEmailService.sendVerificationEmail(email, verificationToken);
+    try {
+      await resendEmailService.sendVerificationEmail(email, verificationToken);
+      console.log(`✅ Verification email sent to: ${email}`);
+    } catch (emailError) {
+      console.error(`❌ Failed to send verification email to ${email}:`, emailError);
+      // Don't fail the signup if email fails - user can try again
+    }
 
     return NextResponse.json({
       message: 'Account created! Please check your email to verify your account.',

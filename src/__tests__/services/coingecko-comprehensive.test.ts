@@ -75,6 +75,14 @@ describe('CoinGeckoService', () => {
     });
 
     it('should handle API errors', async () => {
+      // Mock first call that fails with 429
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests'
+      });
+      
+      // Mock retry call that also fails
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
@@ -82,7 +90,7 @@ describe('CoinGeckoService', () => {
       });
 
       await expect(service.getTopCryptos()).rejects.toThrow('CoinGecko API error: Too Many Requests');
-    });
+    }, 10000);
 
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));

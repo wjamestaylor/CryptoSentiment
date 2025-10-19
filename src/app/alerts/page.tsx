@@ -23,6 +23,8 @@ import {
   Zap, 
   Star,
   Target,
+  Edit,
+  X,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -85,6 +87,7 @@ export default function AlertsPage() {
   const [activeOnly, setActiveOnly] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<AlertTemplate | null>(null)
   const [monitoringStatus, setMonitoringStatus] = useState<MonitoringStatus | null>(null)
+  const [editingAlert, setEditingAlert] = useState<Alert | null>(null)
   
   // Fetch alert templates
   const [popularTemplates, setPopularTemplates] = useState<AlertTemplate[]>([])
@@ -449,6 +452,18 @@ export default function AlertsPage() {
         />
       )}
 
+      {/* Edit Alert Form */}
+      {editingAlert && (
+        <EditAlertForm
+          alert={editingAlert}
+          onClose={() => setEditingAlert(null)}
+          onSave={() => {
+            setEditingAlert(null)
+            refetchAlerts()
+          }}
+        />
+      )}
+
       {/* Alerts List */}
       <div className="grid gap-4">
         {alerts.length === 0 ? (
@@ -487,6 +502,14 @@ export default function AlertsPage() {
                       onCheckedChange={() => toggleAlert(alert.id, alert.isActive)}
                       aria-label={`Toggle ${alert.crypto.name} alert ${alert.isActive ? 'off' : 'on'}`}
                     />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingAlert(alert)}
+                      aria-label={`Edit ${alert.crypto.name} alert`}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -786,6 +809,175 @@ function CreateAlertForm({
                 {isLoading ? 'Creating...' : 'Create Alert'}
               </Button>
             </FeatureGate>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function EditAlertForm({
+  alert,
+  onClose,
+  onSave,
+}: {
+  alert: Alert
+  onClose: () => void
+  onSave: () => void
+}) {
+  const [formData, setFormData] = useState<CreateAlertFormData>({
+    cryptoSymbol: alert.crypto.symbol,
+    cryptoName: alert.crypto.name,
+    type: alert.type,
+    condition: JSON.parse(alert.condition as string),
+  })
+
+  const updateAlertMutation = api.alerts.updateAlert.useMutation({
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Alert updated successfully!',
+      })
+      onSave()
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update alert',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateAlertMutation.mutate({
+      id: alert.id,
+      ...formData,
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Edit Alert</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-crypto-symbol">Cryptocurrency Symbol</Label>
+              <Input
+                id="edit-crypto-symbol"
+                placeholder="e.g., btc, eth, sol"
+                value={formData.cryptoSymbol}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  cryptoSymbol: e.target.value 
+                }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-crypto-name">Name (optional)</Label>
+              <Input
+                id="edit-crypto-name"
+                placeholder="e.g., Bitcoin"
+                value={formData.cryptoName || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  cryptoName: e.target.value 
+                }))}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-alert-type">Alert Type</Label>
+            <Select
+              value={formData.type}
+              onValueChange={(value) =>
+                setFormData(prev => ({ ...prev, type: value as AlertType }))
+              }
+            >
+              <SelectTrigger id="edit-alert-type">
+                <SelectValue placeholder="Select alert type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={AlertType.PRICE_CHANGE}>Price Change</SelectItem>
+                <SelectItem value={AlertType.SENTIMENT_CHANGE}>Sentiment Change</SelectItem>
+                <SelectItem value={AlertType.VOLUME_SPIKE}>Volume Spike</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.type === AlertType.PRICE_CHANGE && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-price-threshold">Price Threshold ($)</Label>
+                <Input
+                  id="edit-price-threshold"
+                  type="number"
+                  step="0.01"
+                  value={formData.condition.priceThreshold || ''}
+                  onChange={(e) =>
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      condition: {
+                        ...prev.condition,
+                        priceThreshold: parseFloat(e.target.value) || undefined
+                      }
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-price-direction">Direction</Label>
+                <Select
+                  value={formData.condition.direction || 'above'}
+                  onValueChange={(value: 'above' | 'below') => 
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      condition: {
+                        ...prev.condition,
+                        direction: value
+                      }
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="above">Above</SelectItem>
+                    <SelectItem value="below">Below</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <FeatureGate 
+              usageType="ALERT_CREATION"
+              fallback={
+                <Button type="button" variant="outline" disabled>
+                  Upgrade to Edit Alerts
+                </Button>
+              }
+            >
+              <Button type="submit" disabled={updateAlertMutation.isPending}>
+                {updateAlertMutation.isPending ? 'Updating...' : 'Update Alert'}
+              </Button>
+            </FeatureGate>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
           </div>
         </form>
       </CardContent>

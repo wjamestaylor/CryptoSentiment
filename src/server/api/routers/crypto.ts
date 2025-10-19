@@ -2,10 +2,12 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 import { getCoinGeckoId } from '@/lib/crypto-mappings';
 import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
+import { CryptoManagerService } from '@/services/crypto/manager.service';
 import { UsageType } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 
 const featureGateService = new FeatureGateService();
+const cryptoManagerService = new CryptoManagerService();
 
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
@@ -98,73 +100,7 @@ export const cryptoRouter = createTRPCRouter({
       }
     }),
 
-  // Protected endpoint to follow a cryptocurrency
-  followCrypto: protectedProcedure
-    .input(z.object({ 
-      symbol: z.string(),
-      name: z.string().optional(),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-      
-      try {
-        // Check if user can add more coins to watchlist
-        const usageCheck = await featureGateService.canAddToWatchlist(userId);
-        
-        if (!usageCheck.allowed) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message: `Watchlist limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to follow more cryptocurrencies.`,
-          });
-        }
-
-        // Get the CoinGecko ID for this symbol
-        const coinGeckoId = getCoinGeckoId(input.symbol);
-        
-        // First ensure the cryptocurrency exists in our database
-        const crypto = await ctx.prisma.cryptocurrency.upsert({
-          where: { symbol: input.symbol.toUpperCase() },
-          update: {
-            name: input.name || input.symbol,
-            coinGeckoId: coinGeckoId,
-          },
-          create: {
-            symbol: input.symbol.toUpperCase(),
-            name: input.name || input.symbol,
-            coinGeckoId: coinGeckoId,
-          },
-        });
-
-        // Create or update the following relationship
-        const following = await ctx.prisma.followedCoin.upsert({
-          where: {
-            userId_cryptoId: {
-              userId,
-              cryptoId: crypto.id,
-            },
-          },
-          update: {},
-          create: {
-            userId,
-            cryptoId: crypto.id,
-          },
-        });
-
-        // Track usage after successful addition
-        await featureGateService.trackUsage(userId, UsageType.WATCHLIST_ADD, {
-          cryptoSymbol: input.symbol,
-          cryptoName: input.name,
-        });
-
-        return {
-          success: true,
-          message: `Now following ${input.symbol.toUpperCase()}`,
-          data: following,
-        };
-      } catch (error) {
-        throw new Error(`Failed to follow cryptocurrency: ${error}`);
-      }
-    }),
+  // ===== NEW UNIFIED CRYPTO TRACKING ENDPOINTS =====
 
   // Protected endpoint to unfollow a cryptocurrency
   unfollowCrypto: protectedProcedure
@@ -707,7 +643,13 @@ export const cryptoRouter = createTRPCRouter({
         }
 
         // Prepare update data based on tracking type
-        let finalUpdateData: any = { ...updateData };
+        let finalUpdateData: {
+          [key: string]: unknown;
+          holdingAmount?: number | null;
+          averagePurchasePrice?: number | null;
+          totalInvested?: number | null;
+          firstPurchaseDate?: Date | null;
+        } = { ...updateData };
 
         if (trackingType === 'REMOVE_HOLDING') {
           // Convert from holding back to watching only
@@ -765,7 +707,10 @@ export const cryptoRouter = createTRPCRouter({
       
       try {
         // Build where clause based on filter
-        const whereClause: any = { userId };
+        const whereClause: { 
+          userId: string; 
+          holdingAmount?: { not: null } | null; 
+        } = { userId };
         
         if (input.filter === 'WATCHING_ONLY') {
           whereClause.holdingAmount = null;
@@ -855,6 +800,77 @@ export const cryptoRouter = createTRPCRouter({
         };
       } catch (error) {
         throw new Error(`Failed to remove crypto tracking: ${error}`);
+      }
+    }),
+
+  // Enhanced crypto tracking with live prices and performance metrics
+  getEnhancedCryptoTracking: protectedProcedure
+    .input(z.object({
+      filter: z.enum(['ALL', 'WATCHING_ONLY', 'HOLDINGS_ONLY']).default('ALL'),
+    }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      
+      try {
+        // Get raw tracking data from database
+        const whereClause: { 
+          userId: string; 
+          holdingAmount?: { not: null } | null; 
+        } = { userId };
+        
+        if (input.filter === 'WATCHING_ONLY') {
+          whereClause.holdingAmount = null;
+        } else if (input.filter === 'HOLDINGS_ONLY') {
+          whereClause.holdingAmount = { not: null };
+        }
+
+        const trackingEntries = await ctx.prisma.cryptoTracking.findMany({
+          where: whereClause,
+          include: {
+            crypto: true,
+          },
+          orderBy: [
+            { holdingAmount: { sort: 'desc', nulls: 'last' } }, // Holdings first
+            { lastViewedAt: 'desc' }, // Then by recent activity
+          ],
+        });
+
+        // Convert Prisma data to CryptoManagerService format
+        const serviceTrackingEntries = trackingEntries.map(entry => ({
+          id: entry.id,
+          isWatching: !entry.holdingAmount,
+          holdingAmount: entry.holdingAmount,
+          averagePurchasePrice: entry.averagePurchasePrice,
+          totalInvested: entry.totalInvested,
+          firstPurchaseDate: entry.firstPurchaseDate,
+          notes: entry.notes,
+          tags: entry.tags,
+          lastViewedAt: entry.lastViewedAt,
+          addedAt: entry.addedAt,
+          crypto: {
+            id: entry.crypto.id,
+            symbol: entry.crypto.symbol,
+            name: entry.crypto.name,
+            coinGeckoId: entry.crypto.coinGeckoId,
+            logoUrl: entry.crypto.logoUrl,
+            marketCap: entry.crypto.marketCap,
+            rank: entry.crypto.rank,
+          },
+        }));
+
+        // Use CryptoManagerService to enhance with live prices
+        const enhancedData = await cryptoManagerService.getEnhancedCryptoTracking(
+          serviceTrackingEntries, 
+          input.filter
+        );
+
+        return {
+          success: true,
+          data: enhancedData,
+        };
+      } catch (error) {
+        console.error('Failed to fetch enhanced crypto tracking:', error);
+        throw new Error(`Failed to fetch enhanced crypto tracking: ${error}`);
       }
     }),
 });

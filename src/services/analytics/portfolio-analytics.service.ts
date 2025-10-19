@@ -119,16 +119,16 @@ export class PortfolioAnalyticsService {
   }
 
   /**
-   * Calculate portfolio metrics for watchlist
+   * Calculate portfolio metrics for tracked cryptocurrencies
    */
   async getPortfolioMetrics(userId: string): Promise<PortfolioMetrics> {
-    // Get user's followed cryptocurrencies
-    const followedCoins = await this.prisma.followedCoin.findMany({
+    // Get user's tracked cryptocurrencies (unified tracking system)
+    const trackedCryptos = await this.prisma.cryptoTracking.findMany({
       where: { userId },
       include: { crypto: true },
     });
 
-    if (followedCoins.length === 0) {
+    if (trackedCryptos.length === 0) {
       return {
         totalValue: 0,
         totalGainLoss: 0,
@@ -139,9 +139,9 @@ export class PortfolioAnalyticsService {
       };
     }
 
-    // Get current prices for all followed coins
-    const cryptoIds = followedCoins
-      .map(coin => coin.crypto.coinGeckoId)
+    // Get current prices for all tracked coins
+    const cryptoIds = trackedCryptos
+      .map(tracking => tracking.crypto.coinGeckoId)
       .filter(Boolean) as string[];
 
     if (cryptoIds.length === 0) {
@@ -250,8 +250,8 @@ export class PortfolioAnalyticsService {
    * Get sentiment analytics for user's portfolio
    */
   async getSentimentAnalytics(userId: string) {
-    // Get user's followed coins
-    const followedCoins = await this.prisma.followedCoin.findMany({
+    // Get user's tracked cryptocurrencies (unified tracking system)
+    const trackedCryptos = await this.prisma.cryptoTracking.findMany({
       where: { userId },
       include: { crypto: true },
     });
@@ -267,11 +267,11 @@ export class PortfolioAnalyticsService {
       },
     });
 
-    // Mock sentiment data for followed coins (in a real implementation, 
+    // Mock sentiment data for tracked coins (in a real implementation, 
     // this would come from stored sentiment analysis results)
-    const topSentimentCoins = followedCoins.slice(0, 5).map(coin => ({
-      symbol: coin.crypto.symbol,
-      name: coin.crypto.name,
+    const topSentimentCoins = trackedCryptos.slice(0, 5).map(tracking => ({
+      symbol: tracking.crypto.symbol,
+      name: tracking.crypto.name,
       sentiment: Math.random() * 2 - 1, // Random sentiment between -1 and 1
       confidence: 0.7 + Math.random() * 0.3, // Random confidence between 0.7 and 1
       analysisDate: new Date().toISOString(),
@@ -389,15 +389,18 @@ export class PortfolioAnalyticsService {
    */
   async getPriceHistory(cryptoId: string, days: number = 30): Promise<PriceHistory[]> {
     try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${cryptoId}/market_chart?vs_currency=usd&days=${days}&interval=daily`
-      );
+      // Use the shared CoinGecko service instance with rate limiting
+      const { coinGeckoService } = await import('../crypto/price.service');
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch price history');
-      }
+      // Create the endpoint for price history
+      const endpoint = `/coins/${cryptoId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
       
-      const data = await response.json();
+      // Use the service's rate-limited request method
+      const data = await coinGeckoService.request<{
+        prices: [number, number][];
+        market_caps: [number, number][];
+        total_volumes: [number, number][];
+      }>(endpoint);
       
       return data.prices.map((price: [number, number], index: number) => ({
         timestamp: new Date(price[0]).toISOString(),

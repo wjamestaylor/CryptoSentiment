@@ -18,13 +18,19 @@ import {
   Search,
   Filter,
   Eye,
-  DollarSign
+  DollarSign,
+  Edit,
+  Bell,
+  BellPlus
 } from 'lucide-react';
-import { format } from 'date-fns';
 import Image from 'next/image';
+import { FeatureGate } from '@/components/feature-gating/FeatureGate';
+import { useUsageLimit } from '@/hooks/use-usage-limit';
+import { useTrackUsage } from '@/hooks/use-track-usage';
+import { UsageType } from '@prisma/client';
 
-// Types for unified tracking
-interface CryptoTracking {
+// Types for enhanced tracking with live prices
+interface EnhancedCryptoTracking {
   id: string;
   isWatching: boolean;
   holdingAmount: number | null;
@@ -44,6 +50,13 @@ interface CryptoTracking {
     marketCap: number | null;
     rank: number | null;
   };
+  // Enhanced fields with live data
+  currentPrice?: number;
+  currentValue?: number;
+  gainLoss?: number;
+  gainLossPercentage?: number;
+  priceChange24h?: number;
+  priceChangePercentage24h?: number;
 }
 
 interface SearchCrypto {
@@ -79,15 +92,15 @@ export function CryptoManager() {
     tags: '',
   });
 
-  // Queries
+  // Queries - use enhanced tracking with live prices
   const { 
-    data: trackingData, 
+    data: enhancedTrackingData, 
     isLoading: trackingLoading, 
     refetch: refetchTracking 
-  } = api.crypto.getUserCryptoTracking.useQuery({ filter: filterType });
+  } = api.crypto.getEnhancedCryptoTracking.useQuery({ filter: filterType });
 
-  const trackingEntries: CryptoTracking[] = trackingData?.data?.trackingEntries || [];
-  const summary = trackingData?.data?.summary;
+  const trackingEntries = enhancedTrackingData?.data?.trackingEntries || [];
+  const summary = enhancedTrackingData?.data?.summary;
 
   // Search cryptocurrencies
   const { data: searchResults, isLoading: isSearchLoading } = api.crypto.searchCryptos.useQuery(
@@ -98,6 +111,14 @@ export function CryptoManager() {
       refetchOnWindowFocus: false
     }
   );
+
+  // Alerts integration - fetch user's alerts
+  const { data: userAlerts, refetch: refetchAlerts } = api.alerts.getUserAlerts.useQuery({});
+
+  // Feature gating integration
+  const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
+  const alertUsage = useUsageLimit(UsageType.ALERT_CREATION);
+  const trackUsage = useTrackUsage();
 
   // Mutations
   const addTrackingMutation = api.crypto.addCryptoToTracking.useMutation({
@@ -155,6 +176,9 @@ export function CryptoManager() {
     },
   });
 
+  // Alert creation mutation
+
+
   // Helper functions
   const resetForm = () => {
     setFormData({
@@ -182,44 +206,54 @@ export function CryptoManager() {
     setShowAddForm(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.cryptoSymbol || !formData.cryptoName) {
       toast({
         title: "Error",
-        description: "Please select a cryptocurrency",
+        description: "Please select a cryptocurrency from the search results",
         variant: "destructive",
       });
       return;
     }
 
-    if (trackingType === 'ADD_HOLDING' && (!formData.holdingAmount || !formData.purchasePrice)) {
+    // Check usage limits for new additions
+    if (!editingId && !watchlistUsage.allowed) {
       toast({
-        title: "Error",
-        description: "Please enter holding amount and purchase price",
+        title: "Limit Reached",
+        description: `You've reached your watchlist limit (${watchlistUsage.currentUsage}/${watchlistUsage.limit}). Upgrade to track more cryptocurrencies.`,
         variant: "destructive",
       });
       return;
     }
 
-    const baseData = {
-      cryptoSymbol: formData.cryptoSymbol.toUpperCase(),
+    const data = {
+      cryptoSymbol: formData.cryptoSymbol,
       cryptoName: formData.cryptoName,
       trackingType,
+      holdingAmount: trackingType === 'ADD_HOLDING' ? parseFloat(formData.holdingAmount) || 0 : undefined,
+      purchasePrice: trackingType === 'ADD_HOLDING' ? parseFloat(formData.purchasePrice) || 0 : undefined,
+      purchaseDate: trackingType === 'ADD_HOLDING' ? (formData.purchaseDate ? new Date(formData.purchaseDate) : undefined) : undefined,
       notes: formData.notes || undefined,
-      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : undefined,
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
     };
 
-    if (trackingType === 'ADD_HOLDING') {
-      addTrackingMutation.mutate({
-        ...baseData,
-        holdingAmount: parseFloat(formData.holdingAmount),
-        purchasePrice: parseFloat(formData.purchasePrice),
-        purchaseDate: new Date(formData.purchaseDate),
+    if (editingId) {
+      // Update existing tracking entry
+      updateTrackingMutation.mutate({
+        id: editingId,
+        ...data,
+        trackingType: data.trackingType as 'WATCH_ONLY' | 'ADD_HOLDING' | 'REMOVE_HOLDING',
       });
     } else {
-      addTrackingMutation.mutate(baseData);
+      // Add new tracking entry and track usage
+      addTrackingMutation.mutate(data);
+      // Track usage for analytics
+      trackUsage(UsageType.WATCHLIST_ADD, {
+        cryptoSymbol: data.cryptoSymbol,
+        trackingType: data.trackingType,
+      });
     }
   };
 
@@ -229,7 +263,24 @@ export function CryptoManager() {
     }
   };
 
-  const handleConvertToHolding = (tracking: CryptoTracking) => {
+  const handleEditHolding = (tracking: EnhancedCryptoTracking) => {
+    if (tracking.holdingAmount && tracking.averagePurchasePrice) {
+      setEditingId(tracking.id);
+      setFormData({
+        cryptoSymbol: tracking.crypto.symbol,
+        cryptoName: tracking.crypto.name,
+        holdingAmount: tracking.holdingAmount.toString(),
+        purchasePrice: tracking.averagePurchasePrice.toString(),
+        purchaseDate: tracking.firstPurchaseDate ? new Date(tracking.firstPurchaseDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        notes: tracking.notes || '',
+        tags: tracking.tags.join(', '),
+      });
+      // Switch to manage tab to show the edit form
+      setActiveTab('manage');
+    }
+  };
+
+  const handleConvertToHolding = (tracking: EnhancedCryptoTracking) => {
     if (!tracking.holdingAmount) {
       // Convert from watching to holding
       setEditingId(tracking.id);
@@ -245,7 +296,7 @@ export function CryptoManager() {
     }
   };
 
-  const handleConvertToWatching = (tracking: CryptoTracking) => {
+  const handleConvertToWatching = (tracking: EnhancedCryptoTracking) => {
     if (tracking.holdingAmount) {
       // Convert from holding to watching
       if (confirm(`Convert ${tracking.crypto.symbol} from holding to watch-only? This will remove your portfolio data.`)) {
@@ -258,13 +309,51 @@ export function CryptoManager() {
     }
   };
 
-  const calculateCurrentValue = (tracking: CryptoTracking) => {
-    // For now, return purchase value since we need current prices integration
-    if (tracking.holdingAmount && tracking.averagePurchasePrice) {
-      return tracking.holdingAmount * tracking.averagePurchasePrice;
-    }
-    return 0;
+  // Alert helper functions
+  const getAlertsForCrypto = (symbol: string) => {
+    return userAlerts?.alerts?.filter((alert: { crypto: { symbol: string }; isActive: boolean }) => 
+      alert.crypto.symbol === symbol && alert.isActive
+    ) || [];
   };
+
+  const handleCreateQuickAlert = (tracking: EnhancedCryptoTracking, direction: 'above' | 'below') => {
+    // Check alert usage limits
+    if (!alertUsage.allowed) {
+      toast({
+        title: "Alert Limit Reached",
+        description: `You've reached your alert limit (${alertUsage.currentUsage}/${alertUsage.limit}). Upgrade to create more alerts.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentPrice = tracking.currentPrice;
+    if (!currentPrice) {
+      toast({
+        title: "Error",
+        description: "Current price not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate suggested target price (5% above/below current price)
+    const percentage = 0.05;
+    const suggestedPrice = direction === 'above' 
+      ? currentPrice * (1 + percentage)
+      : currentPrice * (1 - percentage);
+
+    // Show helpful toast with suggested price
+    toast({
+      title: `Create ${direction} alert for ${tracking.crypto.symbol}`,
+      description: `Current: $${currentPrice.toFixed(2)} | Suggested: $${suggestedPrice.toFixed(2)} (${direction === 'above' ? '+' : '-'}5%)`,
+    });
+
+    // Open alerts page in new tab
+    window.open('/alerts', '_blank');
+  };
+
+  // Enhanced tracking now provides live currentValue from API
 
   const filterOptions = [
     { value: 'ALL' as const, label: 'All Tracked', icon: Filter },
@@ -313,13 +402,33 @@ export function CryptoManager() {
                 Unified tracking for all your cryptocurrency interests
               </CardDescription>
             </div>
+            <div className="flex items-center gap-4">
+              {/* Usage Indicators */}
+              <div className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  <span>Watchlist: {watchlistUsage.currentUsage}/{watchlistUsage.limit}</span>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  <span>Alerts: {alertUsage.currentUsage}/{alertUsage.limit}</span>
+                </div>
+              </div>
+            </div>
             <div className="text-right">
-              <div className="flex gap-4">
+              <div className="flex gap-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Watching</p>
                   <p className="text-lg font-bold">
                     {summary?.totalWatching || 0}
                   </p>
+                  {watchlistUsage.limit > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {watchlistUsage.limit - watchlistUsage.currentUsage} slots remaining
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Holdings</p>
@@ -327,6 +436,27 @@ export function CryptoManager() {
                     {summary?.totalHoldings || 0}
                   </p>
                 </div>
+                {summary?.currentPortfolioValue !== undefined && summary.currentPortfolioValue > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Portfolio Value</p>
+                    <p className="text-lg font-bold text-green-600">
+                      ${summary.currentPortfolioValue.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {summary?.totalGainLoss !== undefined && summary?.totalGainLossPercentage !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Gain/Loss</p>
+                    <p className={`text-lg font-bold ${
+                      summary.totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {summary.totalGainLoss >= 0 ? '+' : ''}${summary.totalGainLoss.toLocaleString()}
+                      <span className="text-sm ml-1">
+                        ({summary.totalGainLossPercentage >= 0 ? '+' : ''}{summary.totalGainLossPercentage.toFixed(1)}%)
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -386,7 +516,7 @@ export function CryptoManager() {
                 <div className="space-y-3">
                   {trackingEntries.map((tracking) => {
                     const hasHoldings = tracking.holdingAmount !== null;
-                    const currentValue = calculateCurrentValue(tracking);
+                    const currentValue = tracking.currentValue || 0;
                     
                     return (
                       <div key={tracking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -410,6 +540,13 @@ export function CryptoManager() {
                                   Watching
                                 </Badge>
                               )}
+                              {/* Alert indicator */}
+                              {getAlertsForCrypto(tracking.crypto.symbol).length > 0 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  <Bell className="h-3 w-3 mr-1" />
+                                  {getAlertsForCrypto(tracking.crypto.symbol).length} alert{getAlertsForCrypto(tracking.crypto.symbol).length !== 1 ? 's' : ''}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground">{tracking.crypto.name}</p>
                             {hasHoldings && (
@@ -422,32 +559,108 @@ export function CryptoManager() {
                                 </Badge>
                               </div>
                             )}
+                            
+                            {/* Active alerts for this crypto */}
+                            {getAlertsForCrypto(tracking.crypto.symbol).length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {getAlertsForCrypto(tracking.crypto.symbol).slice(0, 2).map((alert: { id: string; type: string }) => (
+                                  <div key={alert.id} className="flex items-center text-xs text-muted-foreground">
+                                    <Bell className="h-3 w-3 mr-1" />
+                                    <span className="truncate">
+                                      {alert.type} Alert - {tracking.crypto.symbol}
+                                    </span>
+                                  </div>
+                                ))}
+                                {getAlertsForCrypto(tracking.crypto.symbol).length > 2 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    +{getAlertsForCrypto(tracking.crypto.symbol).length - 2} more alerts
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-4">
+                          {/* Live Price Display */}
+                          {tracking.currentPrice && (
+                            <div className="text-right">
+                              <p className="font-medium">${tracking.currentPrice.toLocaleString()}</p>
+                              {tracking.priceChangePercentage24h !== undefined && (
+                                <p className={`text-xs flex items-center ${
+                                  tracking.priceChangePercentage24h >= 0 ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  <TrendingUp className={`h-3 w-3 mr-1 ${
+                                    tracking.priceChangePercentage24h < 0 ? 'rotate-180' : ''
+                                  }`} />
+                                  {tracking.priceChangePercentage24h >= 0 ? '+' : ''}
+                                  {tracking.priceChangePercentage24h.toFixed(2)}%
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Portfolio Value & Performance */}
                           {hasHoldings && (
                             <div className="text-right">
                               <p className="font-medium">${currentValue.toLocaleString()}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {tracking.firstPurchaseDate ? 
-                                  format(new Date(tracking.firstPurchaseDate), 'MMM dd, yyyy') : 
-                                  'No date'
-                                }
-                              </p>
+                              {tracking.gainLoss !== undefined && tracking.gainLossPercentage !== undefined && (
+                                <div className="flex items-center">
+                                  <p className={`text-sm ${
+                                    tracking.gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {tracking.gainLoss >= 0 ? '+' : ''}${tracking.gainLoss.toLocaleString()} 
+                                    ({tracking.gainLossPercentage >= 0 ? '+' : ''}{tracking.gainLossPercentage.toFixed(1)}%)
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
                           
                           <div className="flex gap-1">
+                            {/* Quick alert buttons */}
+                            {tracking.currentPrice && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCreateQuickAlert(tracking, 'above')}
+                                  title="Create alert above current price"
+                                  className="text-green-600 hover:text-green-700"
+                                >
+                                  <BellPlus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCreateQuickAlert(tracking, 'below')}
+                                  title="Create alert below current price"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <BellPlus className="h-4 w-4 rotate-180" />
+                                </Button>
+                              </>
+                            )}
+                            
                             {hasHoldings ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleConvertToWatching(tracking)}
-                                title="Convert to watch-only"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditHolding(tracking)}
+                                  title="Edit holdings"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleConvertToWatching(tracking)}
+                                  title="Convert to watch-only"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </>
                             ) : (
                               <Button
                                 variant="ghost"
@@ -480,14 +693,33 @@ export function CryptoManager() {
 
         {/* Manage Tab */}
         <TabsContent value="manage" className="space-y-4">
-          {/* Add New Crypto */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Cryptocurrency</CardTitle>
-              <CardDescription>
-                Add a cryptocurrency to your watchlist or portfolio
-              </CardDescription>
-            </CardHeader>
+          {/* Add New Crypto with Feature Gating */}
+          <FeatureGate 
+            usageType={UsageType.WATCHLIST_ADD} 
+            showUsage={true}
+            fallback={
+              <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+                <CardHeader>
+                  <CardTitle className="text-orange-900 dark:text-orange-100">Watchlist Limit Reached</CardTitle>
+                  <CardDescription className="text-orange-700 dark:text-orange-300">
+                    You&apos;ve reached your cryptocurrency tracking limit. Upgrade to track more cryptocurrencies.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild>
+                    <a href="/pricing">Upgrade Now</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            }
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Cryptocurrency</CardTitle>
+                <CardDescription>
+                  Add a cryptocurrency to your watchlist or portfolio
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-4">
               {/* Search Interface */}
               {!showAddForm && (
@@ -615,16 +847,19 @@ export function CryptoManager() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="purchasePrice">Purchase Price (USD)*</Label>
+                        <Label htmlFor="purchasePrice">Price per Coin (USD)*</Label>
                         <Input
                           id="purchasePrice"
                           type="number"
                           step="any"
-                          placeholder="50000"
+                          placeholder="3884 (price per ETH)"
                           value={formData.purchasePrice}
                           onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
                           required
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter the price you paid per individual coin (not total amount spent)
+                        </p>
                       </div>
                       <div>
                         <Label htmlFor="purchaseDate">Purchase Date</Label>
@@ -681,14 +916,29 @@ export function CryptoManager() {
               )}
             </CardContent>
           </Card>
+          </FeatureGate>
 
-          {/* Edit Form for Converting Watch to Holdings */}
+          {/* Edit Form for Holdings */}
           {editingId && (
             <Card>
               <CardHeader>
-                <CardTitle>Add Holdings for {formData.cryptoSymbol}</CardTitle>
+                <CardTitle>
+                  {(() => {
+                    const tracking = trackingEntries.find(t => t.id === editingId);
+                    const isEditing = tracking?.holdingAmount !== null;
+                    return isEditing ? 
+                      `Edit Holdings for ${formData.cryptoSymbol}` : 
+                      `Add Holdings for ${formData.cryptoSymbol}`;
+                  })()}
+                </CardTitle>
                 <CardDescription>
-                  Convert from watch-only to portfolio holding
+                  {(() => {
+                    const tracking = trackingEntries.find(t => t.id === editingId);
+                    const isEditing = tracking?.holdingAmount !== null;
+                    return isEditing ? 
+                      "Update your portfolio holding information" : 
+                      "Convert from watch-only to portfolio holding";
+                  })()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -726,16 +976,19 @@ export function CryptoManager() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="editPurchasePrice">Purchase Price (USD)*</Label>
+                      <Label htmlFor="editPurchasePrice">Price per Coin (USD)*</Label>
                       <Input
                         id="editPurchasePrice"
                         type="number"
                         step="any"
-                        placeholder="50000"
+                        placeholder="3884 (price per coin)"
                         value={formData.purchasePrice}
                         onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
                         required
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the price you paid per individual coin (not total amount spent)
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="editPurchaseDate">Purchase Date</Label>
@@ -761,7 +1014,14 @@ export function CryptoManager() {
                       type="submit" 
                       disabled={updateTrackingMutation.isPending}
                     >
-                      {updateTrackingMutation.isPending ? 'Adding...' : 'Add Holdings'}
+                      {(() => {
+                        const tracking = trackingEntries.find(t => t.id === editingId);
+                        const isEditing = tracking?.holdingAmount !== null;
+                        if (updateTrackingMutation.isPending) {
+                          return isEditing ? 'Updating...' : 'Adding...';
+                        }
+                        return isEditing ? 'Update Holdings' : 'Add Holdings';
+                      })()}
                     </Button>
                     <Button 
                       type="button" 

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token');
 
     if (!token) {
-      return NextResponse.redirect(new URL('/auth/signin?error=missing-token', request.url));
+      return NextResponse.redirect(new URL('/auth/verify?error=missing-token', request.url));
     }
 
     // Find verification token
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!verificationToken) {
-      return NextResponse.redirect(new URL('/auth/signin?error=invalid-token', request.url));
+      return NextResponse.redirect(new URL('/auth/verify?error=invalid-token', request.url));
     }
 
     // Check if token has expired
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       await prisma.verificationToken.delete({
         where: { token },
       });
-      return NextResponse.redirect(new URL('/auth/signin?error=expired-token', request.url));
+      return NextResponse.redirect(new URL('/auth/verify?error=expired-token', request.url));
     }
 
     // Find user by email
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.redirect(new URL('/auth/signin?error=user-not-found', request.url));
+      return NextResponse.redirect(new URL('/auth/verify?error=user-not-found', request.url));
     }
 
     // Verify user email
@@ -63,11 +63,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Redirect to success page
-    return NextResponse.redirect(new URL('/auth/signin?verified=true', request.url));
+    return NextResponse.redirect(new URL('/auth/verify?verified=true', request.url));
 
   } catch (error) {
     console.error('Email verification error:', error);
-    return NextResponse.redirect(new URL('/auth/signin?error=verification-failed', request.url));
+    return NextResponse.redirect(new URL('/auth/verify?error=verification-failed', request.url));
   }
 }
 
@@ -119,9 +119,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Clean up verification token
-    await prisma.verificationToken.delete({
-      where: { token },
-    });
+    try {
+      await prisma.verificationToken.delete({
+        where: { token },
+      });
+    } catch (error) {
+      // Token might already be deleted, ignore this error
+      console.log('Verification token already deleted (race condition)');
+    }
 
     // Send welcome email
     try {

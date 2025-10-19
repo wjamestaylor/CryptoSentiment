@@ -78,12 +78,15 @@ describe('Crypto Router Coverage', () => {
     expect(cryptoRouter._def.procedures.getTopCryptos).toBeDefined();
     expect(cryptoRouter._def.procedures.getCryptoById).toBeDefined();
     expect(cryptoRouter._def.procedures.searchCryptos).toBeDefined();
-    expect(cryptoRouter._def.procedures.followCrypto).toBeDefined();
-    expect(cryptoRouter._def.procedures.unfollowCrypto).toBeDefined();
-    expect(cryptoRouter._def.procedures.getFollowedCryptos).toBeDefined();
     expect(cryptoRouter._def.procedures.getCryptosByIds).toBeDefined();
     expect(cryptoRouter._def.procedures.updateCoinGeckoIds).toBeDefined();
-    expect(cryptoRouter._def.procedures.debugFollowedCryptos).toBeDefined();
+    
+    // Unified tracking endpoints
+    expect(cryptoRouter._def.procedures.addCryptoToTracking).toBeDefined();
+    expect(cryptoRouter._def.procedures.removeCryptoTracking).toBeDefined();
+    expect(cryptoRouter._def.procedures.getUserCryptoTracking).toBeDefined();
+    expect(cryptoRouter._def.procedures.updateCryptoTracking).toBeDefined();
+    expect(cryptoRouter._def.procedures.getEnhancedCryptoTracking).toBeDefined();
   });
 
   describe('procedure validation', () => {
@@ -105,14 +108,14 @@ describe('Crypto Router Coverage', () => {
       expect(procedure._def.inputs).toBeDefined();
     });
 
-    it('should validate followCrypto input', () => {
-      const procedure = cryptoRouter._def.procedures.followCrypto;
+    it('should validate addCryptoToTracking input', () => {
+      const procedure = cryptoRouter._def.procedures.addCryptoToTracking;
       expect(procedure).toBeDefined();
       expect(procedure._def.inputs).toBeDefined();
     });
 
-    it('should validate unfollowCrypto input', () => {
-      const procedure = cryptoRouter._def.procedures.unfollowCrypto;
+    it('should validate removeCryptoTracking input', () => {
+      const procedure = cryptoRouter._def.procedures.removeCryptoTracking;
       expect(procedure).toBeDefined();
       expect(procedure._def.inputs).toBeDefined();
     });
@@ -135,11 +138,12 @@ describe('Crypto Router Coverage', () => {
       expect(procedures.getCryptosByIds._def.type).toBe('query');
       expect(procedures.updateCoinGeckoIds._def.type).toBe('mutation');
       
-      // Protected procedures
-      expect(procedures.followCrypto._def.type).toBe('mutation');
-      expect(procedures.unfollowCrypto._def.type).toBe('mutation');
-      expect(procedures.getFollowedCryptos._def.type).toBe('query');
-      expect(procedures.debugFollowedCryptos._def.type).toBe('query');
+      // Protected procedures - Updated to use unified tracking endpoints
+      expect(procedures.addCryptoToTracking._def.type).toBe('mutation');
+      expect(procedures.removeCryptoTracking._def.type).toBe('mutation');
+      expect(procedures.getUserCryptoTracking._def.type).toBe('query');
+      expect(procedures.updateCryptoTracking._def.type).toBe('mutation');
+      expect(procedures.getEnhancedCryptoTracking._def.type).toBe('query');
     });
   });
 });

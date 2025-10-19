@@ -13,11 +13,31 @@ import { api } from '@/lib/trpc/provider';
 jest.mock('next-auth/react');
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
 
+// Mock Feature Gating
+jest.mock('@/components/feature-gating/FeatureGate', () => {
+  return {
+    FeatureGate: ({ children }: { children: React.ReactNode }) => <div data-testid="feature-gate">{children}</div>
+  };
+});
+
+jest.mock('@/hooks/use-usage-limit', () => ({
+  useUsageLimit: jest.fn(() => ({
+    isWithinLimit: true,
+    usageCount: 0,
+    usageLimit: 10,
+    isLoading: false
+  }))
+}));
+
+jest.mock('@/hooks/use-track-usage', () => ({
+  useTrackUsage: jest.fn(() => jest.fn())
+}));
+
 // Mock tRPC
 jest.mock('@/lib/trpc/provider', () => ({
   api: {
     crypto: {
-      getUserCryptoTracking: {
+      getEnhancedCryptoTracking: {
         useQuery: jest.fn(),
       },
       searchCryptos: {
@@ -30,6 +50,14 @@ jest.mock('@/lib/trpc/provider', () => ({
         useMutation: jest.fn(),
       },
       removeCryptoTracking: {
+        useMutation: jest.fn(),
+      },
+    },
+    alerts: {
+      getUserAlerts: {
+        useQuery: jest.fn(),
+      },
+      createAlert: {
         useMutation: jest.fn(),
       },
     },
@@ -69,7 +97,7 @@ describe('CryptoManager Component', () => {
     } as any);
 
     // Default mock returns
-    (api.crypto.getUserCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+    (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
       data: { 
         data: { 
           trackingEntries: [],
@@ -101,6 +129,21 @@ describe('CryptoManager Component', () => {
     });
 
     (api.crypto.removeCryptoTracking.useMutation as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+    });
+
+    // Alerts mock
+    (api.alerts.getUserAlerts.useQuery as jest.Mock).mockReturnValue({
+      data: { 
+        success: true,
+        alerts: [] 
+      },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+
+    (api.alerts.createAlert.useMutation as jest.Mock).mockReturnValue({
       mutate: jest.fn(),
       isPending: false,
     });
@@ -145,7 +188,7 @@ describe('CryptoManager Component', () => {
     });
 
     it('shows loading state correctly', () => {
-      (api.crypto.getUserCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
         data: null,
         isLoading: true,
         refetch: jest.fn(),
@@ -205,7 +248,7 @@ describe('CryptoManager Component', () => {
         },
       ];
 
-      (api.crypto.getUserCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
         data: { 
           data: { 
             trackingEntries: mockTrackingData,
@@ -262,6 +305,161 @@ describe('CryptoManager Component', () => {
       
       // Verify management capabilities
       expect(screen.getByRole('tab', { name: /manage/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('Alert Integration Features', () => {
+    it('displays alert indicators for cryptocurrencies with active alerts', () => {
+      // Mock alerts for Bitcoin
+      (api.alerts.getUserAlerts.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          success: true,
+          alerts: [
+            { 
+              id: '1', 
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              name: 'BTC above $100,000',
+              type: 'PRICE_CHANGE',
+              isActive: true
+            }
+          ] 
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      // Mock tracking data with Bitcoin
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          data: { 
+            trackingEntries: [{
+              id: '1',
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              currentPrice: 95000,
+              priceChangePercentage24h: 5.2,
+              holdingAmount: null,
+            }],
+            summary: {
+              totalTracked: 1,
+              totalWatching: 1,
+              totalHoldings: 0,
+              totalInvested: 0,
+            }
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Should display alert indicator badge
+      expect(screen.getByText('1 alert')).toBeInTheDocument();
+      expect(screen.getByText('PRICE_CHANGE Alert - BTC')).toBeInTheDocument();
+    });
+
+    it('shows quick alert creation buttons for tracked cryptocurrencies', () => {
+      // Mock tracking data with current price
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          success: true,
+          data: { 
+            trackingEntries: [{
+              id: '1',
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              currentPrice: 95000,
+              priceChangePercentage24h: 5.2,
+              holdingAmount: null,
+            }],
+            summary: {
+              totalTracked: 1,
+              totalWatching: 1,
+              totalHoldings: 0,
+              totalInvested: 0,
+            }
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Should show quick alert buttons (above and below current price)
+      const alertButtons = screen.getAllByTitle(/create alert/i);
+      expect(alertButtons).toHaveLength(2);
+      expect(screen.getByTitle('Create alert above current price')).toBeInTheDocument();
+      expect(screen.getByTitle('Create alert below current price')).toBeInTheDocument();
+    });
+
+    it('displays active alert details in crypto tracking items', () => {
+      // Mock multiple alerts for Bitcoin
+      (api.alerts.getUserAlerts.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          success: true,
+          alerts: [
+            { 
+              id: '1', 
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              name: 'BTC above $100,000',
+              type: 'PRICE_CHANGE',
+              isActive: true
+            },
+            { 
+              id: '2', 
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              name: 'BTC below $90,000',
+              type: 'PRICE_CHANGE',
+              isActive: true
+            },
+            { 
+              id: '3', 
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              name: 'BTC momentum alert',
+              type: 'VOLUME_SPIKE',
+              isActive: true
+            }
+          ] 
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      // Mock tracking data with Bitcoin
+      (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({
+        data: { 
+          success: true,
+          data: { 
+            trackingEntries: [{
+              id: '1',
+              crypto: { symbol: 'BTC', name: 'Bitcoin' },
+              currentPrice: 95000,
+              priceChangePercentage24h: 5.2,
+              holdingAmount: null,
+            }],
+            summary: {
+              totalTracked: 1,
+              totalWatching: 1,
+              totalHoldings: 0,
+              totalInvested: 0,
+            }
+          }
+        },
+        isLoading: false,
+        refetch: jest.fn(),
+      });
+
+      render(<CryptoManager />);
+
+      // Should show alert count badge
+      expect(screen.getByText('3 alerts')).toBeInTheDocument();
+      
+      // Should show first 2 alerts inline (both happen to be PRICE_CHANGE in this test)
+      const priceAlerts = screen.getAllByText('PRICE_CHANGE Alert - BTC');
+      expect(priceAlerts).toHaveLength(2);
+      
+      // Should show "+1 more alerts" for the third alert
+      expect(screen.getByText('+1 more alerts')).toBeInTheDocument();
     });
   });
 });

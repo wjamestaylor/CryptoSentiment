@@ -35,20 +35,20 @@ export const sentimentRouter = createTRPCRouter({
     }),
 
   getUserSentimentFeed: protectedProcedure.query(async ({ ctx }) => {
-    // Get sentiment for user's followed cryptocurrencies
-    const followedCryptos = await ctx.prisma.followedCoin.findMany({
+    // Get sentiment for user's tracked cryptocurrencies (unified tracking system)
+    const trackedCryptos = await ctx.prisma.cryptoTracking.findMany({
       where: { userId: ctx.session.user.id },
       select: { cryptoId: true },
     })
 
-    if (followedCryptos.length === 0) {
+    if (trackedCryptos.length === 0) {
       return []
     }
 
     return ctx.prisma.sentimentAnalysis.findMany({
       where: {
         cryptoId: {
-          in: followedCryptos.map(fc => fc.cryptoId),
+          in: trackedCryptos.map(tc => tc.cryptoId),
         },
       },
       include: {

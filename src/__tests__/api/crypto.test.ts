@@ -49,17 +49,38 @@ describe('Crypto Router Validation', () => {
       expect(() => schema.parse({})).toThrow();
     });
 
-    it('should validate followCrypto input', () => {
+    it('should validate addCryptoToTracking input', () => {
       const schema = z.object({ 
-        symbol: z.string(),
-        name: z.string().optional(),
+        cryptoSymbol: z.string(),
+        cryptoName: z.string(),
+        trackingType: z.enum(['WATCH_ONLY', 'HOLDING']),
+        holdingAmount: z.number().positive().optional(),
+        averagePurchasePrice: z.number().positive().optional(),
       });
       
       // Valid input
-      expect(schema.parse({ symbol: 'BTC' })).toEqual({ symbol: 'BTC' });
-      expect(schema.parse({ symbol: 'BTC', name: 'Bitcoin' })).toEqual({ 
-        symbol: 'BTC', 
-        name: 'Bitcoin' 
+      expect(schema.parse({ 
+        cryptoSymbol: 'BTC',
+        cryptoName: 'Bitcoin',
+        trackingType: 'WATCH_ONLY',
+      })).toEqual({ 
+        cryptoSymbol: 'BTC',
+        cryptoName: 'Bitcoin',
+        trackingType: 'WATCH_ONLY',
+      });
+      
+      expect(schema.parse({ 
+        cryptoSymbol: 'BTC',
+        cryptoName: 'Bitcoin',
+        trackingType: 'HOLDING',
+        holdingAmount: 1.5,
+        averagePurchasePrice: 50000,
+      })).toEqual({ 
+        cryptoSymbol: 'BTC',
+        cryptoName: 'Bitcoin',
+        trackingType: 'HOLDING',
+        holdingAmount: 1.5,
+        averagePurchasePrice: 50000,
       });
       
       // Invalid input

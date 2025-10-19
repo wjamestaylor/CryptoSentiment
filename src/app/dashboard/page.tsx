@@ -10,60 +10,91 @@ import {
   CryptoPriceLoading 
 } from '@/components/ui/loading';
 import { ErrorBoundary, ApiErrorFallback } from '@/components/ui/error-boundary';
-import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown, Plus, Wallet, Star, BarChart3 } from 'lucide-react';
-import { CoinGeckoPrice } from '@/types';
+import { AlertTriangle, RefreshCw, TrendingUp, TrendingDown, Plus, Wallet, Star, BarChart3, Bell, Eye } from 'lucide-react';
 import { PriceChart } from '@/components/analytics/PriceChart';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useUsageLimit } from '@/hooks/use-usage-limit';
+import { useTrackUsage } from '@/hooks/use-track-usage';
+import { UsageType } from '@prisma/client';
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Feature gating integration
+  const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
+  const alertUsage = useUsageLimit(UsageType.ALERT_CREATION);
+  const trackUsage = useTrackUsage();
 
-  // Queries
+  // Single unified dashboard data query - replaces multiple separate queries
   const { 
-    data: followedCryptosData, 
-    isLoading: followedLoading, 
-    error: followedError,
-    refetch: refetchFollowed 
-  } = api.crypto.getFollowedCryptos.useQuery(undefined, {
+    data: dashboardData, 
+    isLoading: dashboardLoading, 
+    error: dashboardError,
+    refetch: refetchDashboard 
+  } = api.dashboard.getDashboardData.useQuery(undefined, {
     enabled: !!session?.user,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const followedCryptos = followedCryptosData?.data || [];
+  // Extract data from unified response
+  const summary = dashboardData?.data?.summary || {
+    totalTracked: 0,
+    totalWatching: 0,
+    totalHoldings: 0,
+    portfolioValue: 0,
+    portfolioGainLoss: 0,
+    portfolioGainLossPercentage: 0,
+    lastUpdated: new Date()
+  };
 
-  // Get current prices for followed cryptos
-  const cryptoIds = followedCryptos.map(crypto => crypto.id).filter(Boolean);
-  const { 
-    data: pricesData, 
-    isLoading: pricesLoading, 
-    refetch: refetchPrices 
-  } = api.crypto.getCryptosByIds.useQuery(
-    { ids: cryptoIds },
-    { 
-      enabled: cryptoIds.length > 0,
-      refetchInterval: 30000, // Refresh every 30 seconds
-    }
-  );
+  // Combine watchlist and holdings for unified display
+  const watchlistOnly = dashboardData?.data?.watchlist || [];
+  const holdings = dashboardData?.data?.holdings || [];
+  
+  // Convert holdings to watchlist format and combine
+  const holdingsAsWatchlist = holdings.map(holding => ({
+    id: holding.id,
+    symbol: holding.cryptoSymbol,
+    name: holding.cryptoName,
+    coinGeckoId: holding.coinGeckoId,
+    addedAt: holding.firstPurchaseDate || new Date(),
+    lastViewedAt: new Date(),
+    currentPrice: holding.currentPrice,
+    priceChangePercentage24h: holding.priceChangePercentage24h,
+    priceChange24h: holding.priceChange24h,
+    marketCap: undefined,
+    volume24h: undefined,
+    isHolding: true as const, // Flag to identify holdings
+    holdingAmount: holding.holdingAmount,
+    currentValue: holding.currentValue,
+    gainLoss: holding.gainLoss,
+    gainLossPercentage: holding.gainLossPercentage,
+  }));
 
-  const cryptoPrices = pricesData?.data || [];
+  // Create type for combined items
+  type CombinedWatchlistItem = typeof watchlistOnly[0] & {
+    isHolding: boolean;
+    holdingAmount?: number;
+    currentValue?: number;
+    gainLoss?: number;
+    gainLossPercentage?: number;
+  };
 
-  // Get portfolio holdings
-  const { 
-    data: portfolioData, 
-    isLoading: portfolioLoading,
-    refetch: refetchPortfolio 
-  } = api.crypto.getPortfolioHoldings.useQuery(undefined, {
-    enabled: !!session?.user,
-  });
+  // Combine both lists with holdings first (they're more important)
+  const combinedWatchlist: CombinedWatchlistItem[] = [
+    ...holdingsAsWatchlist,
+    ...watchlistOnly.map(item => ({ ...item, isHolding: false as const }))
+  ];
+  
+  const topPerformer = dashboardData?.data?.topPerformer;
 
-  const portfolioHoldings = portfolioData?.data || [];
-
-  // Mutations
-  const unfollowMutation = api.crypto.unfollowCrypto.useMutation({
+  // Mutations - Updated to use unified tracking system
+  const removeCryptoMutation = api.crypto.removeCryptoTracking.useMutation({
     onSuccess: () => {
-      refetchFollowed();
+      refetchDashboard();
       toast({
         title: "Success",
         description: "Removed from watchlist",
@@ -78,52 +109,29 @@ export default function Dashboard() {
     },
   });
 
-  // Combine crypto data with prices
-  const cryptosWithPrices = followedCryptos.map(crypto => {
-    const priceData = cryptoPrices.find((p: CoinGeckoPrice) => p.id === crypto.id) as CoinGeckoPrice;
-    return {
-      ...crypto,
-      currentPrice: priceData?.current_price,
-      priceChange24h: priceData?.current_price ? (priceData.current_price * priceData.price_change_percentage_24h / 100) : undefined,
-      priceChangePercentage24h: priceData?.price_change_percentage_24h,
-      marketCap: priceData?.market_cap,
-      volume24h: priceData?.total_volume,
-    };
-  });
-
-  // Calculate portfolio stats based on actual holdings
-  const portfolioValue = portfolioHoldings.reduce((sum, holding) => {
-    const currentPrice = cryptoPrices.find((p: any) => p.id === holding.crypto.id)?.current_price || 0;
-    return sum + (holding.amount * currentPrice);
-  }, 0);
-
-  const totalGain = portfolioHoldings.reduce((sum, holding) => {
-    const currentPrice = cryptoPrices.find((p: any) => p.id === holding.crypto.id)?.current_price || 0;
-    const purchaseValue = holding.amount * (holding.purchasePrice || 0);
-    const currentValue = holding.amount * currentPrice;
-    return sum + (currentValue - purchaseValue);
-  }, 0);
-
-  const avgPercentageChange = cryptosWithPrices.length > 0 
-    ? cryptosWithPrices.reduce((sum, crypto) => sum + (crypto.priceChangePercentage24h || 0), 0) / cryptosWithPrices.length
-    : 0;
-
-  const handleUnfollow = (symbol: string) => {
-    unfollowMutation.mutate({ symbol });
+  const handleUnfollow = (cryptoId: string, symbol: string) => {
+    removeCryptoMutation.mutate({ id: cryptoId });
+    
+    // Track usage for analytics
+    trackUsage(UsageType.WATCHLIST_ADD, {
+      action: 'remove',
+      cryptoSymbol: symbol,
+      source: 'dashboard',
+    });
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchFollowed(), refetchPrices(), refetchPortfolio()]);
+      await refetchDashboard();
       toast({
         title: "Refreshed",
-        description: "Data updated successfully",
+        description: "Dashboard data updated successfully",
       });
     } catch {
       toast({
         title: "Error",
-        description: "Failed to refresh data",
+        description: "Failed to refresh dashboard data",
         variant: "destructive",
       });
     } finally {
@@ -156,6 +164,17 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3 mt-4 md:mt-0">
+            {/* Usage Indicators */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Eye className="h-4 w-4" />
+                <span>{watchlistUsage.currentUsage}/{watchlistUsage.limit}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Bell className="h-4 w-4" />
+                <span>{alertUsage.currentUsage}/{alertUsage.limit}</span>
+              </div>
+            </div>
             <Button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -170,7 +189,7 @@ export default function Dashboard() {
 
         {/* Portfolio Stats Cards */}
         <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-          {followedLoading ? (
+          {dashboardLoading ? (
             <DashboardStatsLoading />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -180,7 +199,7 @@ export default function Dashboard() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Portfolio Value</p>
                       <p className="text-2xl font-bold">
-                        ${portfolioValue.toLocaleString()}
+                        ${summary.portfolioValue.toLocaleString()}
                       </p>
                     </div>
                     <Wallet className="h-8 w-8 text-blue-600" />
@@ -193,11 +212,11 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">24h Change</p>
-                      <p className={`text-2xl font-bold ${totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${totalGain >= 0 ? '+' : ''}${totalGain.toFixed(2)}
+                      <p className={`text-2xl font-bold ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
                       </p>
                     </div>
-                    {totalGain >= 0 ? (
+                    {summary.portfolioGainLoss >= 0 ? (
                       <TrendingUp className="h-8 w-8 text-green-600" />
                     ) : (
                       <TrendingDown className="h-8 w-8 text-red-600" />
@@ -210,9 +229,9 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Avg % Change</p>
-                      <p className={`text-2xl font-bold ${avgPercentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {avgPercentageChange >= 0 ? '+' : ''}{avgPercentageChange.toFixed(2)}%
+                      <p className="text-sm font-medium text-muted-foreground">24h Change %</p>
+                      <p className={`text-2xl font-bold ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
                       </p>
                     </div>
                     <BarChart3 className="h-8 w-8 text-purple-600" />
@@ -224,8 +243,9 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Holdings</p>
-                      <p className="text-2xl font-bold">{portfolioHoldings.length}</p>
+                      <p className="text-sm font-medium text-muted-foreground">Total Holdings</p>
+                      <p className="text-2xl font-bold">{summary.totalHoldings}</p>
+                      <p className="text-xs text-muted-foreground">Watching: {summary.totalWatching}</p>
                     </div>
                     <Wallet className="h-8 w-8 text-orange-600" />
                   </div>
@@ -236,54 +256,54 @@ export default function Dashboard() {
         </ErrorBoundary>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Watchlist */}
+          {/* My Cryptocurrencies */}
           <div className="lg:col-span-2">
-            {portfolioHoldings.length === 0 ? (
-              // Show portfolio setup when no holdings exist
+            {summary.totalTracked === 0 ? (
+              // Show setup when no cryptos are tracked at all
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Wallet className="h-5 w-5" />
-                    Set Up Your Portfolio
+                    <Star className="h-5 w-5" />
+                    Start Tracking Cryptocurrencies
                   </CardTitle>
                   <CardDescription>
-                    Start tracking your cryptocurrency investments by adding your holdings
+                    Begin by adding cryptocurrencies to watch or track your portfolio holdings
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center py-8">
-                  <Wallet className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Portfolio Holdings Yet</h3>
+                  <Star className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Cryptocurrencies Yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    Add your cryptocurrency holdings to track performance, calculate gains/losses, and get portfolio insights.
+                    Add cryptocurrencies to your watchlist or track your portfolio holdings to get started with market insights and performance tracking.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button asChild size="lg">
                       <a href="/crypto">
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Your First Holding
+                        Add Cryptocurrencies
                       </a>
                     </Button>
                     <Button asChild variant="outline" size="lg">
                       <a href="/crypto">
                         <Star className="h-4 w-4 mr-2" />
-                        Browse Cryptocurrencies
+                        Browse Market
                       </a>
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              // Show watchlist when portfolio exists
+              // Show watchlist when portfolio exists or when tracking any cryptos
               <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Watchlist</CardTitle>
+                  <CardTitle>My Cryptocurrencies</CardTitle>
                   <CardDescription>
-                    Cryptocurrencies you&apos;re tracking
+                    Your watched and held cryptocurrencies ({summary.totalWatching + summary.totalHoldings} total)
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/watchlist">
+                  <a href="/crypto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add More
                   </a>
@@ -291,27 +311,27 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-                  {followedLoading || pricesLoading ? (
+                  {dashboardLoading ? (
                     <CryptoPriceLoading />
-                  ) : followedError ? (
+                  ) : dashboardError ? (
                     <div className="text-center py-8">
                       <AlertTriangle className="h-12 w-12 mx-auto text-yellow-500 mb-4" />
-                      <p className="text-muted-foreground">Failed to load watchlist</p>
-                      <Button onClick={() => refetchFollowed()} variant="outline" className="mt-2">
+                      <p className="text-muted-foreground">Failed to load your cryptocurrencies</p>
+                      <Button onClick={() => refetchDashboard()} variant="outline" className="mt-2">
                         Try Again
                       </Button>
                     </div>
-                  ) : cryptosWithPrices.length === 0 ? (
+                  ) : combinedWatchlist.length === 0 ? (
                     <div className="text-center py-8">
                       <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground mb-2">No cryptocurrencies in your watchlist</p>
+                      <p className="text-muted-foreground mb-2">No cryptocurrencies tracked yet</p>
                       <Button asChild>
-                        <a href="/crypto">Add Some Coins</a>
+                        <a href="/crypto">Add Your First Crypto</a>
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {cryptosWithPrices.slice(0, 6).map((crypto) => (
+                      {combinedWatchlist.slice(0, 6).map((crypto) => (
                         <div key={crypto.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
@@ -320,8 +340,24 @@ export default function Dashboard() {
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                                {crypto.isHolding ? (
+                                  <Badge variant="default" className="text-xs bg-blue-100 text-blue-800">
+                                    Holding
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    Watching
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground">{crypto.name}</p>
+                              {crypto.isHolding && crypto.holdingAmount && (
+                                <p className="text-xs text-muted-foreground">
+                                  {crypto.holdingAmount} {crypto.symbol?.toUpperCase()}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center space-x-3">
@@ -329,6 +365,11 @@ export default function Dashboard() {
                               <p className="font-medium">
                                 ${crypto.currentPrice?.toLocaleString() || 'N/A'}
                               </p>
+                              {crypto.isHolding && crypto.currentValue && (
+                                <p className="text-sm text-muted-foreground">
+                                  Value: ${crypto.currentValue.toLocaleString()}
+                                </p>
+                              )}
                               {crypto.priceChangePercentage24h !== undefined && (
                                 <Badge 
                                   variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
@@ -338,23 +379,31 @@ export default function Dashboard() {
                                   {crypto.priceChangePercentage24h.toFixed(2)}%
                                 </Badge>
                               )}
+                              {crypto.isHolding && crypto.gainLossPercentage !== undefined && (
+                                <Badge 
+                                  variant={crypto.gainLossPercentage >= 0 ? "default" : "destructive"}
+                                  className="text-xs ml-1"
+                                >
+                                  P&L: {crypto.gainLossPercentage >= 0 ? '+' : ''}{crypto.gainLossPercentage.toFixed(1)}%
+                                </Badge>
+                              )}
                             </div>
                             <Button
-                              onClick={() => handleUnfollow(crypto.symbol)}
+                              onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
                               variant="ghost"
                               size="sm"
-                              disabled={unfollowMutation.isPending}
+                              disabled={removeCryptoMutation.isPending}
                             >
                               <Star className="h-4 w-4 fill-current" />
                             </Button>
                           </div>
                         </div>
                       ))}
-                      {cryptosWithPrices.length > 6 && (
+                      {combinedWatchlist.length > 6 && (
                         <div className="text-center pt-4">
                           <Button variant="outline" asChild>
-                            <a href="/watchlist">
-                              View All ({cryptosWithPrices.length})
+                            <a href="/crypto">
+                              View All ({combinedWatchlist.length})
                             </a>
                           </Button>
                         </div>
@@ -370,29 +419,38 @@ export default function Dashboard() {
           {/* Quick Actions & Portfolio Summary */}
           <div className="space-y-6">
             {/* Portfolio Holdings Summary */}
-            {portfolioHoldings.length > 0 && (
+            {summary.totalHoldings > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Portfolio Summary</CardTitle>
+                  <CardDescription>
+                    Overview of your cryptocurrency investments
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Total Holdings</span>
-                      <span className="font-medium">{portfolioHoldings.length}</span>
+                      <span className="font-medium">{summary.totalHoldings}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Total Value</span>
-                      <span className="font-medium">${portfolioValue.toLocaleString()}</span>
+                      <span className="text-sm text-muted-foreground">Portfolio Value</span>
+                      <span className="font-medium">${summary.portfolioValue.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Total Gain/Loss</span>
-                      <span className={`font-medium ${totalGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {totalGain >= 0 ? '+' : ''}${totalGain.toFixed(2)}
+                      <span className="text-sm text-muted-foreground">24h Change</span>
+                      <span className={`font-medium ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">24h Change %</span>
+                      <span className={`font-medium ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
                       </span>
                     </div>
                     <Button asChild className="w-full mt-4">
-                      <a href="/portfolio">View Full Portfolio</a>
+                      <a href="/crypto">View Full Portfolio</a>
                     </Button>
                   </div>
                 </CardContent>
@@ -412,7 +470,7 @@ export default function Dashboard() {
                   </a>
                 </Button>
                 <Button asChild className="w-full" variant="outline">
-                  <a href="/portfolio">
+                  <a href="/crypto">
                     <Wallet className="h-4 w-4 mr-2" />
                     Manage Portfolio
                   </a>
@@ -433,39 +491,72 @@ export default function Dashboard() {
             </Card>
 
             {/* Top Performer */}
-            {cryptosWithPrices.length > 0 && (
+            {(topPerformer || combinedWatchlist.length > 0) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Performer Today</CardTitle>
+                  <CardTitle>
+                    {topPerformer ? 'Top Performer Today' : 'Featured Crypto'}
+                  </CardTitle>
+                  <CardDescription>
+                    {topPerformer ? 'Best performing asset in your portfolio' : 'From your tracked cryptocurrencies'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const topPerformer = cryptosWithPrices.reduce((max, crypto) => 
-                      (crypto.priceChangePercentage24h || 0) > (max.priceChangePercentage24h || 0) 
-                        ? crypto 
-                        : max
-                    );
-                    
-                    return (
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                          <span className="font-semibold">
-                            {topPerformer.symbol?.substring(0, 2).toUpperCase()}
-                          </span>
+                    if (topPerformer) {
+                      // Use Portfolio Service top performer (from holdings)
+                      return (
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                            <span className="font-semibold">
+                              {topPerformer.cryptoSymbol.substring(0, 2).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">{topPerformer.cryptoSymbol.toUpperCase()}</p>
+                            <p className="text-sm text-muted-foreground">{topPerformer.cryptoName}</p>
+                            <Badge 
+                              variant={topPerformer.gainLossPercentage >= 0 ? "default" : "destructive"}
+                              className="mt-1"
+                            >
+                              {topPerformer.gainLossPercentage >= 0 ? '+' : ''}
+                              {topPerformer.gainLossPercentage.toFixed(2)}%
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{topPerformer.symbol?.toUpperCase()}</p>
-                          <p className="text-sm text-muted-foreground">{topPerformer.name}</p>
-                          <Badge 
-                            variant={topPerformer.priceChangePercentage24h && topPerformer.priceChangePercentage24h >= 0 ? "default" : "destructive"}
-                            className="mt-1"
-                          >
-                            {topPerformer.priceChangePercentage24h && topPerformer.priceChangePercentage24h >= 0 ? '+' : ''}
-                            {topPerformer.priceChangePercentage24h?.toFixed(2)}%
-                          </Badge>
+                      );
+                    } else if (combinedWatchlist.length > 0) {
+                      // Fallback to first item in combined list
+                      const crypto = combinedWatchlist[0];
+                      return (
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                            <span className="font-semibold">
+                              {crypto.symbol?.substring(0, 2).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                              {crypto.isHolding && (
+                                <Badge variant="default" className="text-xs">Holding</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{crypto.name}</p>
+                            {crypto.priceChangePercentage24h !== undefined && (
+                              <Badge 
+                                variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
+                                className="mt-1"
+                              >
+                                {crypto.priceChangePercentage24h >= 0 ? '+' : ''}
+                                {crypto.priceChangePercentage24h.toFixed(2)}%
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    }
+                    return null;
                   })()}
                 </CardContent>
               </Card>
@@ -474,22 +565,33 @@ export default function Dashboard() {
         </div>
 
         {/* Price Chart for Top Crypto */}
-        {cryptosWithPrices.length > 0 && (
+        {(topPerformer || combinedWatchlist.length > 0) && (
           <div className="mt-8">
             <Card>
               <CardHeader>
                 <CardTitle>Price Chart</CardTitle>
                 <CardDescription>
-                  Detailed price analysis for {cryptosWithPrices[0]?.name}
+                  {topPerformer 
+                    ? `Detailed price analysis for ${topPerformer.cryptoName}`
+                    : `Detailed price analysis for ${combinedWatchlist[0]?.name || 'selected cryptocurrency'}`
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-                  <PriceChart 
-                    cryptoId={cryptosWithPrices[0].id}
-                    cryptoName={cryptosWithPrices[0].name}
-                    cryptoSymbol={cryptosWithPrices[0].symbol}
-                  />
+                  {topPerformer ? (
+                    <PriceChart 
+                      cryptoId={topPerformer.cryptoSymbol.toLowerCase()} // Use symbol as fallback since TopPerformer doesn't have coinGeckoId
+                      cryptoName={topPerformer.cryptoName}
+                      cryptoSymbol={topPerformer.cryptoSymbol}
+                    />
+                  ) : combinedWatchlist.length > 0 ? (
+                    <PriceChart 
+                      cryptoId={combinedWatchlist[0].coinGeckoId || combinedWatchlist[0].id}
+                      cryptoName={combinedWatchlist[0].name}
+                      cryptoSymbol={combinedWatchlist[0].symbol}
+                    />
+                  ) : null}
                 </ErrorBoundary>
               </CardContent>
             </Card>
