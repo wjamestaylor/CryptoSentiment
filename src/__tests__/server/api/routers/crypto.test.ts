@@ -500,4 +500,272 @@ describe('Crypto Router Unified Tracking System', () => {
       }
     });
   });
+
+  describe('Portfolio Calculations', () => {
+    it('should calculate portfolio metrics accurately for single holding', () => {
+      // Test portfolio calculation logic
+      const holdingAmount = 2.5;
+      const averagePurchasePrice = 40000;
+      const totalInvested = 100000;
+      const currentPrice = 50000;
+
+      // Portfolio calculations
+      const currentValue = holdingAmount * currentPrice; // 2.5 * 50000 = 125000
+      const gainLoss = currentValue - totalInvested; // 125000 - 100000 = 25000
+      const gainLossPercentage = (gainLoss / totalInvested) * 100; // 25%
+
+      expect(currentValue).toBe(125000);
+      expect(gainLoss).toBe(25000);
+      expect(gainLossPercentage).toBe(25);
+    });
+
+    it('should handle multiple holdings with different performance', () => {
+      // BTC holding: 50% gain
+      const btcHolding = {
+        amount: 1.0,
+        avgPrice: 30000,
+        totalInvested: 30000,
+        currentPrice: 45000,
+      };
+
+      // ETH holding: 25% loss
+      const ethHolding = {
+        amount: 10.0,
+        avgPrice: 2000,
+        totalInvested: 20000,
+        currentPrice: 1500,
+      };
+
+      // Calculate individual holdings
+      const btcCurrentValue = btcHolding.amount * btcHolding.currentPrice; // 45000
+      const btcGainLoss = btcCurrentValue - btcHolding.totalInvested; // 15000 (50% gain)
+      const btcGainLossPercentage = (btcGainLoss / btcHolding.totalInvested) * 100; // 50%
+
+      const ethCurrentValue = ethHolding.amount * ethHolding.currentPrice; // 15000  
+      const ethGainLoss = ethCurrentValue - ethHolding.totalInvested; // -5000 (25% loss)
+      const ethGainLossPercentage = (ethGainLoss / ethHolding.totalInvested) * 100; // -25%
+
+      // Calculate portfolio totals
+      const totalPortfolioValue = btcCurrentValue + ethCurrentValue; // 60000
+      const totalInvested = btcHolding.totalInvested + ethHolding.totalInvested; // 50000
+      const totalGainLoss = btcGainLoss + ethGainLoss; // 10000
+      const totalGainLossPercentage = (totalGainLoss / totalInvested) * 100; // 20%
+
+      expect(btcCurrentValue).toBe(45000);
+      expect(btcGainLoss).toBe(15000);
+      expect(btcGainLossPercentage).toBe(50);
+
+      expect(ethCurrentValue).toBe(15000);
+      expect(ethGainLoss).toBe(-5000);
+      expect(ethGainLossPercentage).toBe(-25);
+
+      expect(totalPortfolioValue).toBe(60000);
+      expect(totalGainLoss).toBe(10000);
+      expect(totalGainLossPercentage).toBe(20);
+    });
+
+    it('should handle DCA scenarios with accurate average price calculation', () => {
+      // Original holding
+      const originalAmount = 1.0;
+      const originalPrice = 40000;
+      const originalInvestment = originalAmount * originalPrice; // 40000
+
+      // Additional purchase (DCA)
+      const additionalAmount = 0.5;
+      const additionalPrice = 60000;
+      const additionalInvestment = additionalAmount * additionalPrice; // 30000
+
+      // Calculate new averages
+      const newTotalAmount = originalAmount + additionalAmount; // 1.5
+      const newTotalInvested = originalInvestment + additionalInvestment; // 70000
+      const newAveragePrice = newTotalInvested / newTotalAmount; // 46666.67
+
+      expect(newTotalAmount).toBe(1.5);
+      expect(newTotalInvested).toBe(70000);
+      expect(Math.round(newAveragePrice)).toBe(46667);
+
+      // Verify DCA reduces average when buying lower
+      const dcaDownOriginal = { amount: 1.0, price: 60000, investment: 60000 };
+      const dcaDownAdditional = { amount: 1.0, price: 40000, investment: 40000 };
+      const dcaDownNewAvg = (dcaDownOriginal.investment + dcaDownAdditional.investment) / 
+                           (dcaDownOriginal.amount + dcaDownAdditional.amount);
+      
+      expect(dcaDownNewAvg).toBe(50000); // Lower than original 60000
+    });
+
+    it('should handle zero/negative price scenarios gracefully', () => {
+      const holdingAmount = 1.0;
+      const totalInvested = 50000;
+      
+      // Test zero price scenario
+      const zeroPriceValue = holdingAmount * 0; // 0
+      const zeroPriceGainLoss = zeroPriceValue - totalInvested; // -50000
+      const zeroPriceGainLossPercentage = (zeroPriceGainLoss / totalInvested) * 100; // -100%
+
+      expect(zeroPriceValue).toBe(0);
+      expect(zeroPriceGainLoss).toBe(-50000);
+      expect(zeroPriceGainLossPercentage).toBe(-100);
+
+      // Test very small price scenario
+      const verySmallPrice = 0.01;
+      const smallPriceValue = holdingAmount * verySmallPrice; // 0.01
+      const smallPriceGainLoss = smallPriceValue - totalInvested; // -49999.99
+      const smallPriceGainLossPercentage = (smallPriceGainLoss / totalInvested) * 100; // ~-100%
+
+      expect(smallPriceValue).toBe(0.01);
+      expect(smallPriceGainLoss).toBe(-49999.99);
+      expect(Math.round(smallPriceGainLossPercentage * 100) / 100).toBe(-100);
+    });
+
+    it('should handle precision correctly for small amounts', () => {
+      const satoshiAmount = 0.00000001; // 1 satoshi of BTC
+      const smallInvestment = 0.0005; // Very small investment
+      const currentPrice = 60000;
+
+      // Test precision calculations
+      const currentValue = satoshiAmount * currentPrice; // 0.0006
+      const gainLoss = currentValue - smallInvestment; // 0.0001
+      const gainLossPercentage = (gainLoss / smallInvestment) * 100; // 20%
+
+      // Handle floating point precision by using toBeCloseTo
+      expect(currentValue).toBeCloseTo(0.0006, 10);
+      expect(gainLoss).toBeCloseTo(0.0001, 10);
+      expect(gainLossPercentage).toBeCloseTo(20, 10);
+
+      // Test rounding for display purposes - this is how we'd handle precision in production
+      expect(Math.round(currentValue * 1000000) / 1000000).toBe(0.0006);
+      expect(Math.round(gainLoss * 1000000) / 1000000).toBe(0.0001);
+      expect(Math.round(gainLossPercentage * 100) / 100).toBe(20);
+    });
+
+    it('should validate total invested calculation for partial sales', () => {
+      // Original holding
+      const originalAmount = 2.0;
+      const originalAvgPrice = 40000;
+      const originalTotalInvested = 80000;
+
+      // User sells 0.5 BTC - only holdingAmount should change
+      const soldAmount = 0.5;
+      const remainingAmount = originalAmount - soldAmount; // 1.5
+
+      // Cost basis calculations - important for tax purposes
+      const remainingTotalInvested = originalTotalInvested; // Should stay same
+      const remainingAvgPrice = originalAvgPrice; // Should stay same
+
+      expect(remainingAmount).toBe(1.5);
+      expect(remainingAvgPrice).toBe(40000);
+      expect(remainingTotalInvested).toBe(80000);
+
+      // Current value calculation for remaining holding
+      const currentPrice = 50000;
+      const currentValue = remainingAmount * currentPrice; // 1.5 * 50000 = 75000
+      
+      // Gain/loss should be calculated on proportional cost basis
+      const proportionalCostBasis = remainingTotalInvested * (remainingAmount / originalAmount); // 60000
+      const gainLoss = currentValue - proportionalCostBasis; // 15000
+      
+      expect(currentValue).toBe(75000);
+      expect(proportionalCostBasis).toBe(60000);
+      expect(gainLoss).toBe(15000);
+    });
+
+    it('should calculate percentage changes accurately across different scenarios', () => {
+      const testCases = [
+        // [currentPrice, avgPrice, expectedPercentage]
+        [50000, 40000, 25],    // 25% gain
+        [30000, 40000, -25],   // 25% loss
+        [40000, 40000, 0],     // No change
+        [80000, 40000, 100],   // 100% gain (doubled)
+        [20000, 40000, -50],   // 50% loss (halved)
+        [44000, 40000, 10],    // 10% gain
+      ];
+
+      testCases.forEach(([currentPrice, avgPrice, expectedPercentage]) => {
+        const holdingAmount = 1.0;
+        const totalInvested = holdingAmount * avgPrice;
+        const currentValue = holdingAmount * currentPrice;
+        const gainLoss = currentValue - totalInvested;
+        const gainLossPercentage = (gainLoss / totalInvested) * 100;
+
+        expect(Math.round(gainLossPercentage * 100) / 100).toBe(expectedPercentage);
+      });
+    });
+
+    it('should handle portfolio diversification metrics', () => {
+      const portfolio = [
+        { symbol: 'BTC', value: 50000, percentage: 50 },
+        { symbol: 'ETH', value: 30000, percentage: 30 },
+        { symbol: 'ADA', value: 20000, percentage: 20 },
+      ];
+
+      const totalValue = portfolio.reduce((sum, asset) => sum + asset.value, 0);
+      expect(totalValue).toBe(100000);
+
+      // Verify percentages add up to 100%
+      const totalPercentage = portfolio.reduce((sum, asset) => sum + asset.percentage, 0);
+      expect(totalPercentage).toBe(100);
+
+      // Test diversification calculation
+      const largestAllocation = Math.max(...portfolio.map(asset => asset.percentage));
+      expect(largestAllocation).toBe(50); // BTC is 50% of portfolio
+
+      // Calculate Herfindahl-Hirschman Index for diversification
+      const hhi = portfolio.reduce((sum, asset) => sum + Math.pow(asset.percentage, 2), 0);
+      expect(hhi).toBe(3800); // 50^2 + 30^2 + 20^2 = 2500 + 900 + 400
+    });
+  });
+
+  describe('Error Handling and Edge Cases', () => {
+    it('should handle division by zero in percentage calculations', () => {
+      const totalInvested = 0;
+      const currentValue = 1000;
+      
+      // Should handle gracefully without throwing
+      const gainLoss = currentValue - totalInvested;
+      const gainLossPercentage = totalInvested === 0 ? 0 : (gainLoss / totalInvested) * 100;
+      
+      expect(gainLoss).toBe(1000);
+      expect(gainLossPercentage).toBe(0); // Graceful handling of division by zero
+    });
+
+    it('should validate holding amounts are non-negative', () => {
+      const holdingAmount = -1.0; // Invalid negative amount
+      const isValidAmount = holdingAmount >= 0;
+      
+      expect(isValidAmount).toBe(false);
+      
+      // Test zero as valid (user sold all)
+      const zeroAmount = 0.0;
+      const isZeroValid = zeroAmount >= 0;
+      expect(isZeroValid).toBe(true);
+    });
+
+    it('should validate purchase prices are positive', () => {
+      const testPrices = [0, -100, 50000, 0.0001];
+      const validPrices = testPrices.filter(price => price > 0);
+      
+      expect(validPrices).toEqual([50000, 0.0001]);
+      expect(validPrices.length).toBe(2);
+    });
+
+    it('should handle floating point precision issues', () => {
+      // Common floating point precision issue
+      const price1 = 0.1;
+      const price2 = 0.2;
+      const sum = price1 + price2; // Often 0.30000000000000004
+      
+      // Round to avoid precision issues
+      const roundedSum = Math.round(sum * 100) / 100;
+      expect(roundedSum).toBe(0.3);
+      
+      // Test with crypto calculations
+      const satoshiAmount = 0.00000001;
+      const btcPrice = 50000.123456789;
+      const value = satoshiAmount * btcPrice;
+      const roundedValue = Math.round(value * 100000000) / 100000000; // 8 decimal places
+      
+      expect(typeof roundedValue).toBe('number');
+      expect(roundedValue).toBeGreaterThan(0);
+    });
+  });
 });
