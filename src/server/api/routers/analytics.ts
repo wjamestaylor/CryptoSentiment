@@ -210,7 +210,7 @@ export const analyticsRouter = createTRPCRouter({
         }, {} as Record<string, Array<{
           resource: string;
           createdAt: string;
-          metadata: any;
+          metadata: Record<string, unknown>;
         }>>);
 
         // Calculate daily usage trends

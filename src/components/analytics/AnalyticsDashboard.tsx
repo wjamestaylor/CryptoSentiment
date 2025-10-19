@@ -31,6 +31,77 @@ interface AnalyticsDashboardProps {
   className?: string;
 }
 
+interface PortfolioAsset {
+  symbol: string;
+  name: string;
+  value: number;
+  percentage: number;
+  color?: string;
+  currentPrice?: number;
+  priceChange24h?: number;
+}
+
+interface PortfolioAnalyticsData {
+  portfolioDistribution: PortfolioAsset[];
+  totalValue?: number;
+  totalGainLoss?: number;
+  totalGainLossPercentage?: number;
+}
+
+interface SentimentCoin {
+  symbol: string;
+  name: string;
+  sentiment: number;
+  confidence: number;
+}
+
+interface SentimentAnalyticsData {
+  topSentimentCoins: SentimentCoin[];
+  averageSentiment: number;
+}
+
+interface AlertTrigger {
+  id: string;
+  cryptoSymbol: string;
+  type: string;
+  condition: string;
+  triggeredAt: string;
+  message?: string;
+}
+
+interface AlertAnalyticsData {
+  totalAlerts: number;
+  activeAlerts: number;
+  recentTriggers: AlertTrigger[];
+}
+
+interface PerformanceAnalyticsData {
+  timeframe: string;
+  metrics: {
+    totalReturn: number;
+    volatility: number;
+    sharpeRatio: number;
+  };
+  [key: string]: unknown;
+}
+
+interface PerformanceAnalyticsData {
+  performance24h: number;
+  performance7d: number;
+  performance30d: number;
+  performance1y: number;
+  bestPerformer: {
+    symbol: string;
+    name: string;
+    performance: number;
+  };
+  worstPerformer: {
+    symbol: string;
+    name: string;
+    performance: number;
+  };
+}
+
 export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('overview');
@@ -441,7 +512,7 @@ function PortfolioAnalytics({ data, isLoading }: { data?: any; isLoading: boolea
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.portfolioDistribution.slice(0, 5).map((asset: any) => (
+          {data.portfolioDistribution.slice(0, 5).map((asset: PortfolioAsset) => (
             <div key={asset.symbol} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
@@ -454,11 +525,13 @@ function PortfolioAnalytics({ data, isLoading }: { data?: any; isLoading: boolea
               </div>
               <div className="text-right">
                 <p className="font-medium">{asset.percentage.toFixed(1)}%</p>
-                <p className={`text-sm ${
-                  asset.priceChange24h >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {asset.priceChange24h >= 0 ? '+' : ''}{asset.priceChange24h.toFixed(2)}%
-                </p>
+                {asset.priceChange24h !== undefined && (
+                  <p className={`text-sm ${
+                    asset.priceChange24h >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {asset.priceChange24h >= 0 ? '+' : ''}{asset.priceChange24h.toFixed(2)}%
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -727,7 +800,7 @@ function SentimentAnalytics({ data, isLoading }: { data?: any; isLoading: boolea
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {data?.topSentimentCoins?.slice(0, 5).map((coin: any) => (
+          {data?.topSentimentCoins?.slice(0, 5).map((coin: SentimentCoin) => (
             <div key={coin.symbol} className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{coin.symbol}</p>
@@ -818,7 +891,7 @@ function AlertAnalytics({ data, isLoading }: { data?: any; isLoading: boolean })
         <CardContent>
           {data?.recentTriggers?.length > 0 ? (
             <div className="space-y-3">
-              {data.recentTriggers.slice(0, 5).map((trigger: any, index: number) => (
+              {data.recentTriggers.slice(0, 5).map((trigger: AlertTrigger, index: number) => (
                 <div key={index} className="flex items-center gap-3 p-2 border rounded">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1">

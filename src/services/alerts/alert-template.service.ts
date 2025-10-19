@@ -1,11 +1,31 @@
 import { AlertType } from '@prisma/client';
 
+export interface AlertCondition {
+  operator?: 'greater_than' | 'less_than' | 'equals' | 'percentage_change';
+  value?: number;
+  timeframe?: string;
+  threshold?: number;
+  percentage?: boolean;
+  sentimentThreshold?: number;
+  volumeThreshold?: number;
+  priceThreshold?: number;
+  direction?: 'bullish' | 'bearish' | 'above' | 'below';
+  cooldownMinutes?: number;
+  [key: string]: unknown; // Allow additional properties
+}
+
+export interface UserAlert {
+  type: AlertType;
+  tags?: string[];
+  [key: string]: unknown;
+}
+
 export interface AlertTemplate {
   id: string;
   name: string;
   description: string;
   alertType: AlertType;
-  condition: any;
+  condition: AlertCondition;
   tags: string[];
   isPopular: boolean;
   useCase: string;
@@ -269,7 +289,7 @@ export class AlertTemplateService {
   /**
    * Get recommended templates for a user based on their existing alerts
    */
-  getRecommendedTemplates(userAlerts: any[]): AlertTemplate[] {
+  getRecommendedTemplates(userAlerts: UserAlert[]): AlertTemplate[] {
     // Simple recommendation algorithm
     const userAlertTypes = new Set(userAlerts.map(alert => alert.type));
     const userTags = new Set();

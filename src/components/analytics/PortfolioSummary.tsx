@@ -27,6 +27,12 @@ interface PortfolioSummaryProps {
   showFullDetails?: boolean;
 }
 
+interface WatchlistCoin {
+  symbol: string;
+  name: string;
+  addedAt: string;
+}
+
 export function PortfolioSummary({ className, showFullDetails = false }: PortfolioSummaryProps) {
   const { data: session } = useSession();
   // Fetch watchlist summary
@@ -292,7 +298,7 @@ export function PortfolioSummary({ className, showFullDetails = false }: Portfol
                     Recently Added
                   </h4>
                   <div className="space-y-2">
-                    {watchlistData.data.recentlyAdded.slice(0, 3).map((coin: any) => (
+                    {watchlistData.data.recentlyAdded.slice(0, 3).map((coin: WatchlistCoin) => (
                       <div key={coin.symbol} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <Star className="h-3 w-3 text-yellow-500" />
