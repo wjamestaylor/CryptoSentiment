@@ -1,6 +1,9 @@
+'use client';
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthAwareContent, AuthAwareCTA } from "@/components";
 
 export default function Home() {
   return (
@@ -15,18 +18,7 @@ export default function Home() {
             AI-powered cryptocurrency sentiment analysis combining market data, 
             news sentiment, and whale activity for smarter trading decisions.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-sm sm:max-w-none mx-auto">
-            <Link href="/sentiment" className="w-full sm:w-auto">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                Try AI Analysis
-              </Button>
-            </Link>
-            <Link href="/auth/signup" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Get Started Free
-              </Button>
-            </Link>
-          </div>
+          <AuthAwareContent />
           <div className="mt-4">
             <Link href="/pricing" className="text-blue-600 hover:text-blue-700 font-medium">
               View Pricing Plans →
@@ -115,18 +107,7 @@ export default function Home() {
                   <div className="text-gray-600 dark:text-gray-300">Unlimited + API access</div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/pricing">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    View All Plans
-                  </Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Start Free Trial
-                  </Button>
-                </Link>
-              </div>
+              <AuthAwareCTA />
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 No credit card required • 30-day free trial • Cancel anytime
               </p>

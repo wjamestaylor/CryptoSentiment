@@ -49,7 +49,7 @@ const PRICING_TIERS: PricingTier[] = [
       ]
     },
     stripePriceId: '',
-    buttonText: 'Get Started Free',
+    buttonText: 'Current Plan',
     buttonVariant: 'outline'
   },
   {
@@ -73,7 +73,7 @@ const PRICING_TIERS: PricingTier[] = [
     },
     stripePriceId: 'price_pro_monthly',
     popular: true,
-    buttonText: 'Start Pro Trial',
+    buttonText: 'Upgrade to Pro',
     buttonVariant: 'default'
   },
   {
@@ -96,7 +96,7 @@ const PRICING_TIERS: PricingTier[] = [
       ]
     },
     stripePriceId: 'price_business_monthly',
-    buttonText: 'Start Business Trial',
+    buttonText: 'Upgrade to Business',
     buttonVariant: 'default'
   }
 ];
@@ -179,6 +179,24 @@ export default function PricingPage() {
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
+  const getButtonText = (tier: PricingTier): string => {
+    if (tier.price === 0) {
+      return session ? 'Current Plan' : 'Get Started Free';
+    }
+    if (!session) {
+      return `Start ${tier.name} Trial`;
+    }
+    // For authenticated users, show upgrade/downgrade options
+    return tier.buttonText;
+  };
+
+  const getButtonVariant = (tier: PricingTier): 'default' | 'outline' | 'secondary' => {
+    if (tier.price === 0 && session) {
+      return 'secondary'; // Make current free plan less prominent
+    }
+    return tier.buttonVariant;
+  };
+
   const handlePlanSelect = async (tier: PricingTier) => {
     if (tier.price === 0) {
       // Free plan - redirect to signup or dashboard
@@ -250,8 +268,10 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Choose the perfect plan for your crypto trading needs. 
-            Start free and scale as you grow.
+            {session 
+              ? 'Unlock advanced features and premium tools to take your crypto trading to the next level.'
+              : 'Choose the perfect plan for your crypto trading needs. Start free and scale as you grow.'
+            }
           </p>
           
           {/* Billing Toggle */}
@@ -387,12 +407,12 @@ export default function PricingPage() {
                   <div className="pt-6">
                     <Button
                       onClick={() => handlePlanSelect(tier)}
-                      disabled={isLoading === tier.name}
-                      variant={tier.buttonVariant}
+                      disabled={isLoading === tier.name || (tier.price === 0 && !!session)}
+                      variant={getButtonVariant(tier)}
                       className="w-full"
                       size="lg"
                     >
-                      {isLoading === tier.name ? 'Loading...' : tier.buttonText}
+                      {isLoading === tier.name ? 'Loading...' : getButtonText(tier)}
                     </Button>
                   </div>
                 </CardContent>
@@ -479,29 +499,54 @@ export default function PricingPage() {
           <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
             <CardContent className="p-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                Ready to Get Started?
+                {session ? 'Ready to Upgrade?' : 'Ready to Get Started?'}
               </h2>
               <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
-                Join thousands of crypto traders who use CryptoSentiment to make smarter 
-                trading decisions with AI-powered sentiment analysis.
+                {session 
+                  ? 'Unlock advanced features with AI-powered sentiment analysis and premium tools for serious crypto trading.'
+                  : 'Join thousands of crypto traders who use CryptoSentiment to make smarter trading decisions with AI-powered sentiment analysis.'
+                }
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  onClick={() => handlePlanSelect(PRICING_TIERS[0])}
-                  variant="outline" 
-                  size="lg"
-                >
-                  Start Free
-                </Button>
-                <Button 
-                  onClick={() => handlePlanSelect(PRICING_TIERS[1])}
-                  size="lg"
-                >
-                  Try Pro Free
-                </Button>
+                {session ? (
+                  <>
+                    <Button 
+                      onClick={() => handlePlanSelect(PRICING_TIERS[1])}
+                      size="lg"
+                    >
+                      Upgrade to Pro
+                    </Button>
+                    <Button 
+                      onClick={() => handlePlanSelect(PRICING_TIERS[2])}
+                      variant="outline"
+                      size="lg"
+                    >
+                      Upgrade to Business
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={() => handlePlanSelect(PRICING_TIERS[0])}
+                      variant="outline" 
+                      size="lg"
+                    >
+                      Start Free
+                    </Button>
+                    <Button 
+                      onClick={() => handlePlanSelect(PRICING_TIERS[1])}
+                      size="lg"
+                    >
+                      Try Pro Free
+                    </Button>
+                  </>
+                )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                No credit card required • 30-day free trial • Cancel anytime
+                {session 
+                  ? 'Upgrade anytime • 30-day money-back guarantee • Cancel anytime'
+                  : 'No credit card required • 30-day free trial • Cancel anytime'
+                }
               </p>
             </CardContent>
           </Card>

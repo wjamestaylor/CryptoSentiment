@@ -72,11 +72,11 @@ describe('Navbar', () => {
       expect(screen.queryByRole('link', { name: 'Crypto Manager' })).not.toBeInTheDocument();
     });
 
-    it('displays sign in and get started buttons', () => {
+    it('displays sign in and upgrade buttons', () => {
       render(<Navbar />);
 
       expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Upgrade to Pro' })).toBeInTheDocument();
     });
 
     it('sign in button links to signin page', () => {
@@ -86,11 +86,11 @@ describe('Navbar', () => {
       expect(signInLink).toHaveAttribute('href', '/auth/signin');
     });
 
-    it('get started button links to signup page', () => {
+    it('upgrade button links to pricing page', () => {
       render(<Navbar />);
 
-      const getStartedLink = screen.getByRole('button', { name: 'Get Started' }).closest('a');
-      expect(getStartedLink).toHaveAttribute('href', '/auth/signup');
+      const getStartedLink = screen.getByRole('button', { name: 'Upgrade to Pro' }).closest('a');
+      expect(getStartedLink).toHaveAttribute('href', '/pricing');
     });
 
     it('displays theme toggle', () => {
@@ -200,7 +200,7 @@ describe('Navbar', () => {
       render(<Navbar />);
 
       expect(screen.queryByRole('button', { name: 'Sign In' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Get Started' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upgrade to Pro' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Sign Out' })).not.toBeInTheDocument();
     });
   });
@@ -291,7 +291,7 @@ describe('Navbar', () => {
 
       // Should have both desktop and mobile auth buttons
       expect(screen.getAllByRole('button', { name: 'Sign In' })).toHaveLength(2);
-      expect(screen.getAllByRole('button', { name: 'Get Started' })).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'Upgrade to Pro' })).toHaveLength(2);
     });
 
     it('displays mobile welcome message and sign out for authenticated users', () => {

@@ -73,9 +73,9 @@ export function Navbar() {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/auth/signup">
+                <Link href="/pricing">
                   <Button>
-                    Get Started
+                    Upgrade to Pro
                   </Button>
                 </Link>
               </div>
@@ -150,12 +150,12 @@ export function Navbar() {
                         Sign In
                       </Button>
                     </Link>
-                    <Link href="/auth/signup" className="block">
+                    <Link href="/pricing" className="block">
                       <Button
                         className="w-full"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Get Started
+                        Upgrade to Pro
                       </Button>
                     </Link>
                   </div>

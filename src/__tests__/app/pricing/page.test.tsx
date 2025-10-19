@@ -146,7 +146,7 @@ describe('PricingPage', () => {
       expect(mockPush).toHaveBeenCalledWith('/auth/signup');
     });
 
-    it('should redirect to dashboard when free plan is selected with session', () => {
+    it('should show current plan status for authenticated free users', () => {
       mockUseSession.mockReturnValue({
         data: { 
           user: { id: 'test-id', email: 'test@example.com' },
@@ -158,10 +158,31 @@ describe('PricingPage', () => {
 
       render(<PricingPage />);
 
-      const freeButton = screen.getByText('Get Started Free');
-      fireEvent.click(freeButton);
+      const freeButton = screen.getByText('Current Plan');
+      
+      // Button should be disabled since user is already on free plan
+      expect(freeButton).toBeDisabled();
+    });
 
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    it('should show upgrade buttons for authenticated users', () => {
+      mockUseSession.mockReturnValue({
+        data: { 
+          user: { id: 'test-id', email: 'test@example.com' },
+          expires: '2025-12-31T23:59:59.999Z'
+        },
+        status: 'authenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Should show upgrade options for Pro and Business
+      expect(screen.getAllByText('Upgrade to Pro')).toHaveLength(2); // One in card, one in CTA
+      expect(screen.getAllByText('Upgrade to Business')).toHaveLength(2); // One in card, one in CTA
+      
+      // Should not show trial language for authenticated users
+      expect(screen.queryByText('Start Pro Trial')).not.toBeInTheDocument();
+      expect(screen.queryByText('Start Business Trial')).not.toBeInTheDocument();
     });
   });
 
