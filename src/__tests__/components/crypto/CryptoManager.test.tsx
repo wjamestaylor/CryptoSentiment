@@ -73,7 +73,15 @@ jest.mock('@/hooks/use-toast', () => ({
 
 // Mock Next.js components
 jest.mock('next/image', () => {
-  return function MockImage({ src, alt, ...props }: any) {
+  return function MockImage({ 
+    src, 
+    alt, 
+    ...props 
+  }: { 
+    src: string; 
+    alt: string; 
+    [key: string]: unknown;
+  }) {
     return <img src={src} alt={alt} {...props} />;
   };
 });
@@ -94,7 +102,7 @@ describe('CryptoManager Component', () => {
       data: mockSession, 
       status: 'authenticated',
       update: jest.fn(),
-    } as any);
+    });
 
     // Default mock returns
     (api.crypto.getEnhancedCryptoTracking.useQuery as jest.Mock).mockReturnValue({

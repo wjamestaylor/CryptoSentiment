@@ -26,7 +26,6 @@ import { useSession } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { LoadingSpinner } from '@/components/ui/loading';
-import { useToast } from '@/hooks/use-toast';
 
 interface AnalyticsDashboardProps {
   className?: string;
@@ -442,7 +441,7 @@ function PortfolioAnalytics({ data, isLoading }: { data?: any; isLoading: boolea
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.portfolioDistribution.slice(0, 5).map((asset: any, index: number) => (
+          {data.portfolioDistribution.slice(0, 5).map((asset: any) => (
             <div key={asset.symbol} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
@@ -728,7 +727,7 @@ function SentimentAnalytics({ data, isLoading }: { data?: any; isLoading: boolea
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {data?.topSentimentCoins?.slice(0, 5).map((coin: any, index: number) => (
+          {data?.topSentimentCoins?.slice(0, 5).map((coin: any) => (
             <div key={coin.symbol} className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{coin.symbol}</p>

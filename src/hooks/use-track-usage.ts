@@ -7,7 +7,7 @@ interface TrackUsageOptions {
 }
 
 export function useTrackUsage(options: TrackUsageOptions = {}) {
-  const trackUsage = useCallback(async (usageType: UsageType, metadata?: Record<string, any>) => {
+  const trackUsage = useCallback(async (usageType: UsageType, metadata?: Record<string, unknown>) => {
     try {
       const response = await fetch('/api/usage/track', {
         method: 'POST',

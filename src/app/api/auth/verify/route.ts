@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       await prisma.verificationToken.delete({
         where: { token },
       });
-    } catch (error) {
+    } catch {
       // Token might already be deleted, ignore this error
       console.log('Verification token already deleted (race condition)');
     }

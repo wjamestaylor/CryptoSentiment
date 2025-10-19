@@ -166,8 +166,8 @@ export class AlertMonitorService {
       const marketData = await this.coinGeckoService.getTopCryptos(50);
 
       // Process each monitored cryptocurrency
-      for (const [cryptoId, crypto] of this.monitoredCryptos) {
-        const currentData = marketData.find((data: any) => 
+      for (const [, crypto] of this.monitoredCryptos) {
+        const currentData = marketData.find((data: { symbol: string }) => 
           data.symbol.toLowerCase() === crypto.symbol.toLowerCase()
         );
 
@@ -184,7 +184,11 @@ export class AlertMonitorService {
   /**
    * Process market data for a specific cryptocurrency
    */
-  private async processMarketData(crypto: MonitoredCrypto, marketData: any): Promise<void> {
+  private async processMarketData(crypto: MonitoredCrypto, marketData: { 
+    current_price: number; 
+    total_volume: number; 
+    price_change_percentage_24h?: number;
+  }): Promise<void> {
     try {
       const previousPrice = crypto.lastPrice;
       const currentPrice = marketData.current_price;

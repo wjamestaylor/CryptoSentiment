@@ -281,7 +281,6 @@ function SimplePriceChart({
 }) {
   const priceRange = maxPrice - minPrice;
   const chartHeight = 256; // 64 * 4 (h-64 in Tailwind)
-  const chartWidth = 100; // Percentage
 
   if (data.length === 0 || priceRange === 0) {
     return (

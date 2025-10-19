@@ -165,7 +165,7 @@ describe('ResendEmailService Structure', () => {
         passwordReset: 60 * 60 * 1000,     // 1 hour
       };
 
-      Object.entries(expectedExpirationTimes).forEach(([type, time]) => {
+      Object.entries(expectedExpirationTimes).forEach(([, time]) => {
         expect(time).toBeGreaterThan(0);
         expect(time).toBeLessThanOrEqual(24 * 60 * 60 * 1000); // Max 24 hours
       });

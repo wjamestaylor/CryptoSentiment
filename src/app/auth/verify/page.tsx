@@ -38,7 +38,7 @@ function VerifyEmailContent() {
           setStatus('error');
           setMessage(data.error || 'Verification failed. Please try again.');
         }
-      } catch (error) {
+      } catch {
         setStatus('error');
         setMessage('Something went wrong. Please try again.');
       }

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user (unverified)
-    const newUser = await prisma.user.create({
+    await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         name: name || null,

@@ -4,11 +4,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-interface AuthAwareContentProps {
-  children?: React.ReactNode;
-}
-
-export function AuthAwareContent({ children }: AuthAwareContentProps) {
+export function AuthAwareContent() {
   const { data: session, status } = useSession();
 
   if (status === 'loading') {
@@ -63,11 +59,7 @@ export function AuthAwareContent({ children }: AuthAwareContentProps) {
   );
 }
 
-interface AuthAwareCTAProps {
-  children?: React.ReactNode;
-}
-
-export function AuthAwareCTA({ children }: AuthAwareCTAProps) {
+export function AuthAwareCTA() {
   const { data: session, status } = useSession();
 
   if (status === 'loading') {

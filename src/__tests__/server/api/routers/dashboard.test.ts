@@ -7,15 +7,7 @@
 
 import { portfolioService } from '@/services/portfolio/portfolio.service';
 
-// Mock Portfolio Service
-const mockPortfolioService = {
-  calculatePortfolioAnalytics: jest.fn(),
-  getPortfolioSummary: jest.fn(),
-  calculate24hChange: jest.fn(),
-  priceService: {
-    getCurrentPrices: jest.fn(),
-  },
-};
+// Mock Portfolio Service (removed unused mockPortfolioService variable)
 
 jest.mock('@/services/portfolio/portfolio.service', () => ({
   portfolioService: {

@@ -113,7 +113,7 @@ export function CryptoManager() {
   );
 
   // Alerts integration - fetch user's alerts
-  const { data: userAlerts, refetch: refetchAlerts } = api.alerts.getUserAlerts.useQuery({});
+  const { data: userAlerts } = api.alerts.getUserAlerts.useQuery({});
 
   // Feature gating integration
   const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);

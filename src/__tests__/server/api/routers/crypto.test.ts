@@ -20,7 +20,7 @@ const mockPrisma = {
   },
 };
 
-const prisma = mockPrisma as any;
+const prisma = mockPrisma as typeof mockPrisma;
 
 // Mock fetch for CoinGecko API calls
 const mockFetch = jest.fn();

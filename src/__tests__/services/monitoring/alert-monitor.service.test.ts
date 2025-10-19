@@ -22,10 +22,17 @@ describe('AlertMonitorService', () => {
       getTopCryptos: jest.fn(),
       getCryptoById: jest.fn(),
       searchCryptos: jest.fn(),
+      request: jest.fn(),
+      getCurrentPrices: jest.fn(),
     } as any;
 
     mockAlertService = {
       checkAlerts: jest.fn(),
+      createAlertWithSymbol: jest.fn(),
+      createAlert: jest.fn(),
+      getUserAlerts: jest.fn(),
+      updateAlert: jest.fn(),
+      deleteAlert: jest.fn(),
     } as any;
 
     // Mock the constructors

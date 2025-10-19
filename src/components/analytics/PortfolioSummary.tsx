@@ -9,11 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { 
   TrendingUp, 
   TrendingDown, 
-  DollarSign, 
   Target,
   Star,
   BarChart3,
-  Zap,
   Brain,
   AlertTriangle,
   Clock,
@@ -23,7 +21,6 @@ import { useSession } from 'next-auth/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { LoadingSpinner } from '@/components/ui/loading';
-import { useToast } from '@/hooks/use-toast';
 
 interface PortfolioSummaryProps {
   className?: string;
@@ -32,8 +29,6 @@ interface PortfolioSummaryProps {
 
 export function PortfolioSummary({ className, showFullDetails = false }: PortfolioSummaryProps) {
   const { data: session } = useSession();
-  const { toast } = useToast();
-
   // Fetch watchlist summary
   const { 
     data: watchlistData, 

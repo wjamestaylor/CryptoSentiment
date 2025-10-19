@@ -122,37 +122,7 @@ describe('Crypto Router - Enhanced Tracking', () => {
     },
   ];
 
-  const mockEnhancedResponse = {
-    trackingEntries: [
-      {
-        ...mockTrackingData[0],
-        currentPrice: 67000,
-        currentValue: 33500,
-        gainLoss: 11000,
-        gainLossPercentage: 48.89,
-        priceChangePercentage24h: 3.08,
-      },
-      {
-        ...mockTrackingData[1],
-        currentPrice: 3500,
-        priceChangePercentage24h: -2.78,
-      },
-    ],
-    summary: {
-      totalTracked: 2,
-      totalWatching: 1,
-      totalHoldings: 1,
-      totalInvested: 22500,
-      currentPortfolioValue: 33500,
-      totalGainLoss: 11000,
-      totalGainLossPercentage: 48.89,
-      topPerformer: {
-        symbol: 'BTC',
-        name: 'Bitcoin',
-        gainLossPercentage: 48.89,
-      },
-    },
-  };
+
 
   describe('getEnhancedCryptoTracking', () => {
     beforeEach(() => {

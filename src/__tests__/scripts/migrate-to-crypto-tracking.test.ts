@@ -23,7 +23,18 @@ const mockPrisma = {
     update: jest.fn(),
     count: jest.fn(),
   },
-} as any;
+} as {
+  $transaction: jest.Mock;
+  $disconnect: jest.Mock;
+  followedCoin: { findMany: jest.Mock; update: jest.Mock };
+  portfolioHolding: { findMany: jest.Mock; update: jest.Mock };
+  cryptoTracking: {
+    findUnique: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+    count: jest.Mock;
+  };
+};
 
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn(() => mockPrisma),
