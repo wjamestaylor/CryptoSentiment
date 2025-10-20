@@ -156,22 +156,22 @@ export default function Dashboard() {
     <div className="container mx-auto py-6 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">
               Track your cryptocurrency portfolio and market insights
             </p>
           </div>
-          <div className="flex items-center gap-3 mt-4 md:mt-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             {/* Usage Indicators */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
+                <Eye className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{watchlistUsage.currentUsage}/{watchlistUsage.limit}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Bell className="h-4 w-4" />
+                <Bell className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{alertUsage.currentUsage}/{alertUsage.limit}</span>
               </div>
             </div>
@@ -180,6 +180,7 @@ export default function Dashboard() {
               disabled={refreshing}
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
@@ -192,62 +193,62 @@ export default function Dashboard() {
           {dashboardLoading ? (
             <DashboardStatsLoading />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Portfolio Value</p>
-                      <p className="text-2xl font-bold">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm font-medium text-muted-foreground">Portfolio Value</p>
+                      <p className="text-lg md:text-2xl font-bold truncate">
                         ${summary.portfolioValue.toLocaleString()}
                       </p>
                     </div>
-                    <Wallet className="h-8 w-8 text-blue-600" />
+                    <Wallet className="h-6 w-6 md:h-8 md:w-8 text-blue-600 flex-shrink-0" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">24h Change</p>
-                      <p className={`text-2xl font-bold ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm font-medium text-muted-foreground">24h Change</p>
+                      <p className={`text-lg md:text-2xl font-bold truncate ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         ${summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
                       </p>
                     </div>
                     {summary.portfolioGainLoss >= 0 ? (
-                      <TrendingUp className="h-8 w-8 text-green-600" />
+                      <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-green-600 flex-shrink-0" />
                     ) : (
-                      <TrendingDown className="h-8 w-8 text-red-600" />
+                      <TrendingDown className="h-6 w-6 md:h-8 md:w-8 text-red-600 flex-shrink-0" />
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">24h Change %</p>
-                      <p className={`text-2xl font-bold ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm font-medium text-muted-foreground">24h Change %</p>
+                      <p className={`text-lg md:text-2xl font-bold truncate ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
                       </p>
                     </div>
-                    <BarChart3 className="h-8 w-8 text-purple-600" />
+                    <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-purple-600 flex-shrink-0" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Holdings</p>
-                      <p className="text-2xl font-bold">{summary.totalHoldings}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Holdings</p>
+                      <p className="text-lg md:text-2xl font-bold">{summary.totalHoldings}</p>
                       <p className="text-xs text-muted-foreground">Watching: {summary.totalWatching}</p>
                     </div>
-                    <Wallet className="h-8 w-8 text-orange-600" />
+                    <Wallet className="h-6 w-6 md:h-8 md:w-8 text-orange-600 flex-shrink-0" />
                   </div>
                 </CardContent>
               </Card>
@@ -255,35 +256,35 @@ export default function Dashboard() {
           )}
         </ErrorBoundary>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
           {/* My Cryptocurrencies */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2">
             {summary.totalTracked === 0 ? (
               // Show setup when no cryptos are tracked at all
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                    <Star className="h-4 w-4 md:h-5 md:w-5" />
                     Start Tracking Cryptocurrencies
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm md:text-base">
                     Begin by adding cryptocurrencies to watch or track your portfolio holdings
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center py-8">
-                  <Star className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Cryptocurrencies Yet</h3>
-                  <p className="text-muted-foreground mb-6">
+                <CardContent className="text-center py-6 md:py-8">
+                  <Star className="h-12 w-12 md:h-16 md:w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-base md:text-lg font-medium mb-2">No Cryptocurrencies Yet</h3>
+                  <p className="text-muted-foreground mb-6 text-sm md:text-base">
                     Add cryptocurrencies to your watchlist or track your portfolio holdings to get started with market insights and performance tracking.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button asChild size="lg">
+                    <Button asChild size="lg" className="w-full sm:w-auto">
                       <a href="/crypto">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Cryptocurrencies
                       </a>
                     </Button>
-                    <Button asChild variant="outline" size="lg">
+                    <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
                       <a href="/crypto">
                         <Star className="h-4 w-4 mr-2" />
                         Browse Market
@@ -295,14 +296,14 @@ export default function Dashboard() {
             ) : (
               // Show watchlist when portfolio exists or when tracking any cryptos
               <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                 <div>
-                  <CardTitle>My Cryptocurrencies</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg md:text-xl">My Cryptocurrencies</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
                     Your watched and held cryptocurrencies ({summary.totalWatching + summary.totalHoldings} total)
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                   <a href="/crypto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add More
@@ -332,16 +333,16 @@ export default function Dashboard() {
                   ) : (
                     <div className="space-y-3">
                       {combinedWatchlist.slice(0, 6).map((crypto) => (
-                        <div key={crypto.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                              <span className="text-sm font-semibold">
+                        <div key={crypto.id} className="flex items-center justify-between p-3 md:p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center space-x-3 min-w-0 flex-1">
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs md:text-sm font-semibold">
                                 {crypto.symbol?.substring(0, 2).toUpperCase()}
                               </span>
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-sm md:text-base">{crypto.symbol?.toUpperCase()}</p>
                                 {crypto.isHolding ? (
                                   <Badge variant="default" className="text-xs bg-blue-100 text-blue-800">
                                     Holding
@@ -352,7 +353,7 @@ export default function Dashboard() {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground">{crypto.name}</p>
+                              <p className="text-xs md:text-sm text-muted-foreground truncate">{crypto.name}</p>
                               {crypto.isHolding && crypto.holdingAmount && (
                                 <p className="text-xs text-muted-foreground">
                                   {crypto.holdingAmount} {crypto.symbol?.toUpperCase()}
@@ -360,48 +361,51 @@ export default function Dashboard() {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
                             <div className="text-right">
-                              <p className="font-medium">
+                              <p className="font-medium text-sm md:text-base">
                                 ${crypto.currentPrice?.toLocaleString() || 'N/A'}
                               </p>
                               {crypto.isHolding && crypto.currentValue && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs md:text-sm text-muted-foreground">
                                   Value: ${crypto.currentValue.toLocaleString()}
                                 </p>
                               )}
-                              {crypto.priceChangePercentage24h !== undefined && (
-                                <Badge 
-                                  variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
-                                  className="text-xs"
-                                >
-                                  {crypto.priceChangePercentage24h >= 0 ? '+' : ''}
-                                  {crypto.priceChangePercentage24h.toFixed(2)}%
-                                </Badge>
-                              )}
-                              {crypto.isHolding && crypto.gainLossPercentage !== undefined && (
-                                <Badge 
-                                  variant={crypto.gainLossPercentage >= 0 ? "default" : "destructive"}
-                                  className="text-xs ml-1"
-                                >
-                                  P&L: {crypto.gainLossPercentage >= 0 ? '+' : ''}{crypto.gainLossPercentage.toFixed(1)}%
-                                </Badge>
-                              )}
+                              <div className="flex flex-col md:flex-row gap-1">
+                                {crypto.priceChangePercentage24h !== undefined && (
+                                  <Badge 
+                                    variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    {crypto.priceChangePercentage24h >= 0 ? '+' : ''}
+                                    {crypto.priceChangePercentage24h.toFixed(2)}%
+                                  </Badge>
+                                )}
+                                {crypto.isHolding && crypto.gainLossPercentage !== undefined && (
+                                  <Badge 
+                                    variant={crypto.gainLossPercentage >= 0 ? "default" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    P&L: {crypto.gainLossPercentage >= 0 ? '+' : ''}{crypto.gainLossPercentage.toFixed(1)}%
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <Button
                               onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
                               variant="ghost"
                               size="sm"
                               disabled={removeCryptoMutation.isPending}
+                              className="p-2"
                             >
-                              <Star className="h-4 w-4 fill-current" />
+                              <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
                             </Button>
                           </div>
                         </div>
                       ))}
                       {combinedWatchlist.length > 6 && (
                         <div className="text-center pt-4">
-                          <Button variant="outline" asChild>
+                          <Button variant="outline" asChild className="w-full sm:w-auto">
                             <a href="/crypto">
                               View All ({combinedWatchlist.length})
                             </a>
@@ -417,33 +421,33 @@ export default function Dashboard() {
           </div>
 
           {/* Quick Actions & Portfolio Summary */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Portfolio Holdings Summary */}
             {summary.totalHoldings > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Portfolio Summary</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg md:text-xl">Portfolio Summary</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
                     Overview of your cryptocurrency investments
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Total Holdings</span>
                       <span className="font-medium">{summary.totalHoldings}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Portfolio Value</span>
                       <span className="font-medium">${summary.portfolioValue.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">24h Change</span>
                       <span className={`font-medium ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">24h Change %</span>
                       <span className={`font-medium ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
@@ -460,7 +464,7 @@ export default function Dashboard() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button asChild className="w-full" variant="outline">
@@ -494,10 +498,10 @@ export default function Dashboard() {
             {(topPerformer || combinedWatchlist.length > 0) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>
+                  <CardTitle className="text-lg md:text-xl">
                     {topPerformer ? 'Top Performer Today' : 'Featured Crypto'}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm md:text-base">
                     {topPerformer ? 'Best performing asset in your portfolio' : 'From your tracked cryptocurrencies'}
                   </CardDescription>
                 </CardHeader>
@@ -507,14 +511,14 @@ export default function Dashboard() {
                       // Use Portfolio Service top performer (from holdings)
                       return (
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                            <span className="font-semibold">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="font-semibold text-sm md:text-base">
                               {topPerformer.cryptoSymbol.substring(0, 2).toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{topPerformer.cryptoSymbol.toUpperCase()}</p>
-                            <p className="text-sm text-muted-foreground">{topPerformer.cryptoName}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm md:text-base">{topPerformer.cryptoSymbol.toUpperCase()}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">{topPerformer.cryptoName}</p>
                             <Badge 
                               variant={topPerformer.gainLossPercentage >= 0 ? "default" : "destructive"}
                               className="mt-1"
@@ -530,19 +534,19 @@ export default function Dashboard() {
                       const crypto = combinedWatchlist[0];
                       return (
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                            <span className="font-semibold">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="font-semibold text-sm md:text-base">
                               {crypto.symbol?.substring(0, 2).toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{crypto.symbol?.toUpperCase()}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-sm md:text-base">{crypto.symbol?.toUpperCase()}</p>
                               {crypto.isHolding && (
                                 <Badge variant="default" className="text-xs">Holding</Badge>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">{crypto.name}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">{crypto.name}</p>
                             {crypto.priceChangePercentage24h !== undefined && (
                               <Badge 
                                 variant={crypto.priceChangePercentage24h >= 0 ? "default" : "destructive"}
@@ -566,18 +570,18 @@ export default function Dashboard() {
 
         {/* Price Chart for Top Crypto */}
         {(topPerformer || combinedWatchlist.length > 0) && (
-          <div className="mt-8">
+          <div className="mt-6 md:mt-8">
             <Card>
               <CardHeader>
-                <CardTitle>Price Chart</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">Price Chart</CardTitle>
+                <CardDescription className="text-sm md:text-base">
                   {topPerformer 
                     ? `Detailed price analysis for ${topPerformer.cryptoName}`
                     : `Detailed price analysis for ${combinedWatchlist[0]?.name || 'selected cryptocurrency'}`
                   }
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-6">
                 <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
                   {topPerformer ? (
                     <PriceChart 

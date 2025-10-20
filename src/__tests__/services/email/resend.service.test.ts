@@ -1,13 +1,24 @@
-/**
- * Tests for ResendEmailService
- * These tests verify the email service structure and validation
- */
+import { jest } from '@jest/globals';
 
-describe('ResendEmailService Structure', () => {
+// Use manual mock
+jest.mock('resend');
+
+// Import service after mocking
+import { ResendEmailService, resendEmailService } from '@/services/email/resend.service';
+import { mockEmailsSend } from '../../__mocks__/resend';
+
+describe('ResendEmailService', () => {
+  let service: ResendEmailService;
+
   beforeEach(() => {
+    service = new ResendEmailService();
+    // Reset the resend instance to ensure fresh mock setup
+    (service as any).resend = null;
+    
     process.env.RESEND_API_KEY = 'test-api-key';
     process.env.NEXTAUTH_URL = 'http://localhost:3000';
     process.env.EMAIL_FROM = 'test@cryptosentiment.app';
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -16,223 +27,260 @@ describe('ResendEmailService Structure', () => {
     delete process.env.EMAIL_FROM;
   });
 
-  it('should have all required email service methods', async () => {
-    // Import the service (will be mocked in actual use)
-    const { ResendEmailService } = await import('@/services/email/resend.service');
-    
-    const servicePrototype = ResendEmailService.prototype;
-    
-    expect(servicePrototype).toHaveProperty('sendVerificationEmail');
-    expect(servicePrototype).toHaveProperty('sendWelcomeEmail');
-    expect(servicePrototype).toHaveProperty('sendMagicLinkEmail');
-    expect(servicePrototype).toHaveProperty('sendPasswordResetEmail');
-    expect(servicePrototype).toHaveProperty('sendAlertEmail');
-    expect(servicePrototype).toHaveProperty('sendAlertTriggeredEmail');
-    expect(servicePrototype).toHaveProperty('sendNotificationEmail');
-  });
+  describe('Basic functionality tests', () => {
+    it('should create ResendEmailService instance', () => {
+      expect(service).toBeInstanceOf(ResendEmailService);
+    });
 
-  it('should validate email templates contain required elements', () => {
-    const requiredVerificationElements = [
-      'Verify Email Address',
-      'CryptoSentiment',
-      'verify?token=',
-    ];
+    it('should have access to environment variables', () => {
+      expect(process.env.RESEND_API_KEY).toBe('test-api-key');
+      expect(process.env.NEXTAUTH_URL).toBe('http://localhost:3000');
+      expect(process.env.EMAIL_FROM).toBe('test@cryptosentiment.app');
+    });
 
-    const requiredWelcomeElements = [
-      'Welcome to CryptoSentiment',
-      'Start Tracking Crypto',
-      '🚀',
-    ];
+    it('should throw error when RESEND_API_KEY is missing', () => {
+      delete process.env.RESEND_API_KEY;
+      const newService = new ResendEmailService();
+      
+      expect(() => (newService as any).getResend()).toThrow('RESEND_API_KEY environment variable is required');
+    });
 
-    const requiredMagicLinkElements = [
-      'Sign in to CryptoSentiment',
-      'Sign In Now',
-      'magic?token=',
-    ];
+    it('should create Resend instance when API key is present', () => {
+      const resendInstance = (service as any).getResend();
+      
+      expect(resendInstance).toBeDefined();
+      expect(resendInstance.emails).toBeDefined();
+      expect(resendInstance.emails.send).toBeDefined();
+    });
 
-    // These would be tested against actual template generation
-    expect(requiredVerificationElements).toBeDefined();
-    expect(requiredWelcomeElements).toBeDefined();
-    expect(requiredMagicLinkElements).toBeDefined();
-  });
+    it('should send verification email successfully', async () => {
+      // Mock successful email send
+      mockEmailsSend.mockResolvedValueOnce({ id: 'test-id' });
+      
+      console.log('API Key:', process.env.RESEND_API_KEY);
+      console.log('Mock setup:', mockEmailsSend.getMockName());
+      
+      try {
+        await service.sendVerificationEmail('test@example.com', 'token123');
+        console.log('Email sent successfully');
+      } catch (error) {
+        console.log('Error sending email:', error);
+      }
+      
+      console.log('Mock calls:', mockEmailsSend.mock.calls.length);
+      
+      expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@cryptosentiment.app',
+          to: 'test@example.com',
+          subject: 'Verify your CryptoSentiment account',
+          html: expect.stringContaining('token123'),
+        })
+      );
+    });
 
-  it('should validate email configuration requirements', () => {
-    const requiredEnvVars = [
-      'RESEND_API_KEY',
-      'NEXTAUTH_URL',
-      'EMAIL_FROM',
-    ];
+    it('should handle welcome email errors gracefully', async () => {
+      // Mock email send to reject with an error
+      mockEmailsSend.mockRejectedValueOnce(new Error('Network error'));
+      
+      // Welcome emails should not throw errors (they're non-critical)
+      await expect(service.sendWelcomeEmail('test@example.com')).resolves.not.toThrow();
+    });
 
-    requiredEnvVars.forEach(envVar => {
-      expect(process.env[envVar]).toBeDefined();
+    it('should throw error for alert email failures', async () => {
+      // Mock email send to reject with an error
+      mockEmailsSend.mockRejectedValueOnce(new Error('Network error'));
+      
+      // Alert emails should throw errors (they're critical)
+      await expect(service.sendAlertEmail('test@example.com', 'BTC', 'Alert', 50000, 'Details'))
+        .rejects.toThrow('Failed to send alert email');
     });
   });
 
-  it('should generate proper email subjects for different types', () => {
-    const expectedSubjects = {
-      verification: 'Verify your CryptoSentiment account',
-      welcome: 'Welcome to CryptoSentiment! 🚀',
-      magicLink: 'Sign in to CryptoSentiment',
-      passwordReset: 'Reset your CryptoSentiment password',
-      alert: (symbol: string, type: string) => `🚨 CryptoSentiment Alert: ${symbol} ${type}`,
-    };
+  describe('Email sending functionality', () => {
+    it('should send password reset email', async () => {
+      // Mock successful email send
+      mockEmailsSend.mockResolvedValueOnce({ id: 'reset-id' });
+      
+      await service.sendPasswordResetEmail('user@example.com', 'reset-token');
+      
+      expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@cryptosentiment.app',
+          to: 'user@example.com',
+          subject: 'Reset your CryptoSentiment password',
+          html: expect.stringContaining('reset-token'),
+        })
+      );
+    });
 
-    expect(expectedSubjects.verification).toContain('Verify');
-    expect(expectedSubjects.welcome).toContain('Welcome');
-    expect(expectedSubjects.magicLink).toContain('Sign in');
-    expect(expectedSubjects.passwordReset).toContain('Reset');
-    expect(expectedSubjects.alert('BTC', 'Price Alert')).toContain('🚨 CryptoSentiment Alert: BTC Price Alert');
-  });
+    it('should send magic link email', async () => {
+      // Mock successful email send
+      mockEmailsSend.mockResolvedValueOnce({ id: 'magic-id' });
+      
+      await service.sendMagicLinkEmail('user@example.com', 'http://localhost:3000/auth/magic?token=abc');
+      
+      expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@cryptosentiment.app',
+          to: 'user@example.com',
+          subject: 'Sign in to CryptoSentiment',
+          html: expect.stringContaining('http://localhost:3000/auth/magic?token=abc'),
+        })
+      );
+    });
 
-  it('should use proper email sender addresses', () => {
-    const expectedSenders = {
-      verification: 'CryptoSentiment <noreply@cryptosentiment.app>',
-      welcome: 'CryptoSentiment <welcome@cryptosentiment.app>',
-      magicLink: 'CryptoSentiment <signin@cryptosentiment.app>',
-      passwordReset: 'CryptoSentiment <noreply@cryptosentiment.app>',
-      alert: 'CryptoSentiment <alerts@cryptosentiment.app>',
-    };
-
-    Object.values(expectedSenders).forEach(sender => {
-      expect(sender).toContain('CryptoSentiment');
-      expect(sender).toContain('@cryptosentiment.app>');
+    it('should send notification email', async () => {
+      // Mock successful email send
+      mockEmailsSend.mockResolvedValueOnce({ id: 'notification-id' });
+      
+      await service.sendNotificationEmail('user@example.com', 'Alice', 'System Update', 'The system will be updated tonight');
+      
+      expect(mockEmailsSend).toHaveBeenCalledTimes(1);
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@cryptosentiment.app',
+          to: 'user@example.com',
+          subject: 'CryptoSentiment: System Update',
+          html: expect.stringContaining('Alice'),
+        })
+      );
     });
   });
 
-  it('should handle different error scenarios', () => {
-    const errorScenarios = [
-      'Missing API key',
-      'Network timeout',
-      'Invalid email address',
-      'Rate limit exceeded',
-      'Service unavailable',
-    ];
+  describe('Error handling', () => {
+    it('should handle verification email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('API Error'));
+      
+      await expect(service.sendVerificationEmail('user@example.com', 'token'))
+        .rejects.toThrow('Failed to send verification email');
+    });
 
-    errorScenarios.forEach(scenario => {
-      expect(scenario).toBeDefined();
+    it('should handle password reset email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('Network Error'));
+      
+      await expect(service.sendPasswordResetEmail('user@example.com', 'token'))
+        .rejects.toThrow('Failed to send password reset email');
+    });
+
+    it('should handle magic link email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('Service Error'));
+      
+      await expect(service.sendMagicLinkEmail('user@example.com', 'http://test.com'))
+        .rejects.toThrow('Failed to send magic link email');
+    });
+
+    it('should not throw on welcome email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('Service Error'));
+      
+      await expect(service.sendWelcomeEmail('user@example.com')).resolves.not.toThrow();
+    });
+
+    it('should handle alert email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('Alert Error'));
+      
+      await expect(service.sendAlertEmail('user@example.com', 'BTC', 'Alert', 50000, 'Details'))
+        .rejects.toThrow('Failed to send alert email');
+    });
+
+    it('should handle notification email errors', async () => {
+      mockEmailsSend.mockRejectedValueOnce(new Error('Notification Error'));
+      
+      await expect(service.sendNotificationEmail('user@example.com', 'John', 'Title', 'Content'))
+        .rejects.toThrow('Failed to send notification email');
     });
   });
 
   describe('Template validation', () => {
-    it('should include required HTML structure elements', () => {
-      const requiredHTMLElements = [
-        '<!DOCTYPE html>',
-        '<html>',
-        '<head>',
-        '<meta charset="utf-8">',
-        '<meta name="viewport"',
-        '<body',
-        '</body>',
-        '</html>',
-      ];
-
-      requiredHTMLElements.forEach(element => {
-        expect(element).toBeDefined();
-      });
+    it('should generate verification email template', () => {
+      const template = (service as any).getVerificationEmailTemplate('http://test.com/verify');
+      
+      expect(template).toContain('CryptoSentiment');
+      expect(template).toContain('Verify Your Email Address');
+      expect(template).toContain('http://test.com/verify');
     });
 
-    it('should include responsive design meta tags', () => {
-      const responsiveTags = [
-        'viewport',
-        'width=device-width',
-        'initial-scale=1.0',
-      ];
-
-      responsiveTags.forEach(tag => {
-        expect(tag).toBeDefined();
-      });
+    it('should generate welcome email template', () => {
+      const template = (service as any).getWelcomeEmailTemplate('Alice');
+      
+      expect(template).toContain('CryptoSentiment');
+      expect(template).toContain('Welcome to');
+      expect(template).toContain('Alice');
     });
 
-    it('should include brand colors and styling', () => {
-      const brandElements = [
-        'CryptoSentiment',
-        'linear-gradient',
-        '#667eea',
-        '#764ba2',
-      ];
+    it('should generate alert email template', () => {
+      const template = (service as any).getAlertEmailTemplate('BTC', 'Price Alert', 50000, 'Price reached $50,000');
+      
+      expect(template).toContain('CryptoSentiment');
+      expect(template).toContain('BTC');
+      expect(template).toContain('Price Alert');
+      expect(template).toContain('$50,000');
+    });
 
-      brandElements.forEach(element => {
-        expect(element).toBeDefined();
-      });
+    it('should include responsive design elements', () => {
+      const template = (service as any).getVerificationEmailTemplate('http://test.com');
+      
+      expect(template).toContain('max-width: 600px');
+      expect(template).toContain('viewport');
+    });
+
+    it('should include brand colors', () => {
+      const html = (service as any).getWelcomeEmailTemplate('Test User');
+      expect(html).toContain('linear-gradient(135deg, #667eea 0%, #764ba2 100%)');
     });
   });
 
-  describe('Security considerations', () => {
-    it('should validate token expiration times', () => {
-      const expectedExpirationTimes = {
-        verification: 24 * 60 * 60 * 1000, // 24 hours
-        magicLink: 10 * 60 * 1000,         // 10 minutes
-        passwordReset: 60 * 60 * 1000,     // 1 hour
-      };
-
-      Object.entries(expectedExpirationTimes).forEach(([, time]) => {
-        expect(time).toBeGreaterThan(0);
-        expect(time).toBeLessThanOrEqual(24 * 60 * 60 * 1000); // Max 24 hours
-      });
+  describe('Default sender addresses', () => {
+    beforeEach(() => {
+      delete process.env.EMAIL_FROM;
     });
 
-    it('should use secure URL patterns', () => {
-      const secureUrlPatterns = [
-        '/auth/verify?token=',
-        '/auth/magic?token=',
-        '/auth/reset-password?token=',
-      ];
+    it('should use default verification sender when EMAIL_FROM not set', async () => {
+      mockEmailsSend.mockResolvedValueOnce({ id: 'test-id' });
+      
+      await service.sendVerificationEmail('user@example.com', 'token');
+      
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'CryptoSentiment <noreply@cryptosentiment.app>',
+          to: 'user@example.com',
+        })
+      );
+    });
 
-      secureUrlPatterns.forEach(pattern => {
-        expect(pattern).toContain('token=');
-        expect(pattern).toMatch(/^\/auth\//);
-            });
+    it('should use default welcome sender when EMAIL_FROM not set', async () => {
+      mockEmailsSend.mockResolvedValueOnce({ id: 'test-id' });
+      
+      await service.sendWelcomeEmail('user@example.com');
+      
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'CryptoSentiment <welcome@cryptosentiment.app>',
+          to: 'user@example.com',
+        })
+      );
+    });
+
+    it('should use default alert sender when EMAIL_FROM not set', async () => {
+      mockEmailsSend.mockResolvedValueOnce({ id: 'test-id' });
+      
+      await service.sendAlertEmail('user@example.com', 'BTC', 'Alert', 50000, 'Details');
+      
+      expect(mockEmailsSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'CryptoSentiment <alerts@cryptosentiment.app>',
+          to: 'user@example.com',
+        })
+      );
     });
   });
 
-  describe('Alert email validation', () => {
-    it('should validate alert triggered email structure', () => {
-      const alertContext = {
-        cryptoName: 'Bitcoin',
-        cryptoSymbol: 'BTC',
-        alertType: 'PRICE_CHANGE',
-        alertDetails: {
-          title: 'Bitcoin Price Alert',
-          message: 'Bitcoin price has increased by 10%',
-          timestamp: new Date(),
-          triggerCount: 5,
-        },
-      };
-
-      // Validate required properties
-      expect(alertContext.cryptoName).toBeDefined();
-      expect(alertContext.cryptoSymbol).toBeDefined();
-      expect(alertContext.alertType).toBeDefined();
-      expect(alertContext.alertDetails.title).toBeDefined();
-      expect(alertContext.alertDetails.message).toBeDefined();
-      expect(alertContext.alertDetails.timestamp).toBeInstanceOf(Date);
-      expect(alertContext.alertDetails.triggerCount).toBeGreaterThan(0);
-    });
-
-    it('should validate notification email parameters', () => {
-      const notificationParams = {
-        email: 'user@example.com',
-        userName: 'John Doe',
-        title: 'System Update',
-        content: 'The system will be updated tonight',
-      };
-
-      expect(notificationParams.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
-      expect(notificationParams.title).toBeTruthy();
-      expect(notificationParams.content).toBeTruthy();
-    });
-
-    it('should handle optional userName in alert emails', () => {
-      const testCases = [
-        { userName: 'John Doe', expected: true },
-        { userName: undefined, expected: false },
-        { userName: '', expected: false },
-      ];
-
-      testCases.forEach(({ userName, expected }) => {
-        const hasValidUserName = Boolean(userName && userName.trim());
-        expect(hasValidUserName).toBe(expected);
-      });
+  describe('Singleton instance', () => {
+    it('should export singleton instance', () => {
+      expect(resendEmailService).toBeInstanceOf(ResendEmailService);
     });
   });
 });
