@@ -1,12 +1,25 @@
 "use client";
 
-import { AnalyticsDashboard } from '@/components/analytics/AnalyticsDashboard';
+import { AdvancedAnalyticsDashboard } from '@/components/analytics/enhanced/AdvancedAnalyticsDashboard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 export default function AnalyticsPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // Redirect to login if not authenticated
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (!session) {
+    redirect('/auth/signin');
+  }
 
   return (
     <div className="container mx-auto py-6 px-4 space-y-6">
@@ -28,8 +41,10 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Analytics Dashboard */}
-      <AnalyticsDashboard />
+      {/* Enhanced Analytics Dashboard */}
+      <ErrorBoundary>
+        <AdvancedAnalyticsDashboard />
+      </ErrorBoundary>
     </div>
   );
 }
