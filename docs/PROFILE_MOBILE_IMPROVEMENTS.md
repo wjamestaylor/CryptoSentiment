@@ -91,9 +91,9 @@ The profile page did not display well on mobile devices, with layout issues incl
 #### Trigger Buttons
 - **Before**: `w-auto`
 - **After**: `w-full sm:w-auto`
-- **Impact**: Configuration buttons are full-width and easy to tap on mobile
+- **Impact**: Notification preference buttons are full-width and easy to tap on mobile
 
-**Note**: Alert settings have been moved from the profile page to the dedicated alerts page for better organization. Only notification preferences remain on the profile page.
+**Note**: Alert settings have been moved from the profile page to the dedicated alerts page for better organization. Only notification preferences (email notifications) remain on the profile page.
 
 ## Responsive Breakpoints
 

@@ -51,9 +51,10 @@ Alert settings have been moved from the Profile page to the dedicated Alerts pag
 ## Technical Details
 
 ### Component Location
-- `AlertSettings` component remains at: `src/components/profile/AlertSettings.tsx`
+- `AlertSettings` component location: `src/components/profile/AlertSettings.tsx`
 - No changes to the component implementation
 - Component is now imported in the alerts page instead of profile page
+- **Note**: The component could be relocated to `src/components/alerts/` in a future refactoring for better organization, but this was kept minimal for this change
 
 ### UI/UX Considerations
 - Settings icon added to clearly identify the alert settings section
