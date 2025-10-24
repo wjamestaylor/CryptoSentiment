@@ -575,27 +575,17 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-lg md:text-xl">Price Chart</CardTitle>
                 <CardDescription className="text-sm md:text-base">
-                  {topPerformer 
-                    ? `Detailed price analysis for ${topPerformer.cryptoName}`
-                    : `Detailed price analysis for ${combinedWatchlist[0]?.name || 'selected cryptocurrency'}`
-                  }
+                  Switch between watched and held coins to view detailed price analysis
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-2 md:p-6">
                 <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-                  {topPerformer ? (
-                    <PriceChart 
-                      cryptoId={topPerformer.cryptoSymbol.toLowerCase()} // Use symbol as fallback since TopPerformer doesn't have coinGeckoId
-                      cryptoName={topPerformer.cryptoName}
-                      cryptoSymbol={topPerformer.cryptoSymbol}
-                    />
-                  ) : combinedWatchlist.length > 0 ? (
-                    <PriceChart 
-                      cryptoId={combinedWatchlist[0].coinGeckoId || combinedWatchlist[0].id}
-                      cryptoName={combinedWatchlist[0].name}
-                      cryptoSymbol={combinedWatchlist[0].symbol}
-                    />
-                  ) : null}
+                  <PriceChart 
+                    cryptoId={topPerformer?.coinGeckoId || combinedWatchlist[0]?.coinGeckoId || combinedWatchlist[0]?.id || 'bitcoin'}
+                    cryptoName={topPerformer?.cryptoName || combinedWatchlist[0]?.name}
+                    cryptoSymbol={topPerformer?.cryptoSymbol || combinedWatchlist[0]?.symbol}
+                    enableMultiView={true}
+                  />
                 </ErrorBoundary>
               </CardContent>
             </Card>

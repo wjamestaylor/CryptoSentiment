@@ -42,6 +42,7 @@ export interface ChangeMetrics {
 export interface TopPerformer {
   cryptoSymbol: string;
   cryptoName: string;
+  coinGeckoId: string | null;
   currentPrice: number;
   holdingAmount: number;
   currentValue: number;

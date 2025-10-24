@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, BarChart3, RefreshCw } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingUp, TrendingDown, BarChart3, RefreshCw, Eye, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -16,6 +17,7 @@ interface PriceChartProps {
   cryptoName?: string;
   cryptoSymbol?: string;
   className?: string;
+  enableMultiView?: boolean; // Enable watched/held switching
 }
 
 interface PricePoint {
@@ -29,20 +31,41 @@ export function PriceChart({
   cryptoId, 
   cryptoName, 
   cryptoSymbol, 
-  className 
+  className,
+  enableMultiView = false,
 }: PriceChartProps) {
   const [timeframe, setTimeframe] = useState<number>(30);
+  const [viewMode, setViewMode] = useState<'watched' | 'held'>('watched');
+  const [selectedCryptoId, setSelectedCryptoId] = useState<string>(cryptoId);
 
-  // Fetch price history
+  // Fetch watched coins (only when multi-view is enabled)
+  const { 
+    data: watchedCoins, 
+    isLoading: isLoadingWatched 
+  } = api.crypto.getWatchedCoins.useQuery(undefined, {
+    enabled: enableMultiView,
+  });
+
+  // Fetch held coins (only when multi-view is enabled)
+  const { 
+    data: heldCoins, 
+    isLoading: isLoadingHeld 
+  } = api.crypto.getHeldCoins.useQuery(undefined, {
+    enabled: enableMultiView,
+  });
+
+  // Fetch price history for selected crypto
   const { 
     data: priceData, 
-    isLoading, 
+    isLoading: isLoadingPrice, 
     error,
     refetch
   } = api.analytics.getPriceHistory.useQuery({
-    cryptoId,
+    cryptoId: selectedCryptoId,
     days: timeframe,
   });
+
+  const isLoading = isLoadingPrice || (enableMultiView && (isLoadingWatched || isLoadingHeld));
 
   // Calculate price statistics
   const priceStats = useMemo(() => {
@@ -153,7 +176,7 @@ export function PriceChart({
                 size="sm"
                 disabled={isLoading}
               >
-                {isLoading ? (
+                {isLoadingPrice ? (
                   <LoadingSpinner className="h-4 w-4" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
@@ -164,6 +187,50 @@ export function PriceChart({
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* Multi-View Tabs (if enabled) */}
+          {enableMultiView && (watchedCoins?.data || heldCoins?.data) && (
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'watched' | 'held')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="watched" className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Watched ({watchedCoins?.data?.length || 0})
+                </TabsTrigger>
+                <TabsTrigger value="held" className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  Held ({heldCoins?.data?.length || 0})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="watched" className="mt-4">
+                {watchedCoins?.data && watchedCoins.data.length > 0 ? (
+                  <CoinSelector
+                    coins={watchedCoins.data}
+                    selectedCoinId={selectedCryptoId}
+                    onSelectCoin={setSelectedCryptoId}
+                  />
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    No watched coins yet. Add coins to your watchlist to see them here.
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="held" className="mt-4">
+                {heldCoins?.data && heldCoins.data.length > 0 ? (
+                  <CoinSelector
+                    coins={heldCoins.data}
+                    selectedCoinId={selectedCryptoId}
+                    onSelectCoin={setSelectedCryptoId}
+                  />
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    No held coins yet. Add holdings to your portfolio to see them here.
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+
           {/* Price Statistics */}
           {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -424,6 +491,66 @@ function SimpleVolumeChart({
           );
         })}
       </svg>
+    </div>
+  );
+}
+
+// Coin Selector Component for multi-view
+interface CoinData {
+  coinGeckoId: string;
+  symbol: string;
+  name: string;
+  currentPrice?: number;
+  priceChangePercentage24h?: number;
+}
+
+function CoinSelector({
+  coins,
+  selectedCoinId,
+  onSelectCoin,
+}: {
+  coins: CoinData[];
+  selectedCoinId: string;
+  onSelectCoin: (coinId: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+      {coins.map((coin) => {
+        const isSelected = coin.coinGeckoId === selectedCoinId;
+        const priceChange = coin.priceChangePercentage24h || 0;
+        
+        return (
+          <button
+            key={coin.coinGeckoId}
+            onClick={() => onSelectCoin(coin.coinGeckoId)}
+            className={`
+              p-3 rounded-lg border transition-all text-left
+              ${isSelected 
+                ? 'border-primary bg-primary/10 shadow-sm' 
+                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              }
+            `}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-semibold text-sm">{coin.symbol.toUpperCase()}</span>
+              {coin.priceChangePercentage24h !== undefined && (
+                <Badge 
+                  variant={priceChange >= 0 ? "default" : "destructive"}
+                  className="text-xs px-1 py-0"
+                >
+                  {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(1)}%
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground truncate">{coin.name}</div>
+            {coin.currentPrice && (
+              <div className="text-xs font-medium mt-1">
+                ${coin.currentPrice.toLocaleString()}
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
