@@ -102,10 +102,11 @@ All changes use Tailwind's `sm:` breakpoint (640px) as the cutoff between mobile
 ## Testing
 
 ### Test Coverage
-- **35 tests** total covering mobile responsiveness
-- **12 tests** for profile page mobile layout
-- **13 tests** for BotConnection component mobile layout
-- **10 tests** from existing test suites (unchanged)
+- **35 tests** total in profile test suite (including pre-existing tests)
+- **25 new tests** specifically for mobile responsiveness:
+  - **12 tests** for profile page mobile layout
+  - **13 tests** for BotConnection component mobile layout
+- **10 tests** from existing test suites (pre-existing, unchanged)
 
 ### Test Categories
 1. **Responsive Layout Classes**: Verify Tailwind classes are applied correctly
