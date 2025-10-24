@@ -32,6 +32,39 @@ describe('getUserStats - Held Coins as Watched', () => {
     prisma: typeof mockPrisma;
   };
 
+  // Helper function to simulate getUserStats query logic
+  const simulateGetUserStats = async (userId: string) => {
+    const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
+      mockCtx.prisma.cryptoTracking.count({
+        where: { userId },
+      }),
+      mockCtx.prisma.alert.count({
+        where: { 
+          userId,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    let followedCoinsCount = trackedCoinsCount;
+    if (trackedCoinsCount === 0) {
+      const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
+        mockCtx.prisma.followedCoin.count({
+          where: { userId },
+        }),
+        mockCtx.prisma.portfolioHolding.count({
+          where: { userId },
+        }),
+      ]);
+      followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
+    }
+
+    return {
+      followedCoins: followedCoinsCount,
+      activeAlerts: activeAlertsCount,
+    };
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -47,38 +80,8 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.cryptoTracking.count as jest.Mock).mockResolvedValue(5);
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(2);
 
-      // Simulate the getUserStats query logic
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       expect(result.followedCoins).toBe(5);
       expect(result.activeAlerts).toBe(2);
@@ -100,36 +103,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(0);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       // Critical: Held coins are counted as watched coins
       expect(result.followedCoins).toBe(3);
@@ -144,36 +118,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.portfolioHolding.count as jest.Mock).mockResolvedValue(0);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       expect(result.followedCoins).toBe(0);
       expect(result.activeAlerts).toBe(0);
@@ -189,36 +134,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(1);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       // Should sum both old models: 3 followed + 2 held = 5 total
       expect(result.followedCoins).toBe(5);
@@ -241,36 +157,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(0);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       // Critical: Portfolio holdings are counted as watched coins
       expect(result.followedCoins).toBe(4);
@@ -284,36 +171,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(0);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       expect(result.followedCoins).toBe(6);
     });
@@ -326,36 +184,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(0);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       // Should show 1 followed coin (the held BTC), not 0
       expect(result.followedCoins).toBe(1);
@@ -368,36 +197,7 @@ describe('getUserStats - Held Coins as Watched', () => {
       (mockPrisma.alert.count as jest.Mock).mockResolvedValue(5);
 
       const userId = mockCtx.session.user.id;
-      
-      const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
-        mockCtx.prisma.cryptoTracking.count({
-          where: { userId },
-        }),
-        mockCtx.prisma.alert.count({
-          where: { 
-            userId,
-            isActive: true,
-          },
-        }),
-      ]);
-
-      let followedCoinsCount = trackedCoinsCount;
-      if (trackedCoinsCount === 0) {
-        const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
-          mockCtx.prisma.followedCoin.count({
-            where: { userId },
-          }),
-          mockCtx.prisma.portfolioHolding.count({
-            where: { userId },
-          }),
-        ]);
-        followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
-      }
-
-      const result = {
-        followedCoins: followedCoinsCount,
-        activeAlerts: activeAlertsCount,
-      };
+      const result = await simulateGetUserStats(userId);
 
       expect(result.followedCoins).toBe(15);
       expect(result.activeAlerts).toBe(5);
