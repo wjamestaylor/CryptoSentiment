@@ -819,22 +819,28 @@ export const cryptoRouter = createTRPCRouter({
           throw new Error('Crypto tracking entry not found or access denied');
         }
 
+        // Prevent unfollowing held coins
+        if (tracking.holdingAmount !== null && tracking.holdingAmount > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Cannot unfollow ${tracking.crypto.symbol} because you hold it in your portfolio. Please sell your holdings first before unfollowing.`,
+          });
+        }
+
         // Delete tracking entry
         await ctx.prisma.cryptoTracking.delete({
           where: { id: input.id },
         });
 
-        const hadHoldings = tracking.holdingAmount !== null;
-        const message = hadHoldings 
-          ? `Removed ${tracking.crypto.symbol} from portfolio and watchlist`
-          : `Removed ${tracking.crypto.symbol} from watchlist`;
-
         return {
           success: true,
-          message,
-          data: { crypto: tracking.crypto, hadHoldings },
+          message: `Removed ${tracking.crypto.symbol} from watchlist`,
+          data: { crypto: tracking.crypto, hadHoldings: false },
         };
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         throw new Error(`Failed to remove crypto tracking: ${error}`);
       }
     }),

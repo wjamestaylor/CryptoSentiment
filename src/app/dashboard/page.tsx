@@ -391,15 +391,18 @@ export default function Dashboard() {
                                 )}
                               </div>
                             </div>
-                            <Button
-                              onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
-                              variant="ghost"
-                              size="sm"
-                              disabled={removeCryptoMutation.isPending}
-                              className="p-2"
-                            >
-                              <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
-                            </Button>
+                            {!crypto.isHolding && (
+                              <Button
+                                onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={removeCryptoMutation.isPending}
+                                className="p-2"
+                                title="Remove from watchlist"
+                              >
+                                <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
