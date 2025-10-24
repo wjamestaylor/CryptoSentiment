@@ -60,6 +60,7 @@ export function SubscriptionStatus() {
 
   const sub = subscription.data;
   const tierLimits = limits?.success ? limits.data?.limits : null;
+  const usageData = limits?.success ? limits.data?.usage : null;
 
   // Get tier styling
   const getTierStyle = (tier: string) => {
@@ -126,11 +127,11 @@ export function SubscriptionStatus() {
               <div className="flex justify-between text-sm">
                 <span>AI Analyses</span>
                 <span className="text-muted-foreground">
-                  0 / {tierLimits.apiCalls === -1 ? '∞' : tierLimits.apiCalls}
+                  {usageData?.aiAnalysisUsed ?? 0} / {tierLimits.aiAnalysisPerMonth === -1 ? '∞' : tierLimits.aiAnalysisPerMonth}
                 </span>
               </div>
-              {tierLimits.apiCalls !== -1 && (
-                <Progress value={0} className="h-2" />
+              {tierLimits.aiAnalysisPerMonth !== -1 && (
+                <Progress value={usageData?.aiAnalysisUsed && tierLimits.aiAnalysisPerMonth > 0 ? (usageData.aiAnalysisUsed / tierLimits.aiAnalysisPerMonth) * 100 : 0} className="h-2" />
               )}
             </div>
 
@@ -139,11 +140,11 @@ export function SubscriptionStatus() {
               <div className="flex justify-between text-sm">
                 <span>Watchlist</span>
                 <span className="text-muted-foreground">
-                  0 / {tierLimits.watchlist === -1 ? '∞' : tierLimits.watchlist}
+                  {usageData?.watchlistUsed ?? 0} / {tierLimits.watchlist === -1 ? '∞' : tierLimits.watchlist}
                 </span>
               </div>
               {tierLimits.watchlist !== -1 && (
-                <Progress value={0} className="h-2" />
+                <Progress value={usageData?.watchlistUsed && tierLimits.watchlist > 0 ? (usageData.watchlistUsed / tierLimits.watchlist) * 100 : 0} className="h-2" />
               )}
             </div>
 
@@ -152,11 +153,11 @@ export function SubscriptionStatus() {
               <div className="flex justify-between text-sm">
                 <span>Alerts</span>
                 <span className="text-muted-foreground">
-                  0 / {tierLimits.alerts === -1 ? '∞' : tierLimits.alerts}
+                  {usageData?.alertsUsed ?? 0} / {tierLimits.alerts === -1 ? '∞' : tierLimits.alerts}
                 </span>
               </div>
               {tierLimits.alerts !== -1 && (
-                <Progress value={0} className="h-2" />
+                <Progress value={usageData?.alertsUsed && tierLimits.alerts > 0 ? (usageData.alertsUsed / tierLimits.alerts) * 100 : 0} className="h-2" />
               )}
             </div>
           </div>
