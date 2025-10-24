@@ -210,9 +210,9 @@ describe('Held Coin Unfollow Restriction', () => {
     it('should not render unfollow button for held coins', () => {
       const coins = [
         { id: '1', symbol: 'BTC', isHolding: true, holdingAmount: 1.5 },
-        { id: '2', symbol: 'ETH', isHolding: false },
+        { id: '2', symbol: 'ETH', isHolding: false, holdingAmount: undefined },
         { id: '3', symbol: 'ADA', isHolding: true, holdingAmount: 1000 },
-        { id: '4', symbol: 'SOL', isHolding: false },
+        { id: '4', symbol: 'SOL', isHolding: false, holdingAmount: undefined },
       ];
 
       // Filter coins that should show unfollow button
