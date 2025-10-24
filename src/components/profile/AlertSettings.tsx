@@ -58,7 +58,7 @@ export function AlertSettings({ trigger }: AlertSettingsProps) {
   };
 
   const defaultTrigger = (
-    <Button variant="outline" size="sm">
+    <Button variant="outline" size="sm" className="w-full sm:w-auto">
       Settings
     </Button>
   );

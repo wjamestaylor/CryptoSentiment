@@ -36,9 +36,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <div className="container mx-auto py-6 px-4 sm:py-10 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Profile</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Profile</h1>
       </div>
 
       {/* User Information Card */}
@@ -50,14 +50,14 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-500">Email</label>
-              <p className="text-lg">{session.user?.email}</p>
+              <p className="text-base sm:text-lg break-words">{session.user?.email}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Name</label>
-              <p className="text-lg">{session.user?.name || 'Not set'}</p>
+              <p className="text-base sm:text-lg">{session.user?.name || 'Not set'}</p>
             </div>
           </div>
           
@@ -97,8 +97,8 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1">
                 <h4 className="font-medium">Email Notifications</h4>
                 <p className="text-sm text-gray-500">
                   Receive email alerts for price changes and sentiment updates
@@ -107,8 +107,8 @@ export default function ProfilePage() {
               <NotificationPreferences />
             </div>
             
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1">
                 <h4 className="font-medium">Alert Frequency</h4>
                 <p className="text-sm text-gray-500">
                   How often you want to receive notifications
@@ -121,16 +121,18 @@ export default function ProfilePage() {
       </Card>
 
       {/* Actions */}
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <Button
           onClick={() => router.push('/dashboard')}
           variant="default"
+          className="w-full sm:w-auto"
         >
           Back to Dashboard
         </Button>
         <Button
           onClick={() => router.push('/watchlist')}
           variant="outline"
+          className="w-full sm:w-auto"
         >
           View Watchlist
         </Button>

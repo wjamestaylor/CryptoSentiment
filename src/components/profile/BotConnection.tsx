@@ -185,11 +185,11 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
         <CardContent>
           <div className="space-y-6">
             {/* Discord Integration */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-4">
+              <div className="flex items-start sm:items-center space-x-3">
                 {getBotIcon('discord')}
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-medium">Discord Bot</h4>
                     {connectionStatus.discord.connected ? (
                       <Badge variant="secondary" className="bg-green-100 text-green-700">
@@ -203,20 +203,20 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mt-1">
                     Get alerts directly in Discord with rich embeds and slash commands
                   </p>
                   {connectionStatus.discord.connected && connectionStatus.discord.userId && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-400 mt-1 break-all">
                       User ID: {connectionStatus.discord.userId}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-row sm:flex-col gap-2 sm:space-y-0 flex-wrap sm:flex-nowrap sm:min-w-[140px]">
                 {connectionStatus.discord.connected ? (
                   <>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 w-full sm:w-auto">
                       <Switch
                         checked={connectionStatus.discord.notificationsEnabled}
                         onCheckedChange={(enabled) => handleToggleNotifications('discord', enabled)}
@@ -228,6 +228,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleTestConnection('discord')}
                       disabled={testConnectionMutation.isPending}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       <MessageSquare className="w-4 h-4 mr-1" />
                       Test
@@ -237,6 +238,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleUnlinkBot('discord')}
                       disabled={unlinkBotMutation.isPending}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       Disconnect
                     </Button>
@@ -248,13 +250,14 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleGenerateCode('discord')}
                       disabled={isGeneratingCode}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       Connect Discord
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs"
+                      className="text-xs flex-1 sm:flex-none sm:w-full"
                       onClick={() => {
                         if (typeof window !== 'undefined') {
                           window.open('https://discord.gg/cryptosentiment', '_blank');
@@ -270,11 +273,11 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
             </div>
 
             {/* Telegram Integration */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-4">
+              <div className="flex items-start sm:items-center space-x-3">
                 {getBotIcon('telegram')}
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-medium">Telegram Bot</h4>
                     {connectionStatus.telegram.connected ? (
                       <Badge variant="secondary" className="bg-green-100 text-green-700">
@@ -288,20 +291,20 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mt-1">
                     Receive instant notifications on Telegram with interactive commands
                   </p>
                   {connectionStatus.telegram.connected && connectionStatus.telegram.userId && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-400 mt-1 break-all">
                       User ID: {connectionStatus.telegram.userId}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex flex-col space-y-2">
+              <div className="flex flex-row sm:flex-col gap-2 sm:space-y-0 flex-wrap sm:flex-nowrap sm:min-w-[140px]">
                 {connectionStatus.telegram.connected ? (
                   <>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 w-full sm:w-auto">
                       <Switch
                         checked={connectionStatus.telegram.notificationsEnabled}
                         onCheckedChange={(enabled) => handleToggleNotifications('telegram', enabled)}
@@ -313,6 +316,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleTestConnection('telegram')}
                       disabled={testConnectionMutation.isPending}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       <MessageSquare className="w-4 h-4 mr-1" />
                       Test
@@ -322,6 +326,7 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleUnlinkBot('telegram')}
                       disabled={unlinkBotMutation.isPending}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       Disconnect
                     </Button>
@@ -333,13 +338,14 @@ export function BotConnection({ initialStatus }: BotConnectionProps) {
                       size="sm"
                       onClick={() => handleGenerateCode('telegram')}
                       disabled={isGeneratingCode}
+                      className="flex-1 sm:flex-none sm:w-full"
                     >
                       Connect Telegram
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs"
+                      className="text-xs flex-1 sm:flex-none sm:w-full"
                       onClick={() => {
                         if (typeof window !== 'undefined') {
                           window.open('https://t.me/CryptoSentimentBot', '_blank');
