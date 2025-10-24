@@ -233,8 +233,8 @@ describe('Settings Page - Mobile Responsiveness', () => {
     });
 
     it('should have responsive grid for account information', () => {
-      const { container } = render(<SettingsPage />);
-      const grids = container.querySelectorAll('.grid');
+      render(<SettingsPage />);
+      const grids = document.querySelectorAll('.grid');
       
       // Find the account info grid (first one with email/name)
       const accountInfoGrid = Array.from(grids).find(grid => 
@@ -258,7 +258,7 @@ describe('Settings Page - Mobile Responsiveness', () => {
     });
 
     it('should render action buttons container with responsive flex', () => {
-      const { container } = render(<SettingsPage />);
+      render(<SettingsPage />);
       
       // Find the actions container by looking for the parent div of both buttons
       const dashboardButton = screen.getByText('Back to Dashboard');
@@ -292,7 +292,7 @@ describe('Settings Page - Mobile Responsiveness', () => {
 
   describe('Preferences Section Responsiveness', () => {
     it('should have responsive layout for preferences items', () => {
-      const { container } = render(<SettingsPage />);
+      render(<SettingsPage />);
       
       // Find preferences section by looking for the parent of the notification button
       const notificationButton = screen.getByTestId('notification-preferences');
