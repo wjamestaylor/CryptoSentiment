@@ -35,8 +35,10 @@ export const authRouter = createTRPCRouter({
     const userId = ctx.session.user.id;
 
     // Get counts for user statistics
-    const [followedCoinsCount, activeAlertsCount] = await Promise.all([
-      ctx.prisma.followedCoin.count({
+    // Count ALL tracked coins (both watched-only and held coins)
+    // Held coins are treated as watched coins for the purpose of counts
+    const [trackedCoinsCount, activeAlertsCount] = await Promise.all([
+      ctx.prisma.cryptoTracking.count({
         where: { userId },
       }),
       ctx.prisma.alert.count({
@@ -46,6 +48,21 @@ export const authRouter = createTRPCRouter({
         },
       }),
     ]);
+
+    // Fallback to old model for backward compatibility during migration
+    let followedCoinsCount = trackedCoinsCount;
+    if (trackedCoinsCount === 0) {
+      const [oldFollowedCoins, oldPortfolioHoldings] = await Promise.all([
+        ctx.prisma.followedCoin.count({
+          where: { userId },
+        }),
+        ctx.prisma.portfolioHolding.count({
+          where: { userId },
+        }),
+      ]);
+      // Sum both: held coins count as watched coins
+      followedCoinsCount = oldFollowedCoins + oldPortfolioHoldings;
+    }
 
     return {
       followedCoins: followedCoinsCount,
