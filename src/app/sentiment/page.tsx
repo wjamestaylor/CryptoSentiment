@@ -173,11 +173,6 @@ function SentimentPageContent() {
               <CardTitle>Sentiment Analysis Results</CardTitle>
               <CardDescription>
                 AI analysis for {cryptocurrency}
-                {analysis.dataSource && (
-                  <span className="ml-2 px-2 py-1 rounded text-xs bg-green-100 text-green-700">
-                    🔴 LIVE DATA
-                  </span>
-                )}
               </CardDescription>
             </CardHeader>
             <CardContent>

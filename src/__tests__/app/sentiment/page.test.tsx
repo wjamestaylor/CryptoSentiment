@@ -361,10 +361,6 @@ describe('SentimentPage', () => {
       expect(screen.getByText(/ID: req-123/)).toBeInTheDocument(); // Request ID
     });
 
-    it('displays live data indicator', () => {
-      expect(screen.getByText('🔴 LIVE DATA')).toBeInTheDocument();
-    });
-
     it('displays sentiment factors with correct styling', () => {
       expect(screen.getByText('Key Factors')).toBeInTheDocument();
       
