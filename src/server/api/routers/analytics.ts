@@ -136,28 +136,64 @@ export const analyticsRouter = createTRPCRouter({
       try {
         const userId = ctx.session.user.id;
         
-        // Get followed coins count
-        const followedCoinsCount = await ctx.prisma.followedCoin.count({
+        // Get ALL tracked coins count (both watched and held)
+        // Held coins are treated as watched coins
+        const trackedCoinsCount = await ctx.prisma.cryptoTracking.count({
           where: { userId },
         });
 
-        // Get followed coins with basic stats
-        const followedCoins = await ctx.prisma.followedCoin.findMany({
+        // Get recently added tracked coins with basic stats
+        const trackedCoins = await ctx.prisma.cryptoTracking.findMany({
           where: { userId },
           include: { crypto: true },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { addedAt: 'desc' },
           take: 10, // Limit for performance
         });
+
+        // Fallback to old model for backward compatibility during migration
+        if (trackedCoinsCount === 0) {
+          const followedCoinsCount = await ctx.prisma.followedCoin.count({
+            where: { userId },
+          });
+
+          const followedCoins = await ctx.prisma.followedCoin.findMany({
+            where: { userId },
+            include: { crypto: true },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          });
+
+          const portfolioMetrics = await portfolioAnalyticsService.getPortfolioMetrics(userId);
+
+          const summary = {
+            totalFollowedCoins: followedCoinsCount,
+            recentlyAdded: followedCoins.slice(0, 5).map(coin => ({
+              symbol: coin.crypto.symbol,
+              name: coin.crypto.name,
+              addedAt: coin.createdAt.toISOString(),
+            })),
+            portfolioValue: portfolioMetrics.totalValue,
+            portfolioGainLoss: portfolioMetrics.totalGainLoss,
+            portfolioGainLossPercentage: portfolioMetrics.gainLossPercentage,
+            topPerformer: portfolioMetrics.topPerformer,
+            worstPerformer: portfolioMetrics.worstPerformer,
+          };
+          
+          return {
+            success: true,
+            data: summary,
+          };
+        }
 
         // Get portfolio metrics for quick summary
         const portfolioMetrics = await portfolioAnalyticsService.getPortfolioMetrics(userId);
 
         const summary = {
-          totalFollowedCoins: followedCoinsCount,
-          recentlyAdded: followedCoins.slice(0, 5).map(coin => ({
+          totalFollowedCoins: trackedCoinsCount, // This now includes both watched and held coins
+          recentlyAdded: trackedCoins.slice(0, 5).map(coin => ({
             symbol: coin.crypto.symbol,
             name: coin.crypto.name,
-            addedAt: coin.createdAt.toISOString(),
+            addedAt: coin.addedAt.toISOString(),
           })),
           portfolioValue: portfolioMetrics.totalValue,
           portfolioGainLoss: portfolioMetrics.totalGainLoss,

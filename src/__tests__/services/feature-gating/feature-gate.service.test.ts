@@ -15,6 +15,10 @@ jest.mock('@/lib/db/prisma', () => ({
       create: jest.fn(),
       deleteMany: jest.fn(),
     },
+    cryptoTracking: {
+      count: jest.fn(),
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -281,20 +285,129 @@ describe('FeatureGateService', () => {
       expect(result).toBe(mockUsageCheck);
     });
 
-    it('should check watchlist limit', async () => {
-      const mockUsageCheck = {
+    it('should check watchlist limit by counting CryptoTracking entries', async () => {
+      const userId = 'user-123';
+      const currentDate = new Date('2024-11-15T10:00:00Z');
+
+      jest.useFakeTimers();
+      jest.setSystemTime(currentDate);
+
+      // Mock subscription data
+      mockSubscriptionService.getUserSubscription.mockResolvedValue({
+        tier: 'FREE',
+        status: 'active',
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        trialEnd: null,
+      });
+
+      mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
+        alerts: 5,
+        watchlist: 10,
+        aiAnalysisPerMonth: 10,
+        botNotifications: 0,
+      });
+
+      // Mock 5 tracked coins (both watched and held)
+      (mockPrisma.cryptoTracking.count as jest.Mock).mockResolvedValue(5);
+
+      const result = await featureGateService.canAddToWatchlist(userId);
+
+      expect(result).toEqual({
         allowed: true,
         currentUsage: 5,
         limit: 10,
         remaining: 5,
-      };
+        resetDate: new Date('2024-12-01T00:00:00.000Z'),
+      });
 
-      (featureGateService.checkUsageLimit as jest.Mock).mockResolvedValue(mockUsageCheck);
+      expect(mockPrisma.cryptoTracking.count).toHaveBeenCalledWith({
+        where: { userId },
+      });
+
+      jest.useRealTimers();
+    });
+
+    it('should count held coins towards watchlist limit', async () => {
+      const userId = 'user-456';
+      const currentDate = new Date('2024-11-15T10:00:00Z');
+
+      jest.useFakeTimers();
+      jest.setSystemTime(currentDate);
+
+      // Mock subscription data (FREE tier with 10 watchlist limit)
+      mockSubscriptionService.getUserSubscription.mockResolvedValue({
+        tier: 'FREE',
+        status: 'active',
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        trialEnd: null,
+      });
+
+      mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
+        alerts: 5,
+        watchlist: 10,
+        aiAnalysisPerMonth: 10,
+        botNotifications: 0,
+      });
+
+      // Mock 10 tracked coins (mix of watched and held - all count the same)
+      (mockPrisma.cryptoTracking.count as jest.Mock).mockResolvedValue(10);
 
       const result = await featureGateService.canAddToWatchlist(userId);
 
-      expect(featureGateService.checkUsageLimit).toHaveBeenCalledWith(userId, UsageType.WATCHLIST_ADD);
-      expect(result).toBe(mockUsageCheck);
+      expect(result).toEqual({
+        allowed: false, // limit reached
+        currentUsage: 10,
+        limit: 10,
+        remaining: 0,
+        resetDate: new Date('2024-12-01T00:00:00.000Z'),
+      });
+
+      expect(mockPrisma.cryptoTracking.count).toHaveBeenCalledWith({
+        where: { userId },
+      });
+
+      jest.useRealTimers();
+    });
+
+    it('should allow unlimited tracking for BUSINESS tier', async () => {
+      const userId = 'user-business';
+      const currentDate = new Date('2024-11-15T10:00:00Z');
+
+      jest.useFakeTimers();
+      jest.setSystemTime(currentDate);
+
+      // Mock subscription data (BUSINESS tier with unlimited watchlist)
+      mockSubscriptionService.getUserSubscription.mockResolvedValue({
+        tier: 'BUSINESS',
+        status: 'active',
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        trialEnd: null,
+      });
+
+      mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
+        alerts: -1,
+        watchlist: -1, // unlimited
+        aiAnalysisPerMonth: 1000,
+        botNotifications: -1,
+      });
+
+      // Mock 100 tracked coins
+      (mockPrisma.cryptoTracking.count as jest.Mock).mockResolvedValue(100);
+
+      const result = await featureGateService.canAddToWatchlist(userId);
+
+      expect(result).toEqual({
+        allowed: true, // always allowed for unlimited
+        currentUsage: 100,
+        limit: -1,
+        remaining: -1,
+        resetDate: new Date('2024-12-01T00:00:00.000Z'),
+      });
+
+      jest.useRealTimers();
     });
   });
 

@@ -510,17 +510,6 @@ export const cryptoRouter = createTRPCRouter({
           }
         }
 
-        // Check usage limits for watchlist additions
-        if (input.trackingType === 'WATCH_ONLY') {
-          const usageCheck = await featureGateService.canAddToWatchlist(userId);
-          if (!usageCheck.allowed) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: `Watchlist limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to follow more cryptocurrencies.`,
-            });
-          }
-        }
-
         // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
         const coinGeckoId = normalizeCryptoIdentifier(input.cryptoSymbol);
         
@@ -554,6 +543,18 @@ export const cryptoRouter = createTRPCRouter({
             },
           },
         });
+
+        // Check usage limits for new tracking entries (both watch and holdings)
+        // Held coins count as watched coins for the limit
+        if (!existingTracking) {
+          const usageCheck = await featureGateService.canAddToWatchlist(userId);
+          if (!usageCheck.allowed) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: `Watchlist limit reached (${usageCheck.currentUsage}/${usageCheck.limit}). Upgrade your subscription to track more cryptocurrencies.`,
+            });
+          }
+        }
 
         let result;
         

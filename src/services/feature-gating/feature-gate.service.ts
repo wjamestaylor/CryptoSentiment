@@ -137,9 +137,46 @@ export class FeatureGateService {
 
   /**
    * Check if user can add to watchlist
+   * This counts ALL CryptoTracking entries (both watched and held) against the limit
    */
   async canAddToWatchlist(userId: string): Promise<UsageCheck> {
-    return this.checkUsageLimit(userId, UsageType.WATCHLIST_ADD);
+    try {
+      const subscription = await this.subscriptionService.getUserSubscription(userId);
+      const limits = this.subscriptionService.getSubscriptionLimits(subscription.tier);
+      const limit = limits.watchlist || 0;
+
+      // Count current tracked coins (both watched and held)
+      // Every coin in CryptoTracking counts as a watched coin
+      const currentUsage = await prisma.cryptoTracking.count({
+        where: { userId },
+      });
+
+      const remaining = limit === -1 ? -1 : Math.max(0, limit - currentUsage);
+      const allowed = limit === -1 || currentUsage < limit;
+
+      // Calculate reset date (not applicable for state-based limits, but included for consistency)
+      const resetDate = new Date();
+      resetDate.setUTCMonth(resetDate.getUTCMonth() + 1);
+      resetDate.setUTCDate(1);
+      resetDate.setUTCHours(0, 0, 0, 0);
+
+      return {
+        allowed,
+        currentUsage,
+        limit,
+        remaining,
+        resetDate,
+      };
+    } catch (error) {
+      console.error('Error checking watchlist limit:', error);
+      // Return conservative response on error
+      return {
+        allowed: false,
+        currentUsage: 0,
+        limit: 0,
+        remaining: 0,
+      };
+    }
   }
 
   /**
