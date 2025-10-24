@@ -69,10 +69,6 @@ jest.mock('@/components/ui/card', () => ({
 }));
 
 // Mock profile components
-jest.mock('@/components/profile/BotConnection', () => ({
-  BotConnection: () => <div data-testid="bot-connection">Discord Bot Connection</div>,
-}));
-
 jest.mock('@/components/subscription/SubscriptionStatus', () => ({
   SubscriptionStatus: () => <div data-testid="subscription-status">Subscription Status</div>,
 }));
@@ -162,25 +158,17 @@ describe('Profile Page', () => {
     });
   });
 
-  it('should render profile page with user statistics', () => {
+  it('should render profile page with user information', () => {
     render(<ProfilePage />);
 
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Account Information')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument(); // followed coins
-    expect(screen.getByText('3')).toBeInTheDocument(); // active alerts
   });
 
   it('should render subscription status component', () => {
     render(<ProfilePage />);
 
     expect(screen.getByTestId('subscription-status')).toBeInTheDocument();
-  });
-
-  it('should render bot connection component', () => {
-    render(<ProfilePage />);
-
-    expect(screen.getByTestId('bot-connection')).toBeInTheDocument();
   });
 
   it('should render preferences section with functional buttons', () => {

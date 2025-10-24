@@ -77,10 +77,6 @@ jest.mock('@/components/ui/card', () => ({
 }));
 
 // Mock profile components
-jest.mock('@/components/profile/BotConnection', () => ({
-  BotConnection: () => <div data-testid="bot-connection">Discord Bot Connection</div>,
-}));
-
 jest.mock('@/components/subscription/SubscriptionStatus', () => ({
   SubscriptionStatus: () => <div data-testid="subscription-status">Subscription Status</div>,
 }));
@@ -316,8 +312,6 @@ describe('Profile Page - Mobile Responsiveness', () => {
       
       expect(screen.getByText('verylongemailaddress@exampledomain.com')).toBeInTheDocument();
       expect(screen.getByText('Test User With Long Name')).toBeInTheDocument();
-      expect(screen.getByText('5')).toBeInTheDocument(); // followed coins
-      expect(screen.getByText('3')).toBeInTheDocument(); // active alerts
     });
 
     it('should render all interactive elements', () => {
@@ -334,7 +328,6 @@ describe('Profile Page - Mobile Responsiveness', () => {
       
       expect(screen.getByText('Account Information')).toBeInTheDocument();
       expect(screen.getByTestId('subscription-status')).toBeInTheDocument();
-      expect(screen.getByTestId('bot-connection')).toBeInTheDocument();
       expect(screen.getByText('Preferences')).toBeInTheDocument();
     });
   });

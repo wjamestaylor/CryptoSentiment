@@ -6,19 +6,12 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
-import { BotConnection } from "@/components/profile/BotConnection";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 import { AlertSettings } from "@/components/profile/AlertSettings";
-import { api } from "@/lib/trpc/provider";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  // Get user statistics
-  const { data: userStats, isLoading: statsLoading } = api.auth.getUserStats.useQuery(undefined, {
-    enabled: !!session,
-  });
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
@@ -46,7 +39,7 @@ export default function ProfilePage() {
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
           <CardDescription>
-            Your account details and basic statistics
+            Your account details
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -60,32 +53,11 @@ export default function ProfilePage() {
               <p className="text-base sm:text-lg">{session.user?.name || 'Not set'}</p>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                {statsLoading ? '...' : userStats?.followedCoins ?? 0}
-              </p>
-              <p className="text-sm text-gray-500">Followed Coins</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                {statsLoading ? '...' : userStats?.activeAlerts ?? 0}
-              </p>
-              <p className="text-sm text-gray-500">Active Alerts</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       {/* Subscription Status with Usage Details */}
       <SubscriptionStatus />
-
-      {/* Bot Integration */}
-      <BotConnection initialStatus={{
-        discord: { connected: false, userId: null, notificationsEnabled: false },
-        telegram: { connected: false, userId: null, notificationsEnabled: false }
-      }} />
 
       {/* Preferences Card */}
       <Card>
