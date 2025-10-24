@@ -26,16 +26,16 @@ This document provides a concise overview of the proposed change to replace or s
 
 ### 1. Implementation Approach
 
-**Option A: Full Replacement** ❌ Not Recommended
+**Option A: Full Replacement** ✅ **RECOMMENDED (Updated)**
 - Remove AI Analysis page entirely
 - Email digests only
-- ⚠️ High risk of user churn
+- **Best for pre-launch:** Simpler, clearer purpose, better UX
+- **No churn risk:** No customers yet
 
-**Option B: Hybrid Model** ✅ **RECOMMENDED**
+**Option B: Hybrid Model** ❌ Not Recommended
 - Keep AI Analysis page (reduced limits)
 - Add email digests as new feature
-- Both features available based on tier
-- Best of both worlds
+- **Unnecessary complexity** for pre-launch app
 
 **Option C: Defer**
 - Keep current implementation
@@ -51,12 +51,17 @@ This document provides a concise overview of the proposed change to replace or s
 | PRO | $9 | 100 |
 | BUSINESS | $29 | 500 |
 
-#### Proposed (Hybrid Model)
-| Tier | Price | On-Demand | Email Digests | Coins in Digest |
-|------|-------|-----------|---------------|-----------------|
-| FREE | $0 | 5/month | Weekly | 1 coin |
-| PRO | $9 | 50/month | Daily | 10 coins |
-| BUSINESS | $29 | 200/month | Daily + Weekly | 50 coins |
+#### Proposed (Email Digests Only - Simplified)
+| Tier | Price | Email Digests | Coins Covered | AI Quality |
+|------|-------|---------------|---------------|------------|
+| FREE | $0 | Weekly | Up to 5 | Basic |
+| PRO | $9 | Daily | Up to 25 | Detailed |
+| BUSINESS | $29 | Daily + Weekly | Unlimited | Full AI |
+
+**Key Changes:**
+- Simpler to understand (no on-demand vs email split)
+- Clear value progression (weekly → daily, 5 → 25 → unlimited)
+- Focus on automated service quality
 
 ---
 
@@ -81,26 +86,25 @@ This document provides a concise overview of the proposed change to replace or s
 - Reduced real-time server load
 - Scheduled during off-peak hours
 
-### ❌ Cons & Concerns
+### ❌ Cons & Concerns (Minimal for Pre-Launch)
 
 **User Experience:**
-- Loss of immediate, on-demand analysis (if page is removed)
-- Less user control over timing
-- Potential email fatigue
-- Delayed insights (must wait for scheduled digest)
+- No on-demand analysis (if users want immediate insights)
+  - **Mitigation:** Can add "request analysis" via email reply (future)
+- Email fatigue potential
+  - **Mitigation:** User control (daily/weekly/off), quality over quantity
 
 **Technical:**
-- Additional infrastructure (cron jobs, email sending)
-- Email deliverability challenges
-- OpenRouter API rate limit concerns
-- Increased complexity
+- Need cron infrastructure
+  - **One-time setup**, then simpler than dual system
+- Email deliverability
+  - **Mitigation:** Use Resend (reputable ESP)
 
 **Business:**
-- Risk of user complaints if feature is removed
-- Migration complexity
-- Potential churn during transition
+- Feature removal
+  - **Not a concern:** No customers yet, optimize for best experience
 
-**Mitigation:** Hybrid model addresses most concerns by keeping both features.
+**Note:** Since pre-launch, we should prioritize the **best, simplest experience** over churn concerns.
 
 ---
 
@@ -304,19 +308,23 @@ This document provides a concise overview of the proposed change to replace or s
 
 ## Recommendation
 
-**✅ Proceed with Hybrid Model (Option B)**
+**✅ Proceed with Full Replacement (Updated)**
 
-**Rationale:**
-1. **Low Risk:** Keeps existing feature, adds new value
-2. **High Value:** Email digests increase perceived subscription value
-3. **Flexibility:** Users can choose on-demand or scheduled analysis
-4. **Differentiation:** Clear tier benefits (FREE: weekly, PRO: daily)
-5. **Upsell:** FREE users see value in PRO daily digests
+**Rationale (Based on Stakeholder Feedback):**
+1. **Pre-launch status:** No customers = no churn risk
+2. **Simpler is better:** One less page to navigate and maintain
+3. **Clearer purpose:** Focus on monitoring & alerts, not manual tools
+4. **Better UX:** Proactive automated insights vs manual work
+5. **Premium feel:** Email digests feel more valuable
+6. **Less overwhelming:** Curated content vs manual analysis
+
+**Previous Recommendation (Hybrid Model):**
+Was overly conservative due to churn concerns, which don't apply pre-launch.
 
 **Next Step:** 
-- Get stakeholder approval for hybrid approach
-- Finalize digest content and format
-- Begin Phase 1 implementation
+- Proceed with full replacement implementation
+- Follow 4-week timeline
+- Focus on making email digests excellent
 
 ---
 

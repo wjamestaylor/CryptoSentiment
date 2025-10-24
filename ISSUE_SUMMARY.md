@@ -37,30 +37,23 @@ This PR addresses the discussion issue by providing **comprehensive documentatio
 
 ---
 
-## Key Recommendation: Hybrid Model ✅
+## Key Recommendation: Full Replacement ✅
 
-After thorough analysis, the **recommended approach** is to **keep both features**:
+After reconsidering based on stakeholder feedback (no customers yet, focus on simplicity):
 
-### Current (AI Analysis Only)
-| Tier | AI Analyses/Month |
-|------|-------------------|
-| FREE | 10 |
-| PRO | 100 |
-| BUSINESS | 500 |
+### Proposed (Email Digests Only)
+| Tier | Email Digests | Coins Covered | AI Quality |
+|------|---------------|---------------|------------|
+| FREE | Weekly | Up to 5 | Basic |
+| PRO | Daily | Up to 25 | Detailed |
+| BUSINESS | Daily + Weekly | Unlimited | Full AI |
 
-### Proposed (Hybrid - Both Features)
-| Tier | On-Demand | Email Digests | Coins in Digest |
-|------|-----------|---------------|-----------------|
-| FREE | 5/month | Weekly | 1 coin |
-| PRO | 50/month | Daily | 10 coins |
-| BUSINESS | 200/month | Daily + Weekly | 50 coins |
-
-### Why Hybrid?
-- ✅ **Low risk:** Keeps existing functionality (reduces churn)
-- ✅ **High value:** Email digests add premium feel
-- ✅ **Flexibility:** Users choose on-demand or scheduled
-- ✅ **Differentiation:** Clear tier benefits (FREE vs PRO)
-- ✅ **Upsell opportunity:** FREE users see value in PRO
+### Why Full Replacement?
+- ✅ **Simpler app:** One less page, clearer purpose
+- ✅ **Better UX:** Proactive insights vs manual work
+- ✅ **Less overwhelming:** Automated curation
+- ✅ **Stronger value:** Premium feel, regular touchpoints
+- ✅ **No churn risk:** Pre-launch, optimize for best experience
 
 ---
 
@@ -87,6 +80,13 @@ After thorough analysis, the **recommended approach** is to **keep both features
 - ✅ Usage tracking and limits
 - ✅ Subscription tier management
 - ✅ Feature gating system
+
+**What Will Be Removed:**
+- ❌ `/src/app/sentiment/page.tsx` - AI Analysis page
+- ❌ `/src/components/ui/navbar.tsx` line 17 - Navigation link
+- ❌ `/src/app/api/sentiment/analyze/` - API endpoint
+- ❌ AI Analysis tests (4 test files)
+- ❌ AI_ANALYSIS usage type from feature gating
 
 **What's Needed (New):**
 - ⚠️ Cron job infrastructure

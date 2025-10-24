@@ -25,21 +25,23 @@ Send automated email digests with AI sentiment analysis for users' watched coins
 
 ---
 
-## 💡 Recommended Approach: Hybrid Model
+## 💡 Recommended Approach: Replace with Email Digests
 
-**Keep both features** with adjusted limits:
+**Remove the AI Analysis page and implement automated email digests:**
 
-| Tier | On-Demand Analysis | Email Digests | Coins in Digest |
-|------|-------------------|---------------|-----------------|
-| FREE | 5/month (↓ from 10) | Weekly | 1 coin |
-| PRO | 50/month (↓ from 100) | Daily | 10 coins |
-| BUSINESS | 200/month (↓ from 500) | Daily + Weekly | 50 coins |
+| Tier | Email Digests | Coins Covered | AI Summaries |
+|------|---------------|---------------|--------------|
+| FREE | Weekly | Up to 5 coins | Basic sentiment |
+| PRO | Daily | Up to 25 coins | Detailed analysis |
+| BUSINESS | Daily + Weekly Summary | Unlimited | Full AI insights |
 
-**Why Hybrid?**
-- ✅ Reduces risk of user churn
-- ✅ Adds value without removing functionality
-- ✅ Creates clear tier differentiation
-- ✅ Provides flexibility for user preferences
+**Why Full Replacement?**
+- ✅ **Simpler app** - One less page to navigate and maintain
+- ✅ **Better UX** - Proactive insights vs manual work
+- ✅ **Clearer purpose** - Focus on monitoring & alerts, not manual tools
+- ✅ **Less overwhelming** - Users receive curated insights automatically
+- ✅ **More engagement** - Regular email touchpoints drive usage
+- ✅ **Better value perception** - Automated service feels premium
 
 ---
 
@@ -52,13 +54,12 @@ Send automated email digests with AI sentiment analysis for users' watched coins
 - **Premium feel** - Email digests feel more valuable than manual triggers
 - **Mobile-friendly** - Email works better on mobile than web interface
 
-### ❌ Cons
-- **Email fatigue** - Some users prefer web-only interaction
-- **Less control** - Can't trigger immediate on-demand analysis (if page removed)
-- **Deliverability** - Email spam filters may cause issues
-- **Complexity** - Additional infrastructure (cron jobs, email sending)
+### ❌ Cons (Minimal)
+- **Email fatigue** - Mitigated by user control over frequency (daily/weekly/off)
+- **Deliverability** - Mitigated by using Resend (high-reputation ESP)
+- **Initial setup** - One-time infrastructure setup (cron jobs, templates)
 
-**Mitigation:** Hybrid model keeps on-demand option while adding email value.
+**Note:** No customer churn risk since app is pre-launch. Focus on best experience.
 
 ---
 
@@ -90,14 +91,14 @@ If approved: **4 weeks to production**
 
 ## ❓ Questions for Stakeholders
 
-1. **Should we pursue the hybrid model (keep both features)?**
-   - Recommended: Yes
+1. **Should we replace the AI Analysis page with email digests?**
+   - Recommended: Yes - Creates simpler, more focused app
 
-2. **Should existing users be auto-enrolled in email digests?**
-   - Recommended: Yes (weekly), with easy opt-out
+2. **Should users be auto-enrolled in email digests?**
+   - Recommended: Yes (weekly for FREE, daily for PRO/BUSINESS), with easy opt-out
 
 3. **When should we implement this?**
-   - Recommended: Q4 2025
+   - Recommended: Q4 2025 (4-week timeline)
 
 4. **Are there any concerns or alternative ideas?**
    - Please share feedback below
