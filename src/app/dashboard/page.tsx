@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { useTrackUsage } from '@/hooks/use-track-usage';
 import { UsageType } from '@prisma/client';
+import { QuickStartGuide } from '@/components/onboarding/QuickStartGuide';
 
 export default function Dashboard() {
   const { data: session } = useSession();
@@ -255,6 +256,13 @@ export default function Dashboard() {
             </div>
           )}
         </ErrorBoundary>
+
+        {/* Quick Start Guide - Show when user has no tracked cryptos */}
+        {summary.totalTracked === 0 && (
+          <div className="mb-6 md:mb-8">
+            <QuickStartGuide hasAnyData={false} />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
           {/* My Cryptocurrencies */}

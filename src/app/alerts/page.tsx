@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { AlertType } from '@prisma/client'
 import { FeatureGate } from '@/components/feature-gating/FeatureGate'
+import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { 
   Trash2, 
   Plus, 
@@ -313,7 +314,13 @@ export default function AlertsPage() {
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Alert Management</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold">Alert Management</h1>
+            <HelpTooltip 
+              content="Set up automated alerts for price changes, sentiment shifts, and volume spikes. You'll be notified via email when your alert conditions are met."
+              side="right"
+            />
+          </div>
           <p className="text-muted-foreground text-sm sm:text-base">
             Set up alerts for price changes, sentiment shifts, and market events
           </p>
