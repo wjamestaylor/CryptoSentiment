@@ -267,6 +267,7 @@ describe('CryptoManagerService', () => {
         topPerformer: {
           cryptoSymbol: 'BTC',
           cryptoName: 'Bitcoin',
+          coinGeckoId: 'bitcoin',
           currentPrice: 67000,
           holdingAmount: 0.5,
           currentValue: 33500,
@@ -281,6 +282,7 @@ describe('CryptoManagerService', () => {
       mockPortfolioInstance.getTopPerformer.mockResolvedValue({
         cryptoSymbol: 'BTC',
         cryptoName: 'Bitcoin',
+        coinGeckoId: 'bitcoin',
         currentPrice: 67000,
         holdingAmount: 0.5,
         currentValue: 33500,

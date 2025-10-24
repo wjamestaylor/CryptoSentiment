@@ -908,4 +908,136 @@ export const cryptoRouter = createTRPCRouter({
         throw new Error(`Failed to fetch enhanced crypto tracking: ${error}`);
       }
     }),
+
+  // Get watched coins only (for chart view)
+  getWatchedCoins: protectedProcedure
+    .query(async ({ ctx }) => {
+      try {
+        const userId = ctx.session.user.id;
+
+        // Get watched coins only (no holdings)
+        const watchedCoins = await ctx.prisma.cryptoTracking.findMany({
+          where: {
+            userId,
+            holdingAmount: null,
+          },
+          include: {
+            crypto: true,
+          },
+          orderBy: [
+            { lastViewedAt: 'desc' },
+          ],
+        });
+
+        // Fetch current prices from CoinGecko
+        const coinGeckoIds = watchedCoins
+          .map(coin => coin.crypto.coinGeckoId)
+          .filter((id): id is string => id !== null);
+
+        let priceData: Array<{
+          id: string;
+          current_price: number;
+          price_change_percentage_24h: number;
+        }> = [];
+
+        if (coinGeckoIds.length > 0) {
+          try {
+            const response = await fetch(
+              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinGeckoIds.join(',')}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`
+            );
+
+            if (response.ok) {
+              priceData = await response.json();
+            }
+          } catch (error) {
+            console.warn('Failed to fetch prices for watched coins:', error);
+          }
+        }
+
+        const watchedCoinsWithPrices = watchedCoins.map(coin => {
+          const price = priceData.find(p => p.id === coin.crypto.coinGeckoId);
+          return {
+            coinGeckoId: coin.crypto.coinGeckoId || coin.crypto.symbol.toLowerCase(),
+            symbol: coin.crypto.symbol,
+            name: coin.crypto.name,
+            currentPrice: price?.current_price,
+            priceChangePercentage24h: price?.price_change_percentage_24h,
+          };
+        });
+
+        return {
+          success: true,
+          data: watchedCoinsWithPrices,
+        };
+      } catch (error) {
+        console.error('Failed to fetch watched coins:', error);
+        throw new Error(`Failed to fetch watched coins: ${error}`);
+      }
+    }),
+
+  // Get held coins only (for chart view)
+  getHeldCoins: protectedProcedure
+    .query(async ({ ctx }) => {
+      try {
+        const userId = ctx.session.user.id;
+
+        // Get held coins only (with holdings)
+        const heldCoins = await ctx.prisma.cryptoTracking.findMany({
+          where: {
+            userId,
+            holdingAmount: { not: null },
+          },
+          include: {
+            crypto: true,
+          },
+          orderBy: [
+            { holdingAmount: { sort: 'desc', nulls: 'last' } },
+          ],
+        });
+
+        // Fetch current prices from CoinGecko
+        const coinGeckoIds = heldCoins
+          .map(coin => coin.crypto.coinGeckoId)
+          .filter((id): id is string => id !== null);
+
+        let priceData: Array<{
+          id: string;
+          current_price: number;
+          price_change_percentage_24h: number;
+        }> = [];
+
+        if (coinGeckoIds.length > 0) {
+          try {
+            const response = await fetch(
+              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinGeckoIds.join(',')}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`
+            );
+
+            if (response.ok) {
+              priceData = await response.json();
+            }
+          } catch (error) {
+            console.warn('Failed to fetch prices for held coins:', error);
+          }
+        }
+
+        const heldCoinsWithPrices = heldCoins.map(coin => {
+          const price = priceData.find(p => p.id === coin.crypto.coinGeckoId);
+          return {
+            coinGeckoId: coin.crypto.coinGeckoId || coin.crypto.symbol.toLowerCase(),
+            symbol: coin.crypto.symbol,
+            name: coin.crypto.name,
+            currentPrice: price?.current_price,
+            priceChangePercentage24h: price?.price_change_percentage_24h,
+          };
+        });
+
+        return {
+          success: true,
+          data: heldCoinsWithPrices,
+        };
+      } catch (error) {
+        console.error('Failed to fetch held coins:', error);
+        throw new Error(`Failed to fetch held coins: ${error}`);
+      }
+    }),
 });
