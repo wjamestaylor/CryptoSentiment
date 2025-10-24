@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure, protectedProcedure } from '@/server/
 import { FeatureGateService } from '@/services/feature-gating/feature-gate.service'
 import { UsageType } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
+import { normalizeCryptoIdentifier } from '@/lib/crypto-mappings'
 
 const featureGateService = new FeatureGateService()
 
@@ -71,6 +72,16 @@ export const sentimentRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
+        // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
+        const coinGeckoId = normalizeCryptoIdentifier(input.cryptoSymbol);
+        
+        if (!coinGeckoId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Invalid cryptocurrency identifier: "${input.cryptoSymbol}". Please provide a valid symbol (e.g., BTC) or name (e.g., bitcoin).`,
+          });
+        }
+
         // Check if user can perform AI analysis
         const usageCheck = await featureGateService.canPerformAIAnalysis(ctx.session.user.id);
         
@@ -84,6 +95,7 @@ export const sentimentRouter = createTRPCRouter({
         // Track usage before performing analysis
         await featureGateService.trackUsage(ctx.session.user.id, UsageType.AI_ANALYSIS, {
           cryptoSymbol: input.cryptoSymbol,
+          coinGeckoId: coinGeckoId,
           includeHistorical: input.includeHistorical,
         });
 
@@ -93,10 +105,11 @@ export const sentimentRouter = createTRPCRouter({
           success: true,
           data: {
             symbol: input.cryptoSymbol,
+            coinGeckoId: coinGeckoId,
             score: Math.random() * 2 - 1, // -1 to 1
             label: 'NEUTRAL', // This would be calculated by AI
             confidence: Math.random(),
-            summary: `AI analysis for ${input.cryptoSymbol} completed successfully.`,
+            summary: `AI analysis for ${input.cryptoSymbol} (${coinGeckoId}) completed successfully.`,
             usageRemaining: usageCheck.remaining,
           },
           message: 'AI analysis completed successfully',

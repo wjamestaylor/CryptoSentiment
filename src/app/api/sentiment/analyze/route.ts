@@ -5,6 +5,7 @@ import { OpenRouterService } from '@/lib/api/openrouter';
 import { AlertService } from '@/services/notifications/alerts.service';
 import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
 import { UsageType, SentimentLabel } from '@prisma/client';
+import { normalizeCryptoIdentifier } from '@/lib/crypto-mappings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,18 +47,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
+    const coinGeckoId = normalizeCryptoIdentifier(cryptocurrency);
+    
+    if (!coinGeckoId) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid cryptocurrency identifier',
+          details: `"${cryptocurrency}" is not a recognized cryptocurrency symbol or name. Please provide a valid identifier (e.g., BTC or bitcoin).`
+        },
+        { status: 400 }
+      );
+    }
+
     // Get real market data from CoinGecko (direct API call)
     let realPriceData = null;
     
     try {
       // Try to get real price data using the simple/price endpoint (no auth required)
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${cryptocurrency}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
       );
       
       if (response.ok) {
         const priceData = await response.json();
-        const coinData = priceData[cryptocurrency];
+        const coinData = priceData[coinGeckoId];
         
         if (coinData) {
           realPriceData = {
@@ -69,7 +83,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (coinGeckoError) {
-      console.error(`Failed to get price data for ${cryptocurrency}:`, coinGeckoError);
+      console.error(`Failed to get price data for ${coinGeckoId}:`, coinGeckoError);
       return NextResponse.json(
         { 
           error: 'Failed to retrieve cryptocurrency data',
@@ -84,14 +98,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Cryptocurrency not found',
-          details: `No price data available for "${cryptocurrency}". Please check the cryptocurrency ID.`
+          details: `No price data available for "${cryptocurrency}" (${coinGeckoId}). Please check the cryptocurrency identifier.`
         },
         { status: 404 }
       );
     }
 
     const analysisData = {
-      cryptocurrency,
+      cryptocurrency: coinGeckoId,
+      originalInput: cryptocurrency,
       priceData: realPriceData
     };
 
@@ -100,7 +115,8 @@ export async function POST(request: NextRequest) {
     
     // Track the AI analysis usage
     await featureGateService.trackUsage(session.user.id, UsageType.AI_ANALYSIS, {
-      cryptocurrency,
+      cryptocurrency: coinGeckoId,
+      originalInput: cryptocurrency,
       analysisId: Math.random().toString(36).substring(7),
       timestamp: new Date().toISOString()
     });
@@ -108,13 +124,13 @@ export async function POST(request: NextRequest) {
     // Trigger alert checking after successful sentiment analysis
     try {
       const alertService = new AlertService();
-      await alertService.checkAlerts(cryptocurrency, {
-        cryptoId: cryptocurrency,
+      await alertService.checkAlerts(coinGeckoId, {
+        cryptoId: coinGeckoId,
         score: analysis.score || 0,
         label: analysis.sentiment as SentimentLabel,
         confidence: analysis.confidence || 0
       });
-      console.log(`Alert check completed for ${cryptocurrency} after sentiment analysis`);
+      console.log(`Alert check completed for ${coinGeckoId} (${cryptocurrency}) after sentiment analysis`);
     } catch (alertError) {
       console.error('Failed to check alerts after sentiment analysis:', alertError);
       // Don't fail the main request if alert checking fails
@@ -123,6 +139,8 @@ export async function POST(request: NextRequest) {
     // Return analysis with live data confirmation
     return NextResponse.json({
       ...analysis,
+      coinGeckoId: coinGeckoId,
+      originalInput: cryptocurrency,
       dataSource: 'live',
       priceData: analysisData.priceData,
       timestamp: new Date().toISOString(),

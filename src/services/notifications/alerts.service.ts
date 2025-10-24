@@ -1,6 +1,7 @@
 import { prisma as db } from '@/lib/db/prisma';
 import { AlertType, SentimentLabel } from '@prisma/client';
 import { NotificationService } from './notification.service';
+import { normalizeCryptoIdentifier, getCoinGeckoId } from '@/lib/crypto-mappings';
 
 export interface AlertCondition {
   // Sentiment alert conditions
@@ -94,15 +95,24 @@ export class AlertService {
       // Validate the alert condition
       this.validateAlertCondition(data.type, data.condition);
 
+      // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
+      const coinGeckoId = normalizeCryptoIdentifier(data.cryptoSymbol);
+      
+      if (!coinGeckoId) {
+        throw new Error(`Invalid cryptocurrency identifier: "${data.cryptoSymbol}". Please provide a valid symbol or name.`);
+      }
+
       // First ensure the cryptocurrency exists in our database
       const crypto = await db.cryptocurrency.upsert({
         where: { symbol: data.cryptoSymbol.toUpperCase() },
         update: {
           name: data.cryptoName || data.cryptoSymbol,
+          coinGeckoId: coinGeckoId,
         },
         create: {
           symbol: data.cryptoSymbol.toUpperCase(),
           name: data.cryptoName || data.cryptoSymbol,
+          coinGeckoId: coinGeckoId,
         },
       });
 

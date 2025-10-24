@@ -3,6 +3,7 @@ import {
   getCoinGeckoId,
   getSymbolFromCoinGeckoId,
   hasKnownMapping,
+  normalizeCryptoIdentifier,
 } from '@/lib/crypto-mappings';
 
 describe('crypto-mappings', () => {
@@ -302,6 +303,164 @@ describe('crypto-mappings', () => {
       const symbols = Object.keys(SYMBOL_TO_COINGECKO_ID);
       const uniqueSymbols = new Set(symbols);
       expect(uniqueSymbols.size).toBe(symbols.length);
+    });
+  });
+
+  describe('normalizeCryptoIdentifier', () => {
+    describe('symbol input', () => {
+      it('should normalize uppercase symbols', () => {
+        expect(normalizeCryptoIdentifier('BTC')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('ETH')).toBe('ethereum');
+        expect(normalizeCryptoIdentifier('USDT')).toBe('tether');
+        expect(normalizeCryptoIdentifier('DOT')).toBe('polkadot');
+      });
+
+      it('should normalize lowercase symbols', () => {
+        expect(normalizeCryptoIdentifier('btc')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('eth')).toBe('ethereum');
+        expect(normalizeCryptoIdentifier('usdt')).toBe('tether');
+      });
+
+      it('should normalize mixed case symbols', () => {
+        expect(normalizeCryptoIdentifier('Btc')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('EtH')).toBe('ethereum');
+        expect(normalizeCryptoIdentifier('UsDt')).toBe('tether');
+        expect(normalizeCryptoIdentifier('bTc')).toBe('bitcoin');
+      });
+    });
+
+    describe('CoinGecko ID input', () => {
+      it('should accept lowercase CoinGecko IDs', () => {
+        expect(normalizeCryptoIdentifier('bitcoin')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('ethereum')).toBe('ethereum');
+        expect(normalizeCryptoIdentifier('tether')).toBe('tether');
+        expect(normalizeCryptoIdentifier('polkadot')).toBe('polkadot');
+      });
+
+      it('should accept mixed case CoinGecko IDs', () => {
+        expect(normalizeCryptoIdentifier('Bitcoin')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('Ethereum')).toBe('ethereum');
+        expect(normalizeCryptoIdentifier('BITCOIN')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('BiTcOiN')).toBe('bitcoin');
+      });
+
+      it('should handle CoinGecko IDs with hyphens', () => {
+        expect(normalizeCryptoIdentifier('binancecoin')).toBe('binancecoin');
+        expect(normalizeCryptoIdentifier('usd-coin')).toBe('usd-coin');
+        expect(normalizeCryptoIdentifier('bitcoin-cash')).toBe('bitcoin-cash');
+        expect(normalizeCryptoIdentifier('compound-governance-token')).toBe('compound-governance-token');
+      });
+
+      it('should handle mixed case CoinGecko IDs with hyphens', () => {
+        expect(normalizeCryptoIdentifier('USD-Coin')).toBe('usd-coin');
+        expect(normalizeCryptoIdentifier('Bitcoin-Cash')).toBe('bitcoin-cash');
+        expect(normalizeCryptoIdentifier('ETHEREUM-CLASSIC')).toBe('ethereum-classic');
+      });
+    });
+
+    describe('whitespace handling', () => {
+      it('should trim leading whitespace', () => {
+        expect(normalizeCryptoIdentifier(' BTC')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('  bitcoin')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('\tETH')).toBe('ethereum');
+      });
+
+      it('should trim trailing whitespace', () => {
+        expect(normalizeCryptoIdentifier('BTC ')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('bitcoin  ')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('ETH\t')).toBe('ethereum');
+      });
+
+      it('should trim both leading and trailing whitespace', () => {
+        expect(normalizeCryptoIdentifier(' BTC ')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('  bitcoin  ')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('\tETH\t')).toBe('ethereum');
+      });
+
+      it('should return null for whitespace-only input', () => {
+        expect(normalizeCryptoIdentifier(' ')).toBeNull();
+        expect(normalizeCryptoIdentifier('  ')).toBeNull();
+        expect(normalizeCryptoIdentifier('\t')).toBeNull();
+        expect(normalizeCryptoIdentifier('\n')).toBeNull();
+      });
+    });
+
+    describe('invalid input', () => {
+      it('should return null for unknown identifiers', () => {
+        expect(normalizeCryptoIdentifier('UNKNOWN')).toBeNull();
+        expect(normalizeCryptoIdentifier('fake-coin')).toBeNull();
+        expect(normalizeCryptoIdentifier('notreal')).toBeNull();
+      });
+
+      it('should return null for empty string', () => {
+        expect(normalizeCryptoIdentifier('')).toBeNull();
+      });
+
+      it('should return null for invalid types', () => {
+        expect(normalizeCryptoIdentifier(null as unknown as string)).toBeNull();
+        expect(normalizeCryptoIdentifier(undefined as unknown as string)).toBeNull();
+      });
+    });
+
+    describe('all known symbols and IDs', () => {
+      it('should normalize all symbols to their CoinGecko IDs', () => {
+        Object.entries(SYMBOL_TO_COINGECKO_ID).forEach(([symbol, coinGeckoId]) => {
+          expect(normalizeCryptoIdentifier(symbol)).toBe(coinGeckoId);
+          expect(normalizeCryptoIdentifier(symbol.toLowerCase())).toBe(coinGeckoId);
+          expect(normalizeCryptoIdentifier(symbol.toUpperCase())).toBe(coinGeckoId);
+        });
+      });
+
+      it('should normalize all CoinGecko IDs to themselves', () => {
+        const uniqueIds = new Set(Object.values(SYMBOL_TO_COINGECKO_ID));
+        uniqueIds.forEach(coinGeckoId => {
+          expect(normalizeCryptoIdentifier(coinGeckoId)).toBe(coinGeckoId);
+          expect(normalizeCryptoIdentifier(coinGeckoId.toUpperCase())).toBe(coinGeckoId);
+          // Test mixed case
+          const mixedCase = coinGeckoId.charAt(0).toUpperCase() + coinGeckoId.slice(1);
+          expect(normalizeCryptoIdentifier(mixedCase)).toBe(coinGeckoId);
+        });
+      });
+    });
+
+    describe('real-world use cases', () => {
+      it('should handle common user input variations for Bitcoin', () => {
+        const variations = ['BTC', 'btc', 'Btc', 'bTC', 'bitcoin', 'Bitcoin', 'BITCOIN', 'BiTcOiN'];
+        variations.forEach(variant => {
+          expect(normalizeCryptoIdentifier(variant)).toBe('bitcoin');
+        });
+      });
+
+      it('should handle common user input variations for Ethereum', () => {
+        const variations = ['ETH', 'eth', 'Eth', 'eTh', 'ethereum', 'Ethereum', 'ETHEREUM', 'EtHeReUm'];
+        variations.forEach(variant => {
+          expect(normalizeCryptoIdentifier(variant)).toBe('ethereum');
+        });
+      });
+
+      it('should handle common user input variations for stablecoins', () => {
+        expect(normalizeCryptoIdentifier('USDT')).toBe('tether');
+        expect(normalizeCryptoIdentifier('usdt')).toBe('tether');
+        expect(normalizeCryptoIdentifier('tether')).toBe('tether');
+        expect(normalizeCryptoIdentifier('USDC')).toBe('usd-coin');
+        expect(normalizeCryptoIdentifier('usdc')).toBe('usd-coin');
+        expect(normalizeCryptoIdentifier('usd-coin')).toBe('usd-coin');
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should prioritize symbol matches over CoinGecko ID matches', () => {
+        // If a symbol happens to be the same as another coin's CoinGecko ID,
+        // it should return the symbol's CoinGecko ID
+        // This test verifies the order of lookups
+        expect(normalizeCryptoIdentifier('BTC')).toBe('bitcoin');
+        expect(normalizeCryptoIdentifier('bitcoin')).toBe('bitcoin');
+      });
+
+      it('should handle symbols with numbers', () => {
+        expect(normalizeCryptoIdentifier('AVAX')).toBe('avalanche-2');
+        expect(normalizeCryptoIdentifier('avax')).toBe('avalanche-2');
+      });
     });
   });
 });

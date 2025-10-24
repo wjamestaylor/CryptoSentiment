@@ -75,8 +75,8 @@ describe('AlertService', () => {
       expect(result).toEqual(mockAlert);
       expect(mockDb.cryptocurrency.upsert).toHaveBeenCalledWith({
         where: { symbol: 'BTC' },
-        update: { name: 'Bitcoin' },
-        create: { symbol: 'BTC', name: 'Bitcoin' },
+        update: { name: 'Bitcoin', coinGeckoId: 'bitcoin' },
+        create: { symbol: 'BTC', name: 'Bitcoin', coinGeckoId: 'bitcoin' },
       });
     });
 
