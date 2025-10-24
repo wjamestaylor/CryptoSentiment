@@ -25,11 +25,6 @@ jest.mock('next/link', () => {
   };
 });
 
-// Mock ThemeToggle component
-jest.mock('@/components/ui/theme-toggle', () => ({
-  ThemeToggle: () => <div data-testid="theme-toggle">Theme Toggle</div>,
-}));
-
 describe('Navbar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -93,12 +88,10 @@ describe('Navbar', () => {
       expect(getStartedLink).toHaveAttribute('href', '/pricing');
     });
 
-    it('displays theme toggle', () => {
+    it('does not display settings link for unauthenticated users', () => {
       render(<Navbar />);
 
-      const themeToggles = screen.getAllByTestId('theme-toggle');
-      expect(themeToggles).toHaveLength(2); // Desktop and mobile
-      expect(themeToggles[0]).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
     });
   });
 
@@ -121,6 +114,12 @@ describe('Navbar', () => {
       render(<Navbar />);
 
       expect(screen.getByRole('link', { name: 'Crypto Manager' })).toHaveAttribute('href', '/crypto');
+    });
+
+    it('displays settings link for authenticated users', () => {
+      render(<Navbar />);
+
+      expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     });
 
     it('displays welcome message with username', () => {
@@ -396,10 +395,11 @@ describe('Navbar', () => {
       expect(screen.getByRole('link', { name: 'AI Analysis' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Crypto Manager' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
     });
 
-    it('excludes watchlist for unauthenticated users', () => {
+    it('excludes authenticated-only links for unauthenticated users', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
@@ -410,6 +410,7 @@ describe('Navbar', () => {
       expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'AI Analysis' })).toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Crypto Manager' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
     });
