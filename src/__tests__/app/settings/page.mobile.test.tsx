@@ -233,8 +233,8 @@ describe('Settings Page - Mobile Responsiveness', () => {
     });
 
     it('should have responsive grid for account information', () => {
-      render(<SettingsPage />);
-      const grids = document.querySelectorAll('.grid');
+      const { container } = render(<SettingsPage />);
+      const grids = container.querySelectorAll('.grid');
       
       // Find the account info grid (first one with email/name)
       const accountInfoGrid = Array.from(grids).find(grid => 
