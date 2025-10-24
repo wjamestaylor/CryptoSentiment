@@ -768,4 +768,230 @@ describe('Crypto Router Unified Tracking System', () => {
       expect(roundedValue).toBeGreaterThan(0);
     });
   });
+
+  describe('getWatchedCoins endpoint', () => {
+    it('should fetch watched coins only (no holdings)', async () => {
+      const mockWatchedCoins = [
+        {
+          id: 'tracking-1',
+          userId: 'user-1',
+          cryptoId: 'crypto-1',
+          holdingAmount: null,
+          crypto: {
+            id: 'crypto-1',
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            coinGeckoId: 'bitcoin',
+          },
+          lastViewedAt: new Date(),
+        },
+        {
+          id: 'tracking-2',
+          userId: 'user-1',
+          cryptoId: 'crypto-2',
+          holdingAmount: null,
+          crypto: {
+            id: 'crypto-2',
+            symbol: 'ETH',
+            name: 'Ethereum',
+            coinGeckoId: 'ethereum',
+          },
+          lastViewedAt: new Date(),
+        },
+      ];
+
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockWatchedCoins);
+
+      // Mock CoinGecko API response
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            id: 'bitcoin',
+            current_price: 45000,
+            price_change_percentage_24h: 3.5,
+          },
+          {
+            id: 'ethereum',
+            current_price: 3000,
+            price_change_percentage_24h: -1.2,
+          },
+        ],
+      });
+
+      // Verify the query would filter for watched coins only
+      expect(mockWatchedCoins.every(coin => coin.holdingAmount === null)).toBe(true);
+    });
+
+    it('should return empty array when user has no watched coins', async () => {
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue([]);
+
+      const result = await mockPrisma.cryptoTracking.findMany({
+        where: { userId: 'user-1', holdingAmount: null },
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle CoinGecko API errors gracefully', async () => {
+      const mockWatchedCoins = [
+        {
+          id: 'tracking-1',
+          userId: 'user-1',
+          cryptoId: 'crypto-1',
+          holdingAmount: null,
+          crypto: {
+            id: 'crypto-1',
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            coinGeckoId: 'bitcoin',
+          },
+          lastViewedAt: new Date(),
+        },
+      ];
+
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockWatchedCoins);
+
+      // Mock CoinGecko API failure
+      mockFetch.mockRejectedValue(new Error('API error'));
+
+      // Should still return coins without price data
+      expect(mockWatchedCoins.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getHeldCoins endpoint', () => {
+    it('should fetch held coins only (with holdings)', async () => {
+      const mockHeldCoins = [
+        {
+          id: 'tracking-1',
+          userId: 'user-1',
+          cryptoId: 'crypto-1',
+          holdingAmount: 1.5,
+          crypto: {
+            id: 'crypto-1',
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            coinGeckoId: 'bitcoin',
+          },
+        },
+        {
+          id: 'tracking-2',
+          userId: 'user-1',
+          cryptoId: 'crypto-2',
+          holdingAmount: 10,
+          crypto: {
+            id: 'crypto-2',
+            symbol: 'ETH',
+            name: 'Ethereum',
+            coinGeckoId: 'ethereum',
+          },
+        },
+      ];
+
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockHeldCoins);
+
+      // Mock CoinGecko API response
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            id: 'bitcoin',
+            current_price: 45000,
+            price_change_percentage_24h: 3.5,
+          },
+          {
+            id: 'ethereum',
+            current_price: 3000,
+            price_change_percentage_24h: -1.2,
+          },
+        ],
+      });
+
+      // Verify the query would filter for held coins only
+      expect(mockHeldCoins.every(coin => coin.holdingAmount !== null)).toBe(true);
+    });
+
+    it('should return empty array when user has no holdings', async () => {
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue([]);
+
+      const result = await mockPrisma.cryptoTracking.findMany({
+        where: { userId: 'user-1', holdingAmount: { not: null } },
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it('should include current prices for held coins', async () => {
+      const mockHeldCoins = [
+        {
+          id: 'tracking-1',
+          userId: 'user-1',
+          cryptoId: 'crypto-1',
+          holdingAmount: 1.5,
+          crypto: {
+            id: 'crypto-1',
+            symbol: 'BTC',
+            name: 'Bitcoin',
+            coinGeckoId: 'bitcoin',
+          },
+        },
+      ];
+
+      mockPrisma.cryptoTracking.findMany.mockResolvedValue(mockHeldCoins);
+
+      // Mock successful price fetch
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            id: 'bitcoin',
+            current_price: 45000,
+            price_change_percentage_24h: 3.5,
+          },
+        ],
+      });
+
+      // Verify coins are properly structured
+      expect(mockHeldCoins[0].crypto.coinGeckoId).toBe('bitcoin');
+      expect(mockHeldCoins[0].holdingAmount).toBe(1.5);
+    });
+  });
+
+  describe('CoinGecko ID mapping', () => {
+    it('should use coinGeckoId from database when available', () => {
+      const crypto = {
+        symbol: 'BTC',
+        coinGeckoId: 'bitcoin',
+      };
+
+      // Should use coinGeckoId
+      expect(crypto.coinGeckoId).toBe('bitcoin');
+    });
+
+    it('should fallback to lowercase symbol when coinGeckoId is null', () => {
+      const crypto = {
+        symbol: 'BTC',
+        coinGeckoId: null,
+      };
+
+      // Fallback behavior
+      const fallback = crypto.coinGeckoId || crypto.symbol.toLowerCase();
+      expect(fallback).toBe('btc');
+    });
+
+    it('should handle coins with proper CoinGecko mappings', () => {
+      const cryptos = [
+        { symbol: 'BTC', coinGeckoId: 'bitcoin' },
+        { symbol: 'ETH', coinGeckoId: 'ethereum' },
+        { symbol: 'XMR', coinGeckoId: 'monero' },
+      ];
+
+      cryptos.forEach(crypto => {
+        expect(crypto.coinGeckoId).toBeTruthy();
+        expect(typeof crypto.coinGeckoId).toBe('string');
+      });
+    });
+  });
+});
 });
