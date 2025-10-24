@@ -25,8 +25,10 @@ import {
   Target,
   Edit,
   X,
+  Settings,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { AlertSettings } from '@/components/profile/AlertSettings'
 
 interface AlertCondition {
   sentimentThreshold?: number
@@ -338,6 +340,27 @@ export default function AlertsPage() {
           </FeatureGate>
         </div>
       </div>
+
+      {/* Alert Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Alert Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-1">
+              <h4 className="font-medium">Alert Thresholds</h4>
+              <p className="text-sm text-muted-foreground">
+                Configure when alerts are triggered
+              </p>
+            </div>
+            <AlertSettings />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Monitoring Status */}
       {monitoringStatus && (
