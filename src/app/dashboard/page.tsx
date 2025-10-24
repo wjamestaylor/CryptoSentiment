@@ -420,81 +420,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions & Portfolio Summary */}
+          {/* Top Performer */}
           <div className="space-y-4 md:space-y-6">
-            {/* Portfolio Holdings Summary */}
-            {summary.totalHoldings > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Portfolio Summary</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Overview of your cryptocurrency investments
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Total Holdings</span>
-                      <span className="font-medium">{summary.totalHoldings}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Portfolio Value</span>
-                      <span className="font-medium">${summary.portfolioValue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change</span>
-                      <span className={`font-medium ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change %</span>
-                      <span className={`font-medium ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
-                      </span>
-                    </div>
-                    <Button asChild className="w-full mt-4">
-                      <a href="/crypto">View Full Portfolio</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/watchlist">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Watchlist
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/crypto">
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Manage Portfolio
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/alerts">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Set Price Alert
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/sentiment">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Sentiment Analysis
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Performer */}
             {(topPerformer || combinedWatchlist.length > 0) && (
               <Card>
                 <CardHeader>

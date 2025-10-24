@@ -144,22 +144,22 @@ export function PriceChart({
     <ErrorBoundary>
       <Card className={className}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                {cryptoName || 'Price Chart'}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <BarChart3 className="h-5 w-5 flex-shrink-0" />
+                <span className="truncate">{cryptoName || 'Price Chart'}</span>
                 {cryptoSymbol && (
                   <Badge variant="outline">{cryptoSymbol.toUpperCase()}</Badge>
                 )}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Price history and market data analysis
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Select value={timeframe.toString()} onValueChange={(value) => setTimeframe(Number(value))}>
-                <SelectTrigger className="w-24">
+                <SelectTrigger className="w-20 sm:w-24">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -175,6 +175,7 @@ export function PriceChart({
                 variant="outline" 
                 size="sm"
                 disabled={isLoading}
+                className="flex-shrink-0"
               >
                 {isLoadingPrice ? (
                   <LoadingSpinner className="h-4 w-4" />
