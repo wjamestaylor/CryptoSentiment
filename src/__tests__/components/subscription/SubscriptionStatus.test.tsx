@@ -333,4 +333,51 @@ describe('SubscriptionStatus', () => {
 
     expect(screen.getByText('Unable to load subscription information.')).toBeInTheDocument();
   });
+
+  it('should handle zero limit edge case without crashing', () => {
+    mockApi.subscription.getCurrent.useQuery.mockReturnValue({
+      data: {
+        success: true,
+        data: {
+          tier: 'FREE',
+          status: 'ACTIVE',
+        },
+      },
+      isLoading: false,
+    });
+
+    mockApi.subscription.getLimits.useQuery.mockReturnValue({
+      data: {
+        success: true,
+        data: {
+          tier: 'FREE',
+          limits: {
+            alerts: 0, // Edge case: zero limit
+            watchlist: 0,
+            aiAnalysisPerMonth: 0,
+            botNotifications: 0,
+          },
+          usage: {
+            aiAnalysisUsed: 0,
+            aiAnalysisLimit: 0,
+            alertsUsed: 0,
+            alertsLimit: 0,
+            watchlistUsed: 0,
+            watchlistLimit: 0,
+            botNotificationsUsed: 0,
+            botNotificationsLimit: 0,
+          },
+        },
+      },
+      isLoading: false,
+    });
+
+    // Should render without crashing despite zero limits
+    expect(() => render(<SubscriptionStatus />)).not.toThrow();
+    
+    // Should display the zero values
+    expect(screen.getByText('AI Analyses')).toBeInTheDocument();
+    expect(screen.getByText('Watchlist')).toBeInTheDocument();
+    expect(screen.getByText('Alerts')).toBeInTheDocument();
+  });
 });

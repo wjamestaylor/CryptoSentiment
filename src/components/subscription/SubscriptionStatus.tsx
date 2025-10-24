@@ -131,7 +131,7 @@ export function SubscriptionStatus() {
                 </span>
               </div>
               {tierLimits.aiAnalysisPerMonth !== -1 && (
-                <Progress value={usageData?.aiAnalysisUsed ? (usageData.aiAnalysisUsed / tierLimits.aiAnalysisPerMonth) * 100 : 0} className="h-2" />
+                <Progress value={usageData?.aiAnalysisUsed && tierLimits.aiAnalysisPerMonth > 0 ? (usageData.aiAnalysisUsed / tierLimits.aiAnalysisPerMonth) * 100 : 0} className="h-2" />
               )}
             </div>
 
@@ -144,7 +144,7 @@ export function SubscriptionStatus() {
                 </span>
               </div>
               {tierLimits.watchlist !== -1 && (
-                <Progress value={usageData?.watchlistUsed ? (usageData.watchlistUsed / tierLimits.watchlist) * 100 : 0} className="h-2" />
+                <Progress value={usageData?.watchlistUsed && tierLimits.watchlist > 0 ? (usageData.watchlistUsed / tierLimits.watchlist) * 100 : 0} className="h-2" />
               )}
             </div>
 
@@ -157,7 +157,7 @@ export function SubscriptionStatus() {
                 </span>
               </div>
               {tierLimits.alerts !== -1 && (
-                <Progress value={usageData?.alertsUsed ? (usageData.alertsUsed / tierLimits.alerts) * 100 : 0} className="h-2" />
+                <Progress value={usageData?.alertsUsed && tierLimits.alerts > 0 ? (usageData.alertsUsed / tierLimits.alerts) * 100 : 0} className="h-2" />
               )}
             </div>
           </div>
