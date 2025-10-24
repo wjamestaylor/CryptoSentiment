@@ -89,10 +89,6 @@ jest.mock('@/components/profile/NotificationPreferences', () => ({
   NotificationPreferences: () => <button data-testid="notification-preferences" className="w-full sm:w-auto">Configure</button>,
 }));
 
-jest.mock('@/components/profile/AlertSettings', () => ({
-  AlertSettings: () => <button data-testid="alert-settings" className="w-full sm:w-auto">Settings</button>,
-}));
-
 // Type for mocked API structure
 interface MockedApi {
   auth: {
@@ -298,15 +294,12 @@ describe('Profile Page - Mobile Responsiveness', () => {
       expect(preferencesSection?.className).toContain('sm:flex-row');
     });
 
-    it('should render preference buttons with responsive width', () => {
+    it('should render preference button with responsive width', () => {
       render(<ProfilePage />);
       const configureButton = screen.getByTestId('notification-preferences');
-      const settingsButton = screen.getByTestId('alert-settings');
       
       expect(configureButton.className).toContain('w-full');
       expect(configureButton.className).toContain('sm:w-auto');
-      expect(settingsButton.className).toContain('w-full');
-      expect(settingsButton.className).toContain('sm:w-auto');
     });
   });
 
@@ -326,7 +319,6 @@ describe('Profile Page - Mobile Responsiveness', () => {
       expect(screen.getByText('Back to Dashboard')).toBeInTheDocument();
       expect(screen.getByText('View Watchlist')).toBeInTheDocument();
       expect(screen.getByTestId('notification-preferences')).toBeInTheDocument();
-      expect(screen.getByTestId('alert-settings')).toBeInTheDocument();
     });
 
     it('should render all major sections', () => {

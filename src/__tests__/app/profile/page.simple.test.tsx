@@ -81,10 +81,6 @@ jest.mock('@/components/profile/NotificationPreferences', () => ({
   NotificationPreferences: () => <button data-testid="notification-preferences">Notification Preferences</button>,
 }));
 
-jest.mock('@/components/profile/AlertSettings', () => ({
-  AlertSettings: () => <button data-testid="alert-settings">Alert Settings</button>,
-}));
-
 // Type for mocked API structure
 interface MockedApi {
   auth: {
@@ -183,12 +179,11 @@ describe('Profile Page', () => {
     expect(screen.getByTestId('bot-connection')).toBeInTheDocument();
   });
 
-  it('should render preferences section with functional buttons', () => {
+  it('should render preferences section with notification preferences', () => {
     render(<ProfilePage />);
 
     expect(screen.getByText('Preferences')).toBeInTheDocument();
     expect(screen.getByTestId('notification-preferences')).toBeInTheDocument();
-    expect(screen.getByTestId('alert-settings')).toBeInTheDocument();
   });
 
   it('should render user information correctly', () => {

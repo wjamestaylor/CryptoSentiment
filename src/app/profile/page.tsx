@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
 import { BotConnection } from "@/components/profile/BotConnection";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
-import { AlertSettings } from "@/components/profile/AlertSettings";
 import { api } from "@/lib/trpc/provider";
 
 export default function ProfilePage() {
@@ -105,16 +104,6 @@ export default function ProfilePage() {
                 </p>
               </div>
               <NotificationPreferences />
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex-1">
-                <h4 className="font-medium">Alert Frequency</h4>
-                <p className="text-sm text-gray-500">
-                  How often you want to receive notifications
-                </p>
-              </div>
-              <AlertSettings />
             </div>
           </div>
         </CardContent>
