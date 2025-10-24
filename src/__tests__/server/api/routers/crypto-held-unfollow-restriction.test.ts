@@ -195,6 +195,7 @@ describe('Held Coin Unfollow Restriction', () => {
         name: 'Ethereum',
         isHolding: false,
         currentPrice: 3000,
+        holdingAmount: undefined,
       };
 
       // Held coins should have isHolding flag
