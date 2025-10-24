@@ -1,154 +1,210 @@
-# CryptoSentiment AI Development Assistant
+# CryptoSentiment - GitHub Copilot Instructions
 
-## Project Context & Identity
-**CryptoSentiment** is a production-ready cryptocurrency sentiment analysis platform deployed on Railway with Google OAuth authentication. The platform prioritizes **live data accuracy**, **type safety**, and **production reliability**.
+## 📋 Project Overview
+Production-ready cryptocurrency sentiment analysis platform with AI insights, real-time market data, and portfolio management. Built with type safety and production reliability as core principles.
 
-**Current Status**: ✅ Google OAuth working, ❌ Email auth disabled (NextAuth issues), 606+ tests passing  
-**Live URL**: https://lavish-patience-production-f0a0.up.railway.app  
-**Tech Stack**: Next.js 15 + App Router, TypeScript, Prisma, PostgreSQL, tRPC, Tailwind CSS + shadcn/ui, Jest, Turbopack  
-**Core Principle**: NEVER use sample/fake data - all information must come from live APIs
+**Live**: https://lavish-patience-production-f0a0.up.railway.app | **Status**: ✅ 936+ tests passing
 
-## 🏗️ Architecture Rules
+### Core Principles
+1. **Live Data Only** - NEVER use sample/fake data; always use live APIs (CoinGecko, OpenRouter)
+2. **Type Safety First** - Full TypeScript strict mode, Zod validation for all inputs
+3. **Test Coverage** - Maintain 80%+ coverage; write tests for all new features
+4. **Production Ready** - Proper error handling in all code
 
-### Service Layer Pattern (MANDATORY)
-**Reference**: `/src/services/crypto/price.service.ts` - Use as template for ALL external API integrations
+## 🛠️ Tech Stack
+**Frontend**: Next.js 15.5.4, React 19, TypeScript 5, Tailwind CSS 3.4.18, shadcn/ui, Zustand 5.0.8  
+**Backend**: tRPC 11.6.0, Prisma 6.17.0, PostgreSQL, NextAuth.js 4.24.11 (Google OAuth only)  
+**External**: CoinGecko API, OpenRouter API, Discord.js 14.23.2, Telegram bots  
+**Dev Tools**: Jest 30.2.0, ESLint 9, Prettier 3.6.2, Turbopack
+
+## 📁 Key Structure
+```
+/src/app          # Next.js pages
+/src/components   # React components + /ui (shadcn)
+/src/server/api   # tRPC routers
+/src/services     # External API integrations
+/src/lib          # Utilities, database, auth
+/src/__tests__    # Test files
+```
+
+**Critical Files**: `src/lib/crypto-mappings.ts` (symbol conversions), `src/server/api/root.ts` (main router), `src/lib/db.ts` (Prisma client)
+
+## 🏗️ Architecture Patterns
+
+### Service Layer (MANDATORY)
+All external API calls use service classes. Reference: `/src/services/crypto/price.service.ts`
+
 ```typescript
 export class CoinGeckoService {
   private async request<T>(endpoint: string): Promise<T> {
-    // Standard error handling, optional API keys, rate limiting
+    // Centralized error handling, optional API keys, rate limiting
   }
 }
 ```
-- Private `request()` method for centralized error handling and logging
-- Support optional API keys (free tier friendly)
-- TypeScript generics for return types
-- Rate limiting consideration for free APIs
 
 ### tRPC Integration (REQUIRED)
-**Reference**: `/src/server/api/routers/crypto.ts` - Follow this exact pattern:
+Reference: `/src/server/api/routers/crypto.ts`
+
 ```typescript
 export const cryptoRouter = createTRPCRouter({
   getTopCryptos: publicProcedure
     .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
     .query(async ({ input }) => {
-      // Direct fetch for simple cases, service classes for complex APIs
       return { success: true, data: results };
     }),
 });
 ```
-- **Input validation**: Always use Zod schemas with proper constraints
-- **Procedure types**: `publicProcedure` for data, `protectedProcedure` for user actions
-- **Response format**: Consistent `{ success: boolean, data: T }` structure
-- **Error handling**: Let tRPC handle errors with proper error formatting in `trpc.ts`
 
-### Database Integration (PRISMA)
-**Key Pattern**: Always include related data in queries to avoid N+1 problems
+**Rules**:
+- Always use Zod schemas for input validation
+- `publicProcedure` for data, `protectedProcedure` for user actions
+- Consistent `{ success: boolean, data: T }` response format
+- Let tRPC handle errors with proper formatting
+
+### Database (Prisma)
+**Always include relations** to avoid N+1 queries:
+
 ```typescript
 const followedCryptos = await ctx.prisma.followedCoin.findMany({
   where: { userId },
-  include: { crypto: true }, // Always include relations
+  include: { crypto: true }, // Include relations
 });
 ```
-- Use `upsert` for create-or-update patterns
-- Leverage Prisma's type safety with proper includes
 
-### Testing Strategy (MANDATORY)
-**Reference**: `/src/__tests__/services/coingecko.test.ts` - Follow these exact patterns:
+## 🧪 Testing
+**Status**: 936+ tests, 56 suites, 100% passing, 80%+ coverage
+
 ```typescript
-global.fetch = jest.fn(); // Global mock setup
-
-beforeEach(() => {
-  jest.clearAllMocks();
+// Service tests - Mock global fetch
+describe('CoinGeckoService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockClear();
+  });
+  
+  it('should fetch price', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ bitcoin: { usd: 50000 } }),
+    });
+    // ... assertions
+  });
 });
 
-(fetch as jest.Mock).mockResolvedValueOnce({
-  ok: true,
-  json: async () => mockResponse,
+// Component tests - Testing Library
+describe('CryptoCard', () => {
+  it('should display data', () => {
+    render(<CryptoCard name="Bitcoin" symbol="BTC" price={50000} />);
+    expect(screen.getByText('Bitcoin')).toBeInTheDocument();
+  });
 });
 ```
-- Global fetch mocking pattern for all service tests
-- Test both success AND error scenarios
-- Use `jest-mock-extended` for Prisma mocking
-- Current status: 606+ tests, 42 suites, 100% passing
 
-## 🚀 Development Workflow
+**Requirements**: All new features must include tests for success AND error scenarios.
 
-### Essential Commands
+## 🔧 Essential Commands
 ```bash
-npm run dev          # Start with Turbopack (faster dev builds)
-npm test             # Run all 606+ tests
-npm run test:watch   # Watch mode for TDD
-npm run db:studio    # Visual database admin
-npm run lint         # ESLint with auto-fix
+npm run dev              # Dev server with Turbopack
+npm test                 # Run all tests
+npm run test:watch       # TDD watch mode
+npm run lint             # ESLint with auto-fix
+npm run type-check       # TypeScript validation
+npm run db:generate      # Generate Prisma client
+npm run db:studio        # Visual database admin
+npm run build            # Production build
 ```
 
-### Build Process
-- **Turbopack**: Used for both dev (`--turbopack`) and build for speed
-- **Production**: Uses `output: 'standalone'` for Docker compatibility
-- **Image optimization**: Disabled in production to avoid cache permission issues
+## 📐 Naming Conventions
+- **Files**: kebab-case (`crypto-service.ts`)
+- **Components**: PascalCase (`CryptoCard`)
+- **Functions**: camelCase (`getCryptoPrice`)
+- **Constants**: UPPER_SNAKE_CASE (`API_BASE_URL`)
+- **Interfaces**: PascalCase (`CryptoCurrency`)
 
-### Component Development
-- **UI Library**: shadcn/ui components in `/src/components/ui/`
-- **Pattern**: TypeScript interfaces for all props
-- **Styling**: Tailwind CSS with `cn()` utility for conditional classes
+## ✅ Do This
 
-## 🔐 Environment & Security
+### API Integration
+```typescript
+// ✅ Good - Use service classes
+const service = new CoinGeckoService();
+const price = await service.getPrice('bitcoin');
 
-### Required Environment Variables
-```bash
-DATABASE_URL="postgresql://..."           # Required
-NEXTAUTH_SECRET="your-secret"            # Required  
-GOOGLE_CLIENT_ID="google-oauth-id"       # Required (email auth disabled)
-GOOGLE_CLIENT_SECRET="google-secret"     # Required
-OPENROUTER_API_KEY="sk-or-..."          # AI analysis
-COINGECKO_API_KEY="CG-..."              # Crypto data (optional)
+// ❌ Bad - Direct fetch in components
+const response = await fetch('https://api.coingecko.com/...');
 ```
 
-### Security Headers
-Configured in `next.config.ts` with CSP, frame options, and content-type protection.
+### Crypto Symbols
+```typescript
+// ✅ Good - Always convert symbols to CoinGecko IDs
+import { getCoinGeckoId } from '@/lib/crypto-mappings';
+const coinId = getCoinGeckoId('BTC'); // Returns 'bitcoin'
+```
 
-## 🗺️ Project Structure Deep Dive
+### Database Queries
+```typescript
+// ✅ Good - Include relations
+const coins = await prisma.followedCoin.findMany({
+  where: { userId },
+  include: { crypto: true },
+});
 
-### Key Directories
-- `/src/services/`: External API integrations (crypto, ai, bots, email, notifications)
-- `/src/server/api/routers/`: tRPC endpoints (crypto, auth, alerts, sentiment)
-- `/src/lib/`: Utilities, database, auth, and shared logic
-- `/src/app/`: Next.js App Router pages (dashboard, pricing, alerts, etc.)
-- `/docs/`: Implementation progress and guides
+// ❌ Bad - Missing relations (causes N+1)
+const coins = await prisma.followedCoin.findMany({ where: { userId } });
+```
 
-### Data Flow Pattern
-1. **Frontend** → tRPC client → **Router** → Service class → External API
-2. **Database** operations always through Prisma in routers
-3. **Crypto mappings**: Use `/src/lib/crypto-mappings.ts` for symbol ↔ CoinGecko ID conversion
+### Component Props
+```typescript
+// ✅ Good - TypeScript interfaces
+interface CryptoCardProps {
+  name: string;
+  symbol: string;
+  price: number;
+  change24h?: number;
+}
 
-### Special Patterns
-- **Crypto data**: Always convert symbols to CoinGecko IDs using `getCoinGeckoId()`
-- **Authentication**: NextAuth with Google OAuth only (email auth disabled)
-- **Subscriptions**: Stripe integration with feature gating in progress
+export function CryptoCard({ name, symbol, price, change24h }: CryptoCardProps) {
+  // Component code
+}
+```
 
-## ✅ Do This / ❌ Avoid This
+### UI Components
+```typescript
+// ✅ Good - Use shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
 
-**✅ Follow Patterns:**
-- Use service classes for external APIs (not direct fetch in components)
-- Follow tRPC router patterns from `/src/server/api/routers/crypto.ts`
-- Test patterns from `/src/__tests__/services/coingecko.test.ts`
-- Always include Prisma relations to avoid N+1 queries
-- Use TypeScript interfaces for all component props
+// ✅ Good - Use cn() utility for conditional classes
+import { cn } from '@/lib/utils';
+<div className={cn("base", condition && "conditional")} />
+```
 
-**❌ Never Do:**
-- Use sample/fake data (strict project policy - always live APIs)
-- Skip error handling in service classes
-- Direct database queries in components (use tRPC)
-- Direct fetch calls (use service layer pattern)
-- Commit API keys to version control
+## ❌ Never Do This
 
-## 📚 Implementation Status & References
+- **NEVER use sample/fake data** - Strict project policy, always use live APIs
+- **NEVER skip error handling** in service classes
+- **NEVER use direct fetch** in components - Use service layer
+- **NEVER query database directly** from components - Use tRPC
+- **NEVER commit API keys** to version control
+- **NEVER use `any` type** - Use `unknown` if type is truly unknown
+- **NEVER skip input validation** on tRPC endpoints
+- **NEVER skip tests** for new features
+- **NEVER test only the happy path** - Test errors too
 
-**Current Phase**: Feature gating and usage tracking (Phase 4)  
-**Previous**: Stripe frontend integration complete
+## 🔐 Security
+- **Auth**: Google OAuth only via NextAuth.js (`protectedProcedure` for auth routes)
+- **Validation**: Always use Zod schemas, validate on client AND server
+- **Headers**: CSP, X-Frame-Options, X-Content-Type-Options configured in `next.config.ts`
+- **API Keys**: Store in env variables, never commit, support optional keys for free tiers
 
-Key Documents:
-- **[Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md)**: Development progress and current priorities
-- **[Development Setup](DEVELOPMENT_SETUP.md)**: Environment setup and troubleshooting  
-- **[Test Coverage Report](docs/TEST_COVERAGE_REPORT.md)**: Quality metrics and testing patterns
-- **[Security Setup](SECURITY-SETUP.md)**: Security configuration and best practices
+## 📚 Documentation
+- [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) - Development progress
+- [Test Coverage](docs/TEST_COVERAGE_REPORT.md) - Testing patterns
+- [Development Setup](DEVELOPMENT_SETUP.md) - Environment setup
+- [Security Setup](SECURITY-SETUP.md) - Security config
+
+## 💡 Quick Tips
+1. Run `npm test` first to understand expected behavior
+2. Always convert crypto symbols using `crypto-mappings.ts`
+3. Follow tRPC patterns from existing routers
+4. Use TypeScript strict mode, avoid `any`
+5. Check `/docs` for detailed implementation guides
