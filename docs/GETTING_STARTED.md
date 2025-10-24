@@ -242,7 +242,9 @@ Our step-by-step wizard makes alert creation easy:
 - Priority support
 - Custom alert conditions
 - Advanced analytics
-- API access (coming soon)
+- API access*
+
+*_Features marked with asterisk are in development_
 
 **Upgrade anytime** from your Profile page or the Pricing page.
 

@@ -266,7 +266,7 @@ export function AlertWizard({ onComplete, onCancel, isSubmitting = false }: Aler
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Label htmlFor="sentiment-threshold">Sentiment Score (0-1)</Label>
-                  <HelpTooltip content="Sentiment score: 0.7+ is bullish, 0.3- is bearish" />
+                  <HelpTooltip content="Sentiment threshold on a 0-1 scale. Typically 0.7+ indicates bullish sentiment, while 0.3 or below indicates bearish sentiment." />
                 </div>
                 <Input
                   id="sentiment-threshold"
