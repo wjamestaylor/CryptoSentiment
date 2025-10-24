@@ -332,15 +332,20 @@ export default function CryptoPage() {
 
 ## 🔒 **Data Validation & Error Handling**
 
-### **Input Validation** *(Enhanced: January 2025)*
+### **Input Validation** *(Enhanced: October 2025)*
 
 #### **Frontend Validation**
 The edit holdings form includes comprehensive validation to ensure data integrity:
 
 ```typescript
+```typescript
 // Validate required fields
 if (!formData.holdingAmount || !formData.purchasePrice) {
-  // Show error toast
+  toast({
+    title: "Error",
+    description: "Please enter holding amount and purchase price",
+    variant: "destructive",
+  });
   return;
 }
 
@@ -395,7 +400,7 @@ updateCryptoTracking: protectedProcedure
 - Backend validation ensures data integrity even if frontend is bypassed
 - Comprehensive error handling prevents silent failures
 
-### **Form State Management** *(Enhanced: January 2025)*
+### **Form State Management** *(Enhanced: October 2025)*
 
 #### **Proper State Reset**
 After successful updates, the form state is completely reset to prevent stale data issues:
