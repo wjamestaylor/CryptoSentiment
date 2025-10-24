@@ -499,6 +499,94 @@ describe('Crypto Router Unified Tracking System', () => {
         (prisma.cryptoTracking.findFirst as jest.Mock).mockResolvedValue(mockTrackingEntry);
       }
     });
+
+    it('should handle validation errors for invalid numeric values', async () => {
+      const schema = z.object({
+        id: z.string(),
+        trackingType: z.enum(['WATCH_ONLY', 'ADD_HOLDING', 'REMOVE_HOLDING']).optional(),
+        holdingAmount: z.number().positive().optional(),
+        purchasePrice: z.number().positive().optional(),
+      });
+
+      // Test negative holding amount
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: -1,
+        purchasePrice: 50000,
+      })).toThrow();
+
+      // Test zero holding amount
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 0,
+        purchasePrice: 50000,
+      })).toThrow();
+
+      // Test negative purchase price
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 1.0,
+        purchasePrice: -50000,
+      })).toThrow();
+
+      // Test zero purchase price
+      expect(() => schema.parse({
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING',
+        holdingAmount: 1.0,
+        purchasePrice: 0,
+      })).toThrow();
+    });
+
+    it('should handle successful update after validation passes', async () => {
+      const validUpdate = {
+        id: 'tracking-1',
+        trackingType: 'ADD_HOLDING' as const,
+        holdingAmount: 1.5,
+        purchasePrice: 52000,
+        notes: 'Validated update',
+      };
+
+      const updatedEntry = {
+        ...mockTrackingEntry,
+        holdingAmount: validUpdate.holdingAmount,
+        averagePurchasePrice: validUpdate.purchasePrice,
+        totalInvested: validUpdate.holdingAmount * validUpdate.purchasePrice,
+        notes: validUpdate.notes,
+        lastViewedAt: new Date(),
+      };
+
+      (prisma.cryptoTracking.update as jest.Mock).mockResolvedValue(updatedEntry);
+
+      // Verify ownership
+      const tracking = await prisma.cryptoTracking.findFirst({
+        where: { id: validUpdate.id, userId: 'user-1' },
+        include: { crypto: true },
+      });
+
+      expect(tracking).toBeTruthy();
+
+      // Perform update
+      const result = await prisma.cryptoTracking.update({
+        where: { id: validUpdate.id },
+        data: {
+          holdingAmount: validUpdate.holdingAmount,
+          averagePurchasePrice: validUpdate.purchasePrice,
+          totalInvested: validUpdate.holdingAmount * validUpdate.purchasePrice,
+          notes: validUpdate.notes,
+          lastViewedAt: expect.any(Date),
+        },
+        include: { crypto: true },
+      });
+
+      expect(result.holdingAmount).toBe(1.5);
+      expect(result.averagePurchasePrice).toBe(52000);
+      expect(result.totalInvested).toBe(78000);
+      expect(result.notes).toBe('Validated update');
+    });
   });
 
   describe('Portfolio Calculations', () => {

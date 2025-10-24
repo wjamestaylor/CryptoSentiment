@@ -145,6 +145,7 @@ export function CryptoManager() {
     onSuccess: () => {
       refetchTracking();
       setEditingId(null);
+      resetForm();
       toast({
         title: "Success",
         description: "Tracking updated successfully",
@@ -193,6 +194,8 @@ export function CryptoManager() {
     setShowAddForm(false);
     setIsSearching(false);
     setSearchQuery('');
+    setEditingId(null);
+    setTrackingType('WATCH_ONLY');
   };
 
   const handleAddFromSearch = (crypto: SearchCrypto) => {
@@ -966,6 +969,7 @@ export function CryptoManager() {
                   
                   // Handle different tracking types
                   if (trackingType === 'ADD_HOLDING') {
+                    // Validate required fields
                     if (!formData.holdingAmount || !formData.purchasePrice) {
                       toast({
                         title: "Error",
@@ -975,11 +979,33 @@ export function CryptoManager() {
                       return;
                     }
                     
+                    // Parse and validate numeric values
+                    const holdingAmount = parseFloat(formData.holdingAmount);
+                    const purchasePrice = parseFloat(formData.purchasePrice);
+                    
+                    if (isNaN(holdingAmount) || holdingAmount <= 0) {
+                      toast({
+                        title: "Error",
+                        description: "Please enter a valid holding amount greater than 0",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    if (isNaN(purchasePrice) || purchasePrice <= 0) {
+                      toast({
+                        title: "Error",
+                        description: "Please enter a valid purchase price greater than 0",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
                     updateTrackingMutation.mutate({
                       id: editingId,
                       trackingType: 'ADD_HOLDING',
-                      holdingAmount: parseFloat(formData.holdingAmount),
-                      purchasePrice: parseFloat(formData.purchasePrice),
+                      holdingAmount,
+                      purchasePrice,
                       purchaseDate: new Date(formData.purchaseDate),
                       notes: formData.notes || undefined,
                       tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
@@ -992,7 +1018,7 @@ export function CryptoManager() {
                       holdingAmount: undefined,
                       purchasePrice: undefined,
                       purchaseDate: new Date(formData.purchaseDate),
-                      notes: 'Converting to watch only',
+                      notes: formData.notes || 'Converting to watch only',
                       tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
                     });
                   }
