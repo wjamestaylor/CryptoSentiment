@@ -76,9 +76,9 @@ Added comprehensive test coverage with two test suites:
 
 ## Test Results
 - **Total Tests**: 1041 tests
-- **Passing**: 1035 tests
+- **Passing**: 1035 tests (including all our new tests)
 - **Failing**: 6 tests (pre-existing, unrelated to this change - PriceChart component)
-- **New Tests Added**: 11 tests
+- **New Tests Added**: 11 tests (3 updated + 8 new integration tests)
 - **All New Tests**: ✅ PASSING
 
 ## Files Modified
@@ -110,11 +110,12 @@ None - this is a bug fix that makes the system behave as originally intended.
 - No database migrations required - uses existing `CryptoTracking` table
 
 ## Subscription Tier Impact
-| Tier | Watch Limit | Behavior |
-|------|-------------|----------|
-| FREE | 10 | Counts all tracked coins (watched + held) |
-| PRO | 100 | Counts all tracked coins (watched + held) |
-| BUSINESS | Unlimited (-1) | No limit enforced |
+
+| Tier     | Watch Limit    | Behavior                                |
+|----------|----------------|-----------------------------------------|
+| FREE     | 10             | Counts all tracked coins (watched + held) |
+| PRO      | 100            | Counts all tracked coins (watched + held) |
+| BUSINESS | Unlimited (-1) | No limit enforced                       |
 
 ## Future Considerations
 1. The current implementation is state-based (counts actual entries) rather than usage-log based
