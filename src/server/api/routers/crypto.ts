@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
-import { getCoinGeckoId } from '@/lib/crypto-mappings';
+import { getCoinGeckoId, normalizeCryptoIdentifier } from '@/lib/crypto-mappings';
 import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
 import { CryptoManagerService } from '@/services/crypto/manager.service';
 import { UsageType } from '@prisma/client';
@@ -310,14 +310,28 @@ export const cryptoRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
       
       try {
-        // Find the cryptocurrency
-        const crypto = await ctx.prisma.cryptocurrency.findUnique({
-          where: { symbol: input.cryptoSymbol.toUpperCase() },
-        });
-
-        if (!crypto) {
-          throw new Error(`Cryptocurrency ${input.cryptoSymbol} not found`);
+        // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
+        const coinGeckoId = normalizeCryptoIdentifier(input.cryptoSymbol);
+        
+        if (!coinGeckoId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Invalid cryptocurrency identifier: "${input.cryptoSymbol}". Please provide a valid symbol (e.g., BTC) or name (e.g., bitcoin).`,
+          });
         }
+
+        // Ensure the cryptocurrency exists in our database
+        const crypto = await ctx.prisma.cryptocurrency.upsert({
+          where: { symbol: input.cryptoSymbol.toUpperCase() },
+          update: {
+            coinGeckoId: coinGeckoId,
+          },
+          create: {
+            symbol: input.cryptoSymbol.toUpperCase(),
+            name: input.cryptoSymbol,
+            coinGeckoId: coinGeckoId,
+          },
+        });
 
         // Create portfolio holding
         const holding = await ctx.prisma.portfolioHolding.create({
@@ -340,6 +354,9 @@ export const cryptoRouter = createTRPCRouter({
           data: holding,
         };
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         throw new Error(`Failed to add portfolio holding: ${error}`);
       }
     }),
@@ -504,8 +521,15 @@ export const cryptoRouter = createTRPCRouter({
           }
         }
 
-        // Get the CoinGecko ID for this symbol
-        const coinGeckoId = getCoinGeckoId(input.cryptoSymbol);
+        // Normalize the crypto identifier (supports symbols, names, and CoinGecko IDs)
+        const coinGeckoId = normalizeCryptoIdentifier(input.cryptoSymbol);
+        
+        if (!coinGeckoId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Invalid cryptocurrency identifier: "${input.cryptoSymbol}". Please provide a valid symbol (e.g., BTC) or name (e.g., bitcoin).`,
+          });
+        }
         
         // Ensure the cryptocurrency exists in our database
         const crypto = await ctx.prisma.cryptocurrency.upsert({

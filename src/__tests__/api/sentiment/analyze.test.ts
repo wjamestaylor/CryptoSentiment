@@ -83,21 +83,15 @@ describe('/api/sentiment/analyze', () => {
       expect(data.error).toBe('Cryptocurrency is required');
     });
 
-    it('should return 404 when cryptocurrency is not found in CoinGecko', async () => {
-      // Mock CoinGecko API returning empty response
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({}) // Empty object means cryptocurrency not found
-      });
-
+    it('should return 400 when cryptocurrency identifier is invalid', async () => {
       const request = createMockRequest({ cryptocurrency: 'invalid-coin' });
 
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(404);
-      expect(data.error).toBe('Cryptocurrency not found');
-      expect(data.details).toContain('No price data available');
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Invalid cryptocurrency identifier');
+      expect(data.details).toContain('not a recognized cryptocurrency');
     });
 
     it('should return 503 when CoinGecko API fails', async () => {
@@ -173,6 +167,7 @@ describe('/api/sentiment/analyze', () => {
       // Verify OpenRouter service was called with correct data
       expect(mockAnalyzeSentiment).toHaveBeenCalledWith({
         cryptocurrency: 'bitcoin',
+        originalInput: 'bitcoin',
         priceData: {
           current_price: 45000,
           price_change_24h: 2.5,

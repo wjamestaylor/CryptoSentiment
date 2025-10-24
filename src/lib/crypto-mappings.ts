@@ -101,3 +101,44 @@ export function getSymbolFromCoinGeckoId(coinGeckoId: string): string | null {
 export function hasKnownMapping(symbol: string): boolean {
   return symbol.toUpperCase() in SYMBOL_TO_COINGECKO_ID;
 }
+
+/**
+ * Normalize crypto identifier (symbol, name, or CoinGecko ID) to CoinGecko ID
+ * Accepts:
+ * - Symbols: "BTC", "btc", "Bitcoin"
+ * - CoinGecko IDs: "bitcoin", "Bitcoin"
+ * - Mixed case: "BtC", "BiTcOiN"
+ * 
+ * Returns the CoinGecko ID or null if not found
+ */
+export function normalizeCryptoIdentifier(input: string): string | null {
+  if (!input || typeof input !== 'string') {
+    return null;
+  }
+
+  // Trim whitespace
+  const trimmedInput = input.trim();
+  
+  if (trimmedInput.length === 0) {
+    return null;
+  }
+
+  // Convert to lowercase for case-insensitive comparison
+  const lowerInput = trimmedInput.toLowerCase();
+  
+  // First, try as a symbol (e.g., "BTC", "btc", "Bitcoin")
+  const fromSymbol = getCoinGeckoId(trimmedInput);
+  if (fromSymbol) {
+    return fromSymbol;
+  }
+
+  // Check if it's already a valid CoinGecko ID by looking in the values
+  const coinGeckoIds = Object.values(SYMBOL_TO_COINGECKO_ID);
+  const matchingId = coinGeckoIds.find(id => id.toLowerCase() === lowerInput);
+  if (matchingId) {
+    return matchingId;
+  }
+
+  // Not found
+  return null;
+}
