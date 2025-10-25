@@ -20,6 +20,7 @@
 - 📈 **Type-Safe API** - Full-stack TypeScript with tRPC
 - 💳 **Subscription Management** - Stripe integration with usage tracking and feature restrictions
 - 🤖 **Bot Integration** - Discord and Telegram bots with comprehensive testing
+- 📊 **Admin Analytics Dashboard** - Comprehensive usage metrics, activation funnels, and conversion tracking for data-driven optimization
 
 *View [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) for detailed capabilities and development status.*
 
@@ -289,6 +290,7 @@ npm run lint         # ESLint with auto-fix
 - **[Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md)** - Development progress and feature roadmap
 - **[Development Setup](DEVELOPMENT_SETUP.md)** - Environment configuration and troubleshooting
 - **[Unified Crypto System](docs/UNIFIED_CRYPTO_MANAGEMENT_SYSTEM.md)** - Technical architecture and implementation
+- **[Admin Analytics Setup](docs/ADMIN_ANALYTICS_SETUP.md)** - Admin dashboard configuration and usage guide
 - **[Security Setup](SECURITY-SETUP.md)** - Security configuration and best practices
 - **[Test Coverage](docs/TEST_COVERAGE_REPORT.md)** - Quality metrics and testing patterns
 

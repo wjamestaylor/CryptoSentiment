@@ -56,7 +56,7 @@ function FunnelVisualization({ data }: { data: Array<{ step: string; count: numb
 
   return (
     <div className="space-y-4">
-      {data.map((item, index) => (
+      {data.map((item) => (
         <div key={item.step} className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="font-medium">{item.step}</span>
@@ -148,7 +148,8 @@ export function AdminDashboard() {
   const conversionQuery = api.admin.getConversionRates.useQuery({ days: timeframe });
   const retentionQuery = api.admin.getRetentionMetrics.useQuery({ cohortDays: timeframe });
   const featureUsageQuery = api.admin.getFeatureUsage.useQuery({ days: timeframe });
-  const growthQuery = api.admin.getUserGrowth.useQuery({ days: timeframe });
+  // Note: getUserGrowth endpoint available for future growth charts
+  // const growthQuery = api.admin.getUserGrowth.useQuery({ days: timeframe });
 
   const isLoading = overviewQuery.isLoading;
   const error = overviewQuery.error;
