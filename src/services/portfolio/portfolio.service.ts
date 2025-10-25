@@ -90,12 +90,13 @@ export class PortfolioService {
       let priceData: CoinGeckoPriceData[] = [];
       
       if (coinGeckoIds.length > 0) {
-        try {
-          priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
-        } catch (priceError) {
-          console.warn('Failed to fetch current prices, using fallback data:', priceError);
-          // Return portfolio with zero current prices instead of failing completely
-          priceData = [];
+        // Don't catch errors here - let them propagate to the caller
+        // This ensures dashboard doesn't show $0 values on API failure
+        priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
+        
+        // Validate that we got price data
+        if (!priceData || priceData.length === 0) {
+          throw new Error('No price data returned from API');
         }
       }
       
@@ -161,9 +162,9 @@ export class PortfolioService {
     } catch (error) {
       console.error('Error calculating portfolio analytics:', error);
       
-      // Return empty portfolio instead of throwing to prevent dashboard crashes
-      console.warn('Returning empty portfolio due to API issues');
-      return this.getEmptyPortfolio();
+      // Re-throw error instead of returning empty portfolio
+      // This prevents dashboard from showing misleading $0 values
+      throw new Error(`Failed to calculate portfolio analytics: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -190,11 +191,12 @@ export class PortfolioService {
       let priceData: CoinGeckoPriceData[] = [];
       
       if (coinGeckoIds.length > 0) {
-        try {
-          priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
-        } catch (priceError) {
-          console.warn('Failed to fetch prices for portfolio summary, using zero values:', priceError);
-          // Continue with empty price data instead of failing
+        // Don't catch errors - let them propagate
+        priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
+        
+        // Validate that we got price data
+        if (!priceData || priceData.length === 0) {
+          throw new Error('No price data returned from API');
         }
       }
       
@@ -222,16 +224,8 @@ export class PortfolioService {
     } catch (error) {
       console.error('Error calculating portfolio summary:', error);
       
-      // Return basic summary with invested amounts only
-      const totalInvested = holdings.reduce((sum, h) => sum + h.totalInvested, 0);
-      return {
-        totalValue: 0, // Can't calculate without prices
-        totalInvested,
-        totalGainLoss: -totalInvested, // Assume worst case if no prices available
-        totalGainLossPercentage: -100,
-        holdingsCount: holdings.length,
-        lastUpdated: new Date(),
-      };
+      // Re-throw error instead of returning fallback values
+      throw new Error(`Failed to calculate portfolio summary: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

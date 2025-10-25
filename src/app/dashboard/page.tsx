@@ -23,6 +23,7 @@ export default function Dashboard() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  const [lastValidData, setLastValidData] = useState<typeof dashboardData | null>(null);
   
   // Feature gating integration
   const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
@@ -38,10 +39,22 @@ export default function Dashboard() {
   } = api.dashboard.getDashboardData.useQuery(undefined, {
     enabled: !!session?.user,
     refetchInterval: 30000, // Refresh every 30 seconds
+    // Retry only once on failure to avoid rapid retries
+    retry: 1,
   });
 
+  // Update lastValidData when we get successful data
+  if (dashboardData?.success && dashboardData.data && !dashboardError) {
+    if (JSON.stringify(lastValidData) !== JSON.stringify(dashboardData)) {
+      setLastValidData(dashboardData);
+    }
+  }
+
+  // Use last valid data if current fetch failed
+  const activeData = dashboardError && lastValidData ? lastValidData : dashboardData;
+
   // Extract data from unified response
-  const summary = dashboardData?.data?.summary || {
+  const summary = activeData?.data?.summary || {
     totalTracked: 0,
     totalWatching: 0,
     totalHoldings: 0,
@@ -52,8 +65,8 @@ export default function Dashboard() {
   };
 
   // Combine watchlist and holdings for unified display
-  const watchlistOnly = dashboardData?.data?.watchlist || [];
-  const holdings = dashboardData?.data?.holdings || [];
+  const watchlistOnly = activeData?.data?.watchlist || [];
+  const holdings = activeData?.data?.holdings || [];
   
   // Convert holdings to watchlist format and combine
   const holdingsAsWatchlist = holdings.map(holding => ({
@@ -90,7 +103,7 @@ export default function Dashboard() {
     ...watchlistOnly.map(item => ({ ...item, isHolding: false as const }))
   ];
   
-  const topPerformer = dashboardData?.data?.topPerformer;
+  const topPerformer = activeData?.data?.topPerformer;
 
   // Mutations - Updated to use unified tracking system
   const removeCryptoMutation = api.crypto.removeCryptoTracking.useMutation({
@@ -124,15 +137,21 @@ export default function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetchDashboard();
+      const result = await refetchDashboard();
+      
+      // Only show success if we actually got data
+      if (result.data?.success) {
+        toast({
+          title: "Refreshed",
+          description: "Dashboard data updated successfully",
+        });
+      } else {
+        throw new Error('Failed to refresh data');
+      }
+    } catch (error) {
       toast({
-        title: "Refreshed",
-        description: "Dashboard data updated successfully",
-      });
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to refresh dashboard data",
+        title: "Refresh Failed",
+        description: "Unable to update dashboard. Showing last known data.",
         variant: "destructive",
       });
     } finally {
@@ -156,6 +175,18 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="max-w-7xl mx-auto">
+        {/* Error Banner - Show when using stale data */}
+        {dashboardError && lastValidData && (
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <p className="text-sm">
+                Unable to fetch latest data. Showing last known values from {new Date(summary.lastUpdated).toLocaleTimeString()}.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-6 md:mb-8">
           <div>
