@@ -143,7 +143,7 @@ export class CSVImportService {
   private parseRow(
     values: string[], 
     headerMap: Record<string, number>, 
-    rowNumber: number
+    _rowNumber: number
   ): { data?: CSVImportRow; error?: string; warning?: string } {
     const symbol = values[headerMap.symbol]?.trim().toUpperCase();
     const amountStr = values[headerMap.amount]?.trim();

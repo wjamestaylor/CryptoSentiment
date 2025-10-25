@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Upload, Key, Download, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Upload, Key, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '@/lib/trpc/provider';
 import { useToast } from '@/hooks/use-toast';
 
