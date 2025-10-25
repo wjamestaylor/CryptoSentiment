@@ -37,7 +37,8 @@ export class FeatureGateService {
   async canPerformAIAnalysis(userId: string): Promise<boolean> {
     try {
       const usageInfo = await this.getUserUsage(userId, UsageType.AI_ANALYSIS);
-      return usageInfo.currentUsage < usageInfo.limit;
+      // -1 means unlimited
+      return usageInfo.limit === -1 || usageInfo.currentUsage < usageInfo.limit;
     } catch (error) {
       console.error('Error checking AI analysis permission:', error);
       // Fail open - allow the action if we can't check limits
@@ -121,7 +122,8 @@ export class FeatureGateService {
   async canCreateAlert(userId: string): Promise<boolean> {
     try {
       const usageInfo = await this.getUserUsage(userId, UsageType.ALERT_CREATION);
-      return usageInfo.currentUsage < usageInfo.limit;
+      // -1 means unlimited
+      return usageInfo.limit === -1 || usageInfo.currentUsage < usageInfo.limit;
     } catch (error) {
       console.error('Error checking alert creation permission:', error);
       return true;
@@ -134,7 +136,8 @@ export class FeatureGateService {
   async canAddToWatchlist(userId: string): Promise<boolean> {
     try {
       const usageInfo = await this.getUserUsage(userId, UsageType.WATCHLIST_ADD);
-      return usageInfo.currentUsage < usageInfo.limit;
+      // -1 means unlimited
+      return usageInfo.limit === -1 || usageInfo.currentUsage < usageInfo.limit;
     } catch (error) {
       console.error('Error checking watchlist add permission:', error);
       return true;
@@ -147,7 +150,8 @@ export class FeatureGateService {
   async canReceiveBotNotification(userId: string): Promise<boolean> {
     try {
       const usageInfo = await this.getUserUsage(userId, UsageType.BOT_NOTIFICATION);
-      return usageInfo.currentUsage < usageInfo.limit;
+      // -1 means unlimited
+      return usageInfo.limit === -1 || usageInfo.currentUsage < usageInfo.limit;
     } catch (error) {
       console.error('Error checking bot notification permission:', error);
       return true;

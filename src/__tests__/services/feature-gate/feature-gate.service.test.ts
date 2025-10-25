@@ -153,7 +153,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(7); // Over limit
+      mockPrisma.usageLog.count.mockResolvedValue(11); // Over limit of 10
 
       const result = await featureGateService.canPerformAIAnalysis('user-123');
 
@@ -226,7 +226,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(100); // Under limit of 50
+      mockPrisma.usageLog.count.mockResolvedValue(25); // Under limit of 50
 
       const result = await featureGateService.canCreateAlert('user-123');
 
@@ -286,7 +286,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(100); // Under limit of 50
+      mockPrisma.usageLog.count.mockResolvedValue(25); // Under limit of 50
 
       const result = await featureGateService.canReceiveBotNotification('user-123');
 
