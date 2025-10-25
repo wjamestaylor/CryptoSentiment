@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { api } from '@/lib/trpc/provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,9 @@ export function PriceChart({
   const [timeframe, setTimeframe] = useState<number>(30);
   const [viewMode, setViewMode] = useState<'watched' | 'held'>('watched');
   const [selectedCryptoId, setSelectedCryptoId] = useState<string>(cryptoId);
+  // Track selected coin's name and symbol for dynamic title updates
+  const [selectedCryptoName, setSelectedCryptoName] = useState<string | undefined>(cryptoName);
+  const [selectedCryptoSymbol, setSelectedCryptoSymbol] = useState<string | undefined>(cryptoSymbol);
 
   // Fetch watched coins (only when multi-view is enabled)
   const { 
@@ -66,6 +69,29 @@ export function PriceChart({
   });
 
   const isLoading = isLoadingPrice || (enableMultiView && (isLoadingWatched || isLoadingHeld));
+
+  // Update selected coin's name and symbol when selection changes
+  useEffect(() => {
+    if (!enableMultiView) {
+      // If multi-view is not enabled, use the props
+      setSelectedCryptoName(cryptoName);
+      setSelectedCryptoSymbol(cryptoSymbol);
+      return;
+    }
+
+    // Find the selected coin in watched or held coins
+    const allCoins = [
+      ...(watchedCoins?.data || []),
+      ...(heldCoins?.data || []),
+    ];
+    
+    const selectedCoin = allCoins.find(coin => coin.coinGeckoId === selectedCryptoId);
+    
+    if (selectedCoin) {
+      setSelectedCryptoName(selectedCoin.name);
+      setSelectedCryptoSymbol(selectedCoin.symbol);
+    }
+  }, [selectedCryptoId, watchedCoins?.data, heldCoins?.data, enableMultiView, cryptoName, cryptoSymbol]);
 
   // Calculate price statistics
   const priceStats = useMemo(() => {
@@ -148,9 +174,9 @@ export function PriceChart({
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 flex-wrap">
                 <BarChart3 className="h-5 w-5 flex-shrink-0" />
-                <span className="truncate">{cryptoName || 'Price Chart'}</span>
-                {cryptoSymbol && (
-                  <Badge variant="outline">{cryptoSymbol.toUpperCase()}</Badge>
+                <span className="truncate">{selectedCryptoName || 'Price Chart'}</span>
+                {selectedCryptoSymbol && (
+                  <Badge variant="outline">{selectedCryptoSymbol.toUpperCase()}</Badge>
                 )}
               </CardTitle>
               <CardDescription className="text-sm">

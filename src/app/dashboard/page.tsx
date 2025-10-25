@@ -509,24 +509,14 @@ export default function Dashboard() {
         {/* Price Chart for Top Crypto */}
         {(topPerformer || combinedWatchlist.length > 0) && (
           <div className="mt-6 md:mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Price Chart</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Switch between watched and held coins to view detailed price analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 md:p-6">
-                <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-                  <PriceChart 
-                    cryptoId={topPerformer?.coinGeckoId || combinedWatchlist[0]?.coinGeckoId || combinedWatchlist[0]?.id || 'bitcoin'}
-                    cryptoName={topPerformer?.cryptoName || combinedWatchlist[0]?.name}
-                    cryptoSymbol={topPerformer?.cryptoSymbol || combinedWatchlist[0]?.symbol}
-                    enableMultiView={true}
-                  />
-                </ErrorBoundary>
-              </CardContent>
-            </Card>
+            <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
+              <PriceChart 
+                cryptoId={topPerformer?.coinGeckoId || combinedWatchlist[0]?.coinGeckoId || combinedWatchlist[0]?.id || 'bitcoin'}
+                cryptoName={topPerformer?.cryptoName || combinedWatchlist[0]?.name}
+                cryptoSymbol={topPerformer?.cryptoSymbol || combinedWatchlist[0]?.symbol}
+                enableMultiView={true}
+              />
+            </ErrorBoundary>
           </div>
         )}
       </div>
