@@ -443,4 +443,82 @@ describe('PriceChart Component', () => {
       );
     });
   });
+
+  describe('Chart Visual Styling', () => {
+    it('renders smooth curve chart without circle markers', () => {
+      const { container } = render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Check that SVG chart is rendered
+      const svgElements = container.querySelectorAll('svg');
+      expect(svgElements.length).toBeGreaterThan(0);
+
+      // Check that smooth paths exist (using Q for quadratic bezier curves)
+      const paths = container.querySelectorAll('path');
+      expect(paths.length).toBeGreaterThan(0);
+
+      // Check that NO circle elements exist (markers removed)
+      const circles = container.querySelectorAll('circle');
+      expect(circles.length).toBe(0);
+
+      // Check that interactive hover areas exist (rect elements)
+      const rects = container.querySelectorAll('rect');
+      expect(rects.length).toBeGreaterThan(0);
+    });
+
+    it('renders gradient backgrounds for better aesthetics', () => {
+      const { container } = render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Check for gradient definitions in SVG
+      const gradients = container.querySelectorAll('linearGradient');
+      expect(gradients.length).toBeGreaterThan(0);
+
+      // Check for gradient backgrounds on chart containers
+      const chartContainers = container.querySelectorAll('.bg-gradient-to-br');
+      expect(chartContainers.length).toBeGreaterThan(0);
+    });
+
+    it('renders horizontal grid lines for reference', () => {
+      const { container } = render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Check for grid lines (line elements in SVG)
+      const lines = container.querySelectorAll('line');
+      expect(lines.length).toBeGreaterThan(0);
+    });
+
+    it('renders improved price labels with backdrop blur', () => {
+      render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Price labels should have backdrop blur styling
+      const labels = document.querySelectorAll('.backdrop-blur-sm');
+      expect(labels.length).toBeGreaterThan(0);
+    });
+  });
 });
