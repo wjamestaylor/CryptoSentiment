@@ -13,6 +13,7 @@ declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
       id: string
+      role?: string
       // ...other properties
       // role: UserRole;
     } & DefaultSession['user']
@@ -26,13 +27,22 @@ declare module 'next-auth' {
 
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    session: async ({ session, user }) => {
+      // Fetch user role from database
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      });
+      
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: user.id,
+          role: dbUser?.role,
+        },
+      };
+    },
     async signIn() {
       // Allow all sign-ins for now - we can add restrictions later
       return true;
