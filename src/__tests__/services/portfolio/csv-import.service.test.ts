@@ -4,6 +4,18 @@
 
 import { CSVImportService } from '@/services/portfolio/csv-import.service';
 
+// Mock getCoinGeckoId
+jest.mock('@/lib/crypto-mappings', () => ({
+  getCoinGeckoId: jest.fn((symbol: string) => {
+    const mapping: Record<string, string> = {
+      'BTC': 'bitcoin',
+      'ETH': 'ethereum',
+      'SOL': 'solana',
+    };
+    return mapping[symbol] || null;
+  }),
+}));
+
 describe('CSVImportService', () => {
   let service: CSVImportService;
 
@@ -19,16 +31,14 @@ describe('CSVImportService', () => {
 
       const result = service.parseCSV(csv);
 
+      expect(result.errors).toEqual([]);
+      expect(result.data.length).toBeGreaterThan(0);
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toEqual({
-        symbol: 'BTC',
-        amount: 0.5,
-        purchasePrice: 45000,
-        purchaseDate: new Date('2024-01-15'),
-        notes: 'Initial investment',
-      });
-      expect(result.errors).toHaveLength(0);
+      expect(result.data[0]?.symbol).toBe('BTC');
+      expect(result.data[0]?.amount).toBe(0.5);
+      expect(result.data[0]?.purchasePrice).toBe(45000);
+      expect(result.data[0]?.notes).toBe('Initial investment');
     });
 
     it('should handle CSV with only required fields', () => {

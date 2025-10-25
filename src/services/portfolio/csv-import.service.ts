@@ -43,12 +43,12 @@ export class CSVImportService {
       const header = this.parseCSVLine(lines[0] || '');
       const headerMap = this.mapHeaders(header);
 
-      if (!headerMap.symbol) {
+      if (headerMap.symbol === undefined) {
         errors.push('CSV must contain a "symbol" column');
         return { success: false, data: [], errors, warnings };
       }
 
-      if (!headerMap.amount) {
+      if (headerMap.amount === undefined) {
         errors.push('CSV must contain an "amount" column');
         return { success: false, data: [], errors, warnings };
       }
