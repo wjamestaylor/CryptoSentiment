@@ -114,20 +114,20 @@ The `SubscriptionService` (`/src/services/subscription/subscription.service.ts`)
 ### Test Coverage
 
 **Pricing Page Tests** (`src/__tests__/app/pricing/page.test.tsx`):
-- ✅ Display billing toggle with monthly and yearly options
-- ✅ Show 17% savings badge when yearly is selected
-- ✅ Calculate yearly price with 17% discount for Pro plan ($90)
-- ✅ Calculate yearly price with 17% discount for Business plan ($289)
-- ✅ Update interval text from "month" to "year"
-- ✅ Keep free plan pricing unchanged
-- ✅ Send correct billing parameter to checkout (monthly/yearly)
+✅ Display billing toggle with monthly and yearly options
+✅ Show 17% savings badge when yearly is selected
+✅ Calculate yearly price with 17% discount for Pro plan ($90)
+✅ Calculate yearly price with 17% discount for Business plan ($289)
+✅ Update interval text from "month" to "year"
+✅ Keep free plan pricing unchanged
+✅ Send correct billing parameter to checkout (monthly/yearly)
 
 **Checkout API Tests** (`src/__tests__/app/api/stripe/checkout/route.test.ts`):
-- ✅ Create checkout session for Pro yearly plan
-- ✅ Create checkout session for Business yearly plan
-- ✅ Use correct yearly price ID (not monthly)
-- ✅ Handle authentication and validation
-- ✅ Generate proper success and cancel URLs
+✅ Create checkout session for Pro yearly plan
+✅ Create checkout session for Business yearly plan
+✅ Use correct yearly price ID (not monthly)
+✅ Handle authentication and validation
+✅ Generate proper success and cancel URLs
 
 **Test Results:**
 ```bash
@@ -210,9 +210,10 @@ npm test -- --testPathPatterns="pricing|checkout"
    - Simplified revenue recognition
 
 4. **Revenue Projections**
-   - Assuming 30% of users choose annual billing
-   - Pro: 30% × $90 = $27/year vs. $108/year monthly
-   - Effective revenue boost from upfront payments
+   - Assuming 30% of users choose annual billing (industry average)
+   - Pro annual: 30% pay $90 upfront vs. 70% pay $9/month
+   - Provides immediate cash flow: $90 upfront vs. $108 spread over 12 months
+   - Effective revenue boost from accelerated cash collection
 
 ### Metrics to Track
 
