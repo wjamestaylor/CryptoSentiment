@@ -19,7 +19,7 @@ model UserPreferences {
 The `auth` router includes endpoints to get and update preferences:
 ```typescript
 // Get preferences
-const preferences = await api.auth.getPreferences.useQuery();
+const { data: preferences } = api.auth.getPreferences.useQuery();
 
 // Update preferences
 const updateMutation = api.auth.updatePreferences.useMutation({
@@ -35,11 +35,18 @@ updateMutation.mutate({
 ```
 
 ### 3. CoinGecko API Integration
-Price service methods now accept an optional currency parameter:
+The crypto router endpoints now accept an optional currency parameter:
 ```typescript
-// In your API calls
-const cryptos = await coinGeckoService.getTopCryptos(50, 'EUR');
-const price = await coinGeckoService.getCryptoById('bitcoin', 'GBP');
+// In your components using tRPC
+const { data: cryptos } = api.crypto.getTopCryptos.useQuery({ 
+  limit: 50, 
+  currency: 'EUR' 
+});
+
+const { data: crypto } = api.crypto.getCryptoById.useQuery({ 
+  id: 'bitcoin', 
+  currency: 'GBP' 
+});
 ```
 
 ## Frontend Usage
