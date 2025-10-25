@@ -73,7 +73,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const updateStepMutation = api.onboarding.updateStep.useMutation();
   const completeOnboardingMutation = api.onboarding.complete.useMutation();
   const skipOnboardingMutation = api.onboarding.skip.useMutation();
-  const addCryptoMutation = api.crypto.addCryptoTracking.useMutation();
+  const addCryptoMutation = api.crypto.addCryptoToTracking.useMutation();
   const createAlertMutation = api.alerts.createAlert.useMutation();
 
   // Show onboarding wizard if user hasn't completed it
@@ -127,7 +127,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         await Promise.all(
           selectedCryptos.map((crypto) =>
             addCryptoMutation.mutateAsync({
-              identifier: crypto.id,
+              cryptoSymbol: crypto.symbol,
+              cryptoName: crypto.name,
+              trackingType: 'WATCH_ONLY',
               notes: 'Added during onboarding',
             })
           )
@@ -138,12 +140,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       if (alertEnabled && selectedCryptos.length > 0) {
         const firstCrypto = selectedCryptos[0];
         await createAlertMutation.mutateAsync({
-          cryptoIdentifier: firstCrypto.id,
+          cryptoSymbol: firstCrypto.symbol,
+          cryptoName: firstCrypto.name,
           type: 'PRICE_CHANGE',
-          condition: JSON.stringify({
-            threshold: parseFloat(alertThreshold),
+          condition: {
+            priceThreshold: parseFloat(alertThreshold),
+            percentage: true,
             direction: 'above',
-          }),
+          },
         });
       }
 

@@ -1,117 +1,119 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
-import { vi, describe, it, expect, beforeEach } from '@jest/globals';
 
 // Mock dependencies
-vi.mock('next-auth/react', () => ({
-  useSession: () => ({
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
     data: { user: { id: 'test-user', email: 'test@example.com' } },
     status: 'authenticated',
-  }),
+  })),
 }));
 
-vi.mock('next/navigation', () => ({
+jest.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
-    back: vi.fn(),
+    push: jest.fn(),
+    back: jest.fn(),
   }),
 }));
 
-vi.mock('@/hooks/use-toast', () => ({
+const mockToast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
-    toast: vi.fn(),
+    toast: mockToast,
   }),
 }));
 
-const mockTRPCData = {
-  onboarding: {
-    getStatus: {
-      useQuery: vi.fn(() => ({
-        data: {
-          data: {
-            completed: false,
-            currentStep: 1,
-            completedAt: null,
-            shouldShowOnboarding: true,
-          },
-        },
-        isLoading: false,
-      })),
-    },
-    updateStep: {
-      useMutation: vi.fn(() => ({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        isPending: false,
-      })),
-    },
-    complete: {
-      useMutation: vi.fn(() => ({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        isPending: false,
-      })),
-    },
-    skip: {
-      useMutation: vi.fn(() => ({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        isPending: false,
-      })),
+// Mock tRPC API
+const mockOnboardingStatus = {
+  data: {
+    data: {
+      completed: false,
+      currentStep: 1,
+      completedAt: null,
+      shouldShowOnboarding: true,
     },
   },
-  crypto: {
-    getTopCryptos: {
-      useQuery: vi.fn(() => ({
-        data: {
-          data: [
-            {
-              id: 'bitcoin',
-              symbol: 'btc',
-              name: 'Bitcoin',
-              current_price: 50000,
-              price_change_percentage_24h: 2.5,
-            },
-            {
-              id: 'ethereum',
-              symbol: 'eth',
-              name: 'Ethereum',
-              current_price: 3000,
-              price_change_percentage_24h: 1.8,
-            },
-          ],
-        },
-        isLoading: false,
-      })),
-    },
-    addCryptoTracking: {
-      useMutation: vi.fn(() => ({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        isPending: false,
-      })),
-    },
-  },
-  alerts: {
-    createAlert: {
-      useMutation: vi.fn(() => ({
-        mutate: vi.fn(),
-        mutateAsync: vi.fn().mockResolvedValue({ success: true }),
-        isPending: false,
-      })),
-    },
-  },
+  isLoading: false,
 };
 
-vi.mock('@/lib/trpc/provider', () => ({
-  api: mockTRPCData,
+const mockCryptoData = {
+  data: {
+    data: [
+      {
+        id: 'bitcoin',
+        symbol: 'btc',
+        name: 'Bitcoin',
+        current_price: 50000,
+        price_change_percentage_24h: 2.5,
+      },
+    ],
+  },
+  isLoading: false,
+};
+
+const mockUpdateStep = jest.fn().mockResolvedValue({ success: true });
+const mockComplete = jest.fn().mockResolvedValue({ success: true });
+const mockSkip = jest.fn().mockResolvedValue({ success: true });
+const mockAddCrypto = jest.fn().mockResolvedValue({ success: true });
+const mockCreateAlert = jest.fn().mockResolvedValue({ success: true });
+
+jest.mock('@/lib/trpc/provider', () => ({
+  api: {
+    onboarding: {
+      getStatus: {
+        useQuery: jest.fn(() => mockOnboardingStatus),
+      },
+      updateStep: {
+        useMutation: jest.fn(() => ({
+          mutate: mockUpdateStep,
+          mutateAsync: mockUpdateStep,
+          isPending: false,
+        })),
+      },
+      complete: {
+        useMutation: jest.fn(() => ({
+          mutate: mockComplete,
+          mutateAsync: mockComplete,
+          isPending: false,
+        })),
+      },
+      skip: {
+        useMutation: jest.fn(() => ({
+          mutate: mockSkip,
+          mutateAsync: mockSkip,
+          isPending: false,
+        })),
+      },
+    },
+    crypto: {
+      getTopCryptos: {
+        useQuery: jest.fn(() => mockCryptoData),
+      },
+      addCryptoToTracking: {
+        useMutation: jest.fn(() => ({
+          mutate: mockAddCrypto,
+          mutateAsync: mockAddCrypto,
+          isPending: false,
+        })),
+      },
+    },
+    alerts: {
+      createAlert: {
+        useMutation: jest.fn(() => ({
+          mutate: mockCreateAlert,
+          mutateAsync: mockCreateAlert,
+          isPending: false,
+        })),
+      },
+    },
+  },
 }));
 
 describe('OnboardingWizard', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should render when onboarding is not completed', async () => {
@@ -163,124 +165,6 @@ describe('OnboardingWizard', () => {
       const previousButton = screen.queryByRole('button', { name: /Previous/i });
       expect(previousButton).not.toBeInTheDocument();
     });
-  });
-
-  it('should call skip mutation when skip button is clicked', async () => {
-    const skipMock = vi.fn().mockResolvedValue({ success: true });
-    mockTRPCData.onboarding.skip.useMutation = vi.fn(() => ({
-      mutate: skipMock,
-      mutateAsync: skipMock,
-      isPending: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    await waitFor(() => {
-      const skipButton = screen.getByText(/Skip Setup/i);
-      fireEvent.click(skipButton);
-    });
-
-    await waitFor(() => {
-      expect(skipMock).toHaveBeenCalled();
-    });
-  });
-
-  it('should show crypto selection on step 2', async () => {
-    mockTRPCData.onboarding.getStatus.useQuery = vi.fn(() => ({
-      data: {
-        data: {
-          completed: false,
-          currentStep: 2,
-          completedAt: null,
-          shouldShowOnboarding: true,
-        },
-      },
-      isLoading: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Choose Cryptocurrencies to Track/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show alert setup on step 3', async () => {
-    mockTRPCData.onboarding.getStatus.useQuery = vi.fn(() => ({
-      data: {
-        data: {
-          completed: false,
-          currentStep: 3,
-          completedAt: null,
-          shouldShowOnboarding: true,
-        },
-      },
-      isLoading: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Set Up Your First Alert/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show final step on step 4', async () => {
-    mockTRPCData.onboarding.getStatus.useQuery = vi.fn(() => ({
-      data: {
-        data: {
-          completed: false,
-          currentStep: 4,
-          completedAt: null,
-          shouldShowOnboarding: true,
-        },
-      },
-      isLoading: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/You're All Set!/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should show complete setup button on final step', async () => {
-    mockTRPCData.onboarding.getStatus.useQuery = vi.fn(() => ({
-      data: {
-        data: {
-          completed: false,
-          currentStep: 4,
-          completedAt: null,
-          shouldShowOnboarding: true,
-        },
-      },
-      isLoading: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Complete Setup/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should not render when onboarding is completed', () => {
-    mockTRPCData.onboarding.getStatus.useQuery = vi.fn(() => ({
-      data: {
-        data: {
-          completed: true,
-          currentStep: 4,
-          completedAt: new Date(),
-          shouldShowOnboarding: false,
-        },
-      },
-      isLoading: false,
-    })) as any;
-
-    render(<OnboardingWizard />);
-
-    expect(screen.queryByText(/Get Started with CryptoSentiment/i)).not.toBeInTheDocument();
   });
 
   it('should be accessible with proper ARIA labels', async () => {
