@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { HistoricalPriceService } from '../crypto/historical-price.service';
 
 interface CryptoPriceData {
   id: string;
@@ -96,7 +97,11 @@ export interface PerformanceMetrics {
 }
 
 export class PortfolioAnalyticsService {
-  constructor(private prisma: PrismaClient) {}
+  private historicalPriceService: HistoricalPriceService;
+
+  constructor(private prisma: PrismaClient) {
+    this.historicalPriceService = new HistoricalPriceService(prisma);
+  }
 
   /**
    * Get comprehensive analytics data for a user
@@ -390,15 +395,12 @@ export class PortfolioAnalyticsService {
    */
   async getPriceHistory(cryptoId: string, days: number = 30): Promise<PriceHistory[]> {
     try {
-      // Try to get from database first
-      const { historicalPriceService } = await import('../crypto/historical-price.service');
-      
       // Check if we have recent data in the database
-      const hasData = await historicalPriceService.hasRecentData(cryptoId, 24);
+      const hasData = await this.historicalPriceService.hasRecentData(cryptoId, 24);
       
       if (hasData) {
         // Use stored data
-        const storedData = await historicalPriceService.getHistoricalData(cryptoId, days);
+        const storedData = await this.historicalPriceService.getHistoricalData(cryptoId, days);
         
         if (storedData.length > 0) {
           return storedData.map(point => ({
@@ -421,13 +423,10 @@ export class PortfolioAnalyticsService {
         total_volumes: [number, number][];
       }>(endpoint);
       
-      // Optionally store the fetched data for future use
-      try {
-        await historicalPriceService.fetchAndStoreHistory(cryptoId, days);
-      } catch (storeError) {
-        console.warn('Failed to store fetched price history:', storeError);
-        // Continue even if storage fails
-      }
+      // Store the fetched data in background (fire and forget)
+      this.historicalPriceService.fetchAndStoreHistory(cryptoId, days).catch(error => {
+        console.warn('Failed to store fetched price history:', error);
+      });
       
       return data.prices.map((price: [number, number], index: number) => ({
         timestamp: new Date(price[0]).toISOString(),

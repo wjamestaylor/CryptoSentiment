@@ -3,9 +3,38 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/
 import { PortfolioAnalyticsService } from '@/services/analytics/portfolio-analytics.service';
 import { HistoricalPriceService } from '@/services/crypto/historical-price.service';
 import { prisma } from '@/lib/db/prisma';
+import { SubscriptionTier } from '@prisma/client';
 
 const portfolioAnalyticsService = new PortfolioAnalyticsService(prisma);
 const historicalPriceService = new HistoricalPriceService(prisma);
+
+// Simple in-memory cache for subscription tiers (expires after 5 minutes)
+const tierCache = new Map<string, { tier: SubscriptionTier; expires: number }>();
+const TIER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getUserTier(userId: string): Promise<SubscriptionTier> {
+  // Check cache first
+  const cached = tierCache.get(userId);
+  if (cached && cached.expires > Date.now()) {
+    return cached.tier;
+  }
+
+  // Fetch from database
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { subscription: { select: { tier: true } } },
+  });
+
+  const tier = user?.subscription?.tier || SubscriptionTier.FREE;
+  
+  // Update cache
+  tierCache.set(userId, {
+    tier,
+    expires: Date.now() + TIER_CACHE_TTL,
+  });
+
+  return tier;
+}
 
 export const analyticsRouter = createTRPCRouter({
   // Get comprehensive analytics data for authenticated user
@@ -91,13 +120,10 @@ export const analyticsRouter = createTRPCRouter({
         
         // Apply tier-based restrictions if user is authenticated
         if (ctx.session?.user) {
-          const user = await ctx.prisma.user.findUnique({
-            where: { id: ctx.session.user.id },
-            include: { subscription: true },
-          });
+          const tier = await getUserTier(ctx.session.user.id);
           
           // Free tier users are limited to 7 days of historical data
-          if (!user?.subscription || user.subscription.tier === 'FREE') {
+          if (tier === SubscriptionTier.FREE) {
             maxDays = Math.min(input.days, 7);
           }
           // Pro and Business tiers can access full historical data
