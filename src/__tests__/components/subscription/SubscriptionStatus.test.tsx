@@ -11,7 +11,7 @@ import { api } from '@/lib/trpc/provider';
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({
     push: jest.fn(),
-    pathname: '/profile',
+    pathname: '/settings',
   })),
 }));
 

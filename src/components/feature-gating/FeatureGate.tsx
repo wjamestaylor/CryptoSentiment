@@ -67,7 +67,7 @@ function UpgradePrompt({ usageType, currentUsage, limit, resetDate }: UpgradePro
             </Link>
           </Button>
           <Button variant="outline" asChild className="flex-1">
-            <Link href="/profile">
+            <Link href="/settings">
               View Usage Details
             </Link>
           </Button>

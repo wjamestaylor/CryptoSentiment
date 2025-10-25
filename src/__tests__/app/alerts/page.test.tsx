@@ -13,12 +13,12 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/hooks/use-toast')
 
 // Mock AlertSettings component
-jest.mock('@/components/profile/AlertSettings', () => ({
+jest.mock('@/components/settings/AlertSettings', () => ({
   AlertSettings: () => <button data-testid="alert-settings">Settings</button>,
 }))
 
 // Mock BotConnection component
-jest.mock('@/components/profile/BotConnection', () => ({
+jest.mock('@/components/settings/BotConnection', () => ({
   BotConnection: ({ initialStatus }: { initialStatus: unknown }) => (
     <div data-testid="bot-connection">
       Bot Connection: {JSON.stringify(initialStatus)}

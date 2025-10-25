@@ -274,7 +274,7 @@ export class EmailService {
 
         <div class="footer">
             <p>You're receiving this email because you have alert notifications enabled.<br>
-            <a href="${dashboardLink}/profile" class="unsubscribe">Manage notification preferences</a></p>
+            <a href="${dashboardLink}/settings" class="unsubscribe">Manage notification preferences</a></p>
             
             <p>CryptoSentiment - AI-Powered Cryptocurrency Sentiment Analysis<br>
             <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}" class="unsubscribe">cryptosentiment.com</a></p>
@@ -315,7 +315,7 @@ View Dashboard: ${dashboardLink}
 
 ---
 CryptoSentiment - AI-Powered Cryptocurrency Sentiment Analysis
-Manage preferences: ${dashboardLink}/profile
+Manage preferences: ${dashboardLink}/settings
 Website: ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}
     `;
   }
@@ -433,7 +433,7 @@ Website: ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}
             <a href="${dashboardLink}" class="cta-button">Go to Dashboard</a>
         </div>
 
-        <p><strong>Pro Tip:</strong> Set up email notifications in your profile settings to never miss important market movements!</p>
+        <p><strong>Pro Tip:</strong> Set up email notifications in your settings to never miss important market movements!</p>
 
         <div class="footer">
             <p>Need help getting started? Check out our <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/docs">documentation</a> or 

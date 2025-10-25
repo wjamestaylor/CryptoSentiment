@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -171,6 +171,3 @@ export function NotificationPreferences({ trigger }: NotificationPreferencesProp
     </Dialog>
   );
 }
-
-// Import React properly
-import React from 'react';
