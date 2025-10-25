@@ -254,4 +254,194 @@ describe('PricingPage', () => {
       });
     });
   });
+
+  describe('Annual Billing Toggle', () => {
+    it('should display billing toggle with monthly and yearly options', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      expect(screen.getByText('Monthly')).toBeInTheDocument();
+      expect(screen.getByText('Yearly')).toBeInTheDocument();
+    });
+
+    it('should show 17% savings badge when yearly is selected', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Find and click the billing toggle button
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      // Check for the savings badge
+      expect(screen.getByText('Save 17%')).toBeInTheDocument();
+    });
+
+    it('should calculate yearly price with 17% discount for Pro plan', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Initially shows monthly price of $9
+      expect(screen.getByText('$9')).toBeInTheDocument();
+
+      // Click toggle to switch to yearly
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      // Should show yearly price: $9 * 12 * 0.83 = $90 (rounded)
+      expect(screen.getByText('$90')).toBeInTheDocument();
+    });
+
+    it('should calculate yearly price with 17% discount for Business plan', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Initially shows monthly price of $29
+      expect(screen.getByText('$29')).toBeInTheDocument();
+
+      // Click toggle to switch to yearly
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      // Should show yearly price: $29 * 12 * 0.83 = $289 (rounded)
+      expect(screen.getByText('$289')).toBeInTheDocument();
+    });
+
+    it('should update interval text from month to year', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Initially shows /month
+      const monthElements = screen.getAllByText('/month');
+      expect(monthElements.length).toBeGreaterThan(0);
+
+      // Click toggle to switch to yearly
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      // Should show /year
+      const yearElements = screen.getAllByText('/year');
+      expect(yearElements.length).toBeGreaterThan(0);
+    });
+
+    it('should not change free plan pricing when toggling', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+        update: jest.fn(),
+      });
+
+      render(<PricingPage />);
+
+      // Free plan should always show $0
+      expect(screen.getByText('$0')).toBeInTheDocument();
+
+      // Click toggle to switch to yearly
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      // Free plan should still show $0
+      expect(screen.getByText('$0')).toBeInTheDocument();
+    });
+
+    it('should send correct billing parameter to checkout for monthly', async () => {
+      mockUseSession.mockReturnValue({
+        data: { 
+          user: { id: 'test-id', email: 'test@example.com' },
+          expires: '2025-12-31T23:59:59.999Z'
+        },
+        status: 'authenticated',
+        update: jest.fn(),
+      });
+
+      // Mock global fetch for checkout API
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ url: 'https://checkout.stripe.com/test' }),
+      });
+
+      render(<PricingPage />);
+
+      const proButton = screen.getAllByText('Upgrade to Pro')[0];
+      fireEvent.click(proButton);
+
+      // Wait for fetch to be called
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/stripe/checkout',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            tier: 'pro',
+            billing: 'monthly',
+          }),
+        })
+      );
+    });
+
+    it('should send correct billing parameter to checkout for yearly', async () => {
+      mockUseSession.mockReturnValue({
+        data: { 
+          user: { id: 'test-id', email: 'test@example.com' },
+          expires: '2025-12-31T23:59:59.999Z'
+        },
+        status: 'authenticated',
+        update: jest.fn(),
+      });
+
+      // Mock global fetch for checkout API
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ url: 'https://checkout.stripe.com/test' }),
+      });
+
+      render(<PricingPage />);
+
+      // Switch to yearly billing
+      const toggleButton = screen.getByRole('button', { name: '' });
+      fireEvent.click(toggleButton);
+
+      const proButton = screen.getAllByText('Upgrade to Pro')[0];
+      fireEvent.click(proButton);
+
+      // Wait for fetch to be called
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/stripe/checkout',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            tier: 'pro',
+            billing: 'yearly',
+          }),
+        })
+      );
+    });
+  });
 });
