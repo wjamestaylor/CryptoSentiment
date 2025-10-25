@@ -17,7 +17,7 @@ interface PricingTier {
   features: {
     aiAnalyses: number | 'unlimited';
     watchlist: number | 'unlimited';
-    alerts: number;
+    alerts: number | 'unlimited';
     bots: string[];
     historical: string;
     support: string;
@@ -38,7 +38,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: {
       aiAnalyses: 10,
       watchlist: 10,
-      alerts: 3,
+      alerts: 5,
       bots: [],
       historical: 'None',
       support: 'Community',
@@ -59,8 +59,8 @@ const PRICING_TIERS: PricingTier[] = [
     description: 'Everything you need for serious crypto trading',
     features: {
       aiAnalyses: 100,
-      watchlist: 50,
-      alerts: 15,
+      watchlist: 100,
+      alerts: 50,
       bots: ['Discord OR Telegram'],
       historical: '7 days',
       support: 'Email support',
@@ -82,9 +82,9 @@ const PRICING_TIERS: PricingTier[] = [
     interval: 'month',
     description: 'Advanced tools for teams and power users',
     features: {
-      aiAnalyses: 500,
+      aiAnalyses: 1000,
       watchlist: 'unlimited',
-      alerts: 50,
+      alerts: 'unlimited',
       bots: ['Discord AND Telegram'],
       historical: '30 days',
       support: 'Priority support',
