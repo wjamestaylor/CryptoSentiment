@@ -67,13 +67,13 @@ railway add postgresql
 
 Set these **required** environment variables in Railway dashboard:
 
-#### **🔐 Essential Variables**
+#### **🔐 Essential Variables (Required at Runtime)**
 ```bash
-# Authentication (REQUIRED)
+# Authentication (REQUIRED at runtime)
 NEXTAUTH_SECRET=your-super-secret-jwt-key-min-32-chars
 NEXTAUTH_URL=https://your-app.railway.app
 
-# Google OAuth (REQUIRED for Google Sign-In)
+# Google OAuth (REQUIRED for Google Sign-In at runtime)
 GOOGLE_CLIENT_ID=your-google-client-id-from-console
 GOOGLE_CLIENT_SECRET=your-google-client-secret-from-console
 
@@ -85,6 +85,11 @@ NODE_ENV=production
 PORT=3000
 ```
 
+**⚠️ Build vs Runtime Environment Variables:**
+- **Build time**: Only `DATABASE_URL` is required for Prisma client generation. All auth-related secrets are validated during authentication operations, not at build.
+- **Runtime**: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` are validated during authentication operations (when NextAuth session and signIn callbacks execute).
+- **Tip**: Use `SKIP_ENV_VALIDATION=true` during Docker builds if you inject secrets only at runtime.
+
 #### **🔌 API Keys (Recommended)**
 ```bash
 # CoinGecko (for crypto data)
@@ -93,19 +98,30 @@ COINGECKO_API_KEY=your-coingecko-api-key
 # OpenRouter (for AI sentiment analysis) 
 OPENROUTER_API_KEY=your-openrouter-api-key
 
-# Email (for notifications)
-EMAIL_SERVER_HOST=smtp.resend.com
-EMAIL_SERVER_PORT=587
-EMAIL_SERVER_USER=resend
-EMAIL_SERVER_PASSWORD=your-resend-api-key
-EMAIL_FROM=noreply@yourdomain.com
-
 # Discord Bot (optional)
 DISCORD_BOT_TOKEN=your-discord-bot-token
 
 # Telegram Bot (optional) 
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 ```
+
+#### **📧 Email Configuration (Optional)**
+Email authentication and notifications are **completely optional**. If you don't configure email, Google OAuth will still work normally.
+
+```bash
+# Email Provider (OPTIONAL - all 5 must be set to enable email features)
+EMAIL_SERVER_HOST=smtp.resend.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=resend
+EMAIL_SERVER_PASSWORD=your-resend-api-key
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+**Email Behavior:**
+- ✅ **All 5 email vars set**: Email provider enabled, users can sign up/in via email link
+- ❌ **Any email var missing**: Email provider automatically disabled, Google OAuth continues to work
+- 📝 **Best Practice**: Set email vars only in runtime environment, not during build
+
 
 ### **Step 5: Deploy Application**
 
@@ -234,19 +250,32 @@ node -e "console.log(crypto.randomBytes(32).toString('base64'))"
 ```
 
 ### **Environment Variable Priority**
-1. **Essential** (App won't work without):
-   - `DATABASE_URL` (auto-set by Railway)
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL`
+1. **Essential - Required at Runtime** (App won't work without):
+   - `DATABASE_URL` (auto-set by Railway, needed at build for Prisma)
+   - `NEXTAUTH_SECRET` (validated at runtime during auth)
+   - `NEXTAUTH_URL` (required at runtime)
+   - `GOOGLE_CLIENT_ID` (validated at runtime during Google OAuth)
+   - `GOOGLE_CLIENT_SECRET` (validated at runtime during Google OAuth)
 
 2. **Important** (Recommended for full functionality):
    - `COINGECKO_API_KEY`
    - `OPENROUTER_API_KEY` 
-   - `EMAIL_SERVER_*`
 
-3. **Optional** (Enhanced features):
+3. **Optional - Email Features** (All 5 required to enable email auth):
+   - `EMAIL_SERVER_HOST`
+   - `EMAIL_SERVER_PORT`
+   - `EMAIL_SERVER_USER`
+   - `EMAIL_SERVER_PASSWORD`
+   - `EMAIL_FROM`
+
+4. **Optional** (Enhanced features):
    - `DISCORD_BOT_TOKEN`
    - `TELEGRAM_BOT_TOKEN`
+
+**Build vs Runtime:**
+- **At Build Time**: Only `DATABASE_URL` is required (for Prisma client generation). Set `SKIP_ENV_VALIDATION=true` if secrets are runtime-only.
+- **At Runtime**: Auth vars (`NEXTAUTH_*`, `GOOGLE_*`) are validated when authentication happens.
+- **Email Optional**: If any email var is missing, email provider is disabled but Google OAuth works fine.
 
 ---
 
@@ -308,8 +337,19 @@ Railway automatically scales based on:
 
 ### **Common Issues**
 
-#### **Build Failures**
+#### **Build Failures Due to Missing Environment Variables**
 ```bash
+# ❌ Error: "Missing required environment variables for authentication"
+# This typically happens when secrets are injected at runtime but not at build time
+
+# ✅ Solution 1: Use SKIP_ENV_VALIDATION for Docker builds
+# In Railway dashboard or Dockerfile, add:
+SKIP_ENV_VALIDATION=true
+
+# ✅ Solution 2: Environment variables are now validated at runtime
+# The latest version validates critical env vars only when NextAuth callbacks execute,
+# not at build time. Ensure you're using the updated nextauth.ts implementation.
+
 # Check build logs
 railway logs --service web
 
@@ -317,6 +357,28 @@ railway logs --service web
 # 1. Ensure all dependencies in package.json
 # 2. Check TypeScript compilation
 # 3. Verify Prisma schema is valid
+# 4. Confirm SKIP_ENV_VALIDATION=true is set for build (if using Docker)
+```
+
+#### **Email Provider Not Working**
+```bash
+# Email authentication requires ALL 5 environment variables
+# If any are missing, email provider is automatically disabled
+
+# Required email env vars:
+EMAIL_SERVER_HOST=smtp.resend.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=resend
+EMAIL_SERVER_PASSWORD=your-resend-api-key
+EMAIL_FROM=noreply@yourdomain.com
+
+# Verify email configuration
+railway variables | grep EMAIL
+
+# If email provider is disabled:
+# - Google OAuth will still work normally
+# - Users cannot sign up/in via email magic links
+# - Email notifications will not be sent
 ```
 
 #### **Database Connection Issues**
@@ -331,13 +393,14 @@ railway connect postgresql
 #### **Authentication Issues**
 ```bash
 # Verify all auth environment variables are set
-railway variables | grep -E "(NEXTAUTH|GOOGLE|EMAIL)"
+railway variables | grep -E "(NEXTAUTH|GOOGLE)"
 
 # Common fixes:
-# 1. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
+# 1. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (REQUIRED at runtime)
 # 2. Verify NEXTAUTH_URL matches your Railway domain
 # 3. Check Google OAuth redirect URIs include your Railway URL
 # 4. Confirm NEXTAUTH_SECRET is at least 32 characters
+# 5. Email env vars are optional - app works without them
 ```
 
 **Google OAuth Setup:**
