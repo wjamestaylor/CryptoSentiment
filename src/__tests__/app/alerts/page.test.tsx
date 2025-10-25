@@ -17,6 +17,15 @@ jest.mock('@/components/profile/AlertSettings', () => ({
   AlertSettings: () => <button data-testid="alert-settings">Settings</button>,
 }))
 
+// Mock BotConnection component
+jest.mock('@/components/profile/BotConnection', () => ({
+  BotConnection: ({ initialStatus }: { initialStatus: unknown }) => (
+    <div data-testid="bot-connection">
+      Bot Connection: {JSON.stringify(initialStatus)}
+    </div>
+  ),
+}))
+
 // Mock fetch globally
 global.fetch = jest.fn()
 
@@ -38,6 +47,11 @@ jest.mock('@/lib/trpc/provider', () => ({
     },
     subscription: {
       checkUsageLimit: {
+        useQuery: jest.fn(),
+      },
+    },
+    bots: {
+      getConnectionStatus: {
         useQuery: jest.fn(),
       },
     },
@@ -68,6 +82,11 @@ interface MockedApi {
   }
   subscription: {
     checkUsageLimit: {
+      useQuery: jest.Mock
+    }
+  }
+  bots: {
+    getConnectionStatus: {
       useQuery: jest.Mock
     }
   }
@@ -204,6 +223,20 @@ describe('AlertsPage', () => {
         })
       }
     }
+
+    // Setup bots API mocks
+    mockApi.bots = {
+      getConnectionStatus: {
+        useQuery: jest.fn().mockReturnValue({
+          data: {
+            discord: { connected: false, userId: null, notificationsEnabled: false },
+            telegram: { connected: false, userId: null, notificationsEnabled: false },
+          },
+          isLoading: false,
+          error: null
+        })
+      }
+    }
   })
 
   describe('Authentication States', () => {
@@ -265,6 +298,20 @@ describe('AlertsPage', () => {
       expect(screen.getByText('Alert Settings')).toBeInTheDocument()
       expect(screen.getByText('Alert Thresholds')).toBeInTheDocument()
       expect(screen.getByTestId('alert-settings')).toBeInTheDocument()
+    })
+
+    it('renders bot connection section', () => {
+      mockUseSession.mockReturnValue({
+        data: {
+          user: { id: 'user-1', email: 'test@example.com' },
+          expires: '2024-12-31T23:59:59.999Z'
+        },
+        status: 'authenticated',
+        update: jest.fn()
+      })
+
+      render(<AlertsPage />)
+      expect(screen.getByTestId('bot-connection')).toBeInTheDocument()
     })
   })
 
