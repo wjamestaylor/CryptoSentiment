@@ -148,7 +148,8 @@ export default function Dashboard() {
       } else {
         throw new Error('Failed to refresh data');
       }
-    } catch {
+    } catch (_error) {
+      // Error ignored - user feedback already provided via toast
       toast({
         title: "Refresh Failed",
         description: "Unable to update dashboard. Showing last known data.",
