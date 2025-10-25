@@ -90,6 +90,10 @@ export function PriceChart({
     if (selectedCoin) {
       setSelectedCryptoName(selectedCoin.name);
       setSelectedCryptoSymbol(selectedCoin.symbol);
+    } else {
+      // Fallback to props if selected coin is not found
+      setSelectedCryptoName(cryptoName);
+      setSelectedCryptoSymbol(cryptoSymbol);
     }
   }, [selectedCryptoId, watchedCoins?.data, heldCoins?.data, enableMultiView, cryptoName, cryptoSymbol]);
 
