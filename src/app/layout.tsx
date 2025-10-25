@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
 
+// Load Geist fonts locally to avoid network requests during build
+// This prevents build failures in environments with restricted network access
 const geistSans = localFont({
   src: [
     {
