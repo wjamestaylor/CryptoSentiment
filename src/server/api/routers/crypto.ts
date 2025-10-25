@@ -12,12 +12,16 @@ const cryptoManagerService = new CryptoManagerService();
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
   getTopCryptos: publicProcedure
-    .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
+    .input(z.object({ 
+      limit: z.number().min(1).max(100).default(50),
+      currency: z.string().optional().default('usd'),
+    }))
     .query(async ({ input }) => {
       try {
+        const currency = input.currency.toLowerCase();
         // Use public CoinGecko API that doesn't require authentication
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=24h`
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=24h`
         );
         
         if (!response.ok) {
@@ -39,12 +43,16 @@ export const cryptoRouter = createTRPCRouter({
 
   // Public endpoint to get specific cryptocurrency
   getCryptoById: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ 
+      id: z.string(),
+      currency: z.string().optional().default('usd'),
+    }))
     .query(async ({ input }) => {
       try {
+        const currency = input.currency.toLowerCase();
         // Use public CoinGecko API
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${input.id}&sparkline=false&price_change_percentage=24h`
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&ids=${input.id}&sparkline=false&price_change_percentage=24h`
         );
         
         if (!response.ok) {

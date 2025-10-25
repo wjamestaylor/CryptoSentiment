@@ -110,15 +110,15 @@ export class CoinGeckoService {
     }
   }
 
-  async getTopCryptos(limit: number = 10): Promise<CoinGeckoResponse[]> {
+  async getTopCryptos(limit: number = 10, currency: string = 'usd'): Promise<CoinGeckoResponse[]> {
     return this.request<CoinGeckoResponse[]>(
-      `/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`
+      `/coins/markets?vs_currency=${currency.toLowerCase()}&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`
     )
   }
 
-  async getCryptoById(id: string): Promise<CoinGeckoResponse> {
+  async getCryptoById(id: string, currency: string = 'usd'): Promise<CoinGeckoResponse> {
     const response = await this.request<CoinGeckoResponse[]>(
-      `/coins/markets?vs_currency=usd&ids=${id}&sparkline=false`
+      `/coins/markets?vs_currency=${currency.toLowerCase()}&ids=${id}&sparkline=false`
     )
     
     if (response.length === 0) {
@@ -136,7 +136,7 @@ export class CoinGeckoService {
     return this.request(`/search?query=${encodeURIComponent(query)}`)
   }
 
-  async getCurrentPrices(coinGeckoIds: string[]): Promise<CoinGeckoPriceData[]> {
+  async getCurrentPrices(coinGeckoIds: string[], currency: string = 'usd'): Promise<CoinGeckoPriceData[]> {
     if (coinGeckoIds.length === 0) {
       return []
     }
@@ -148,7 +148,7 @@ export class CoinGeckoService {
     for (const chunk of chunks) {
       const idsParam = chunk.join(',')
       const response = await this.request<CoinGeckoResponse[]>(
-        `/coins/markets?vs_currency=usd&ids=${idsParam}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`
+        `/coins/markets?vs_currency=${currency.toLowerCase()}&ids=${idsParam}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h`
       )
 
       const priceData: CoinGeckoPriceData[] = response.map(coin => ({

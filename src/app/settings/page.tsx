@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { AlertSettings } from "@/components/settings/AlertSettings";
+import { LocalePreferences } from "@/components/settings/LocalePreferences";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function SettingsPage() {
@@ -98,6 +99,16 @@ export default function SettingsPage() {
                 </p>
               </div>
               <AlertSettings />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1">
+                <h4 className="font-medium">Currency & Timezone</h4>
+                <p className="text-sm text-gray-500">
+                  Set your preferred currency and timezone
+                </p>
+              </div>
+              <LocalePreferences />
             </div>
           </div>
         </CardContent>
