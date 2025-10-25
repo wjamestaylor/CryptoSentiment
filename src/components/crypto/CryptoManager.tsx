@@ -21,13 +21,15 @@ import {
   DollarSign,
   Edit,
   Bell,
-  BellPlus
+  BellPlus,
+  Upload
 } from 'lucide-react';
 import Image from 'next/image';
 import { FeatureGate } from '@/components/feature-gating/FeatureGate';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { useTrackUsage } from '@/hooks/use-track-usage';
 import { UsageType } from '@prisma/client';
+import { PortfolioImportDialog } from './PortfolioImportDialog';
 
 // Types for enhanced tracking with live prices
 interface EnhancedCryptoTracking {
@@ -80,6 +82,7 @@ export function CryptoManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -737,10 +740,22 @@ export function CryptoManager() {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Add Cryptocurrency</CardTitle>
-                <CardDescription>
-                  Add a cryptocurrency to your watchlist or portfolio
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Add Cryptocurrency</CardTitle>
+                    <CardDescription>
+                      Add a cryptocurrency to your watchlist or portfolio
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowImportDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Import Portfolio</span>
+                  </Button>
+                </div>
               </CardHeader>
             <CardContent className="space-y-4">
               {/* Search Interface */}
@@ -1138,6 +1153,15 @@ export function CryptoManager() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Portfolio Import Dialog */}
+      <PortfolioImportDialog 
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImportComplete={() => {
+          refetchTracking();
+        }}
+      />
     </div>
   );
 }
