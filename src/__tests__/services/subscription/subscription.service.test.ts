@@ -41,7 +41,7 @@ describe('SubscriptionService', () => {
 
       expect(limits.alerts).toBe(5);
       expect(limits.watchlist).toBe(10);
-      expect(limits.aiAnalysisPerMonth).toBe(10);
+      expect(limits.aiAnalysisPerMonth).toBe(5);
       expect(limits.botNotifications).toBe(0);
     });
 
@@ -68,7 +68,7 @@ describe('SubscriptionService', () => {
 
       expect(limits.alerts).toBe(5);
       expect(limits.watchlist).toBe(10);
-      expect(limits.aiAnalysisPerMonth).toBe(10);
+      expect(limits.aiAnalysisPerMonth).toBe(5);
       expect(limits.botNotifications).toBe(0);
     });
 

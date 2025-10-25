@@ -52,7 +52,7 @@ CryptoSentiment will launch with a **3-tier subscription model** focused on **us
 **Strategy:** Hook users with substantial value to build conversion funnel
 
 #### **Features & Limits:**
-- ✅ **10 AI sentiment analyses per month**
+- ✅ **5 AI sentiment analyses per month**
 - ✅ **10 coins in watchlist** 
 - ✅ **3 alerts** (price + sentiment only)
 - ✅ **Email notifications**
@@ -90,7 +90,7 @@ CryptoSentiment will launch with a **3-tier subscription model** focused on **us
 *"Professional crypto intelligence tools at Netflix pricing - everything you need for serious crypto trading."*
 
 #### **Key Selling Points:**
-- 10x more AI analyses than free tier
+- 20x more AI analyses than free tier
 - Bot integration for instant notifications
 - All alert types for comprehensive monitoring
 - Historical data for trend analysis
@@ -179,9 +179,9 @@ CryptoSentiment will launch with a **3-tier subscription model** focused on **us
 ### **Tier-Specific Unit Economics**
 
 #### **Free Tier**
-- **AI Cost:** 10 analyses × $0.15 = $1.50/user/month
+- **AI Cost:** 5 analyses × $0.15 = $0.75/user/month
 - **Revenue:** $0
-- **Loss per User:** $1.50/month
+- **Loss per User:** $0.75/month
 - **Strategy:** Lead generation investment
 
 #### **Pro Tier**

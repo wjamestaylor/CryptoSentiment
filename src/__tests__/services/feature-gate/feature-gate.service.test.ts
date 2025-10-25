@@ -45,7 +45,7 @@ describe('FeatureGateService', () => {
 
       expect(result).toEqual({
         currentUsage: 3,
-        limit: 10, // FREE tier AI_ANALYSIS limit
+        limit: 5, // FREE tier AI_ANALYSIS limit
         resetDate: expect.any(Date),
       });
 
@@ -125,7 +125,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(3); // Under limit of 10
+      mockPrisma.usageLog.count.mockResolvedValue(3); // Under limit of 5
 
       const result = await featureGateService.canPerformAIAnalysis('user-123');
 
@@ -139,7 +139,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(10); // At limit
+      mockPrisma.usageLog.count.mockResolvedValue(5); // At limit
 
       const result = await featureGateService.canPerformAIAnalysis('user-123');
 
@@ -153,7 +153,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(11); // Over limit of 10
+      mockPrisma.usageLog.count.mockResolvedValue(6); // Over limit of 5
 
       const result = await featureGateService.canPerformAIAnalysis('user-123');
 
@@ -422,7 +422,7 @@ describe('FeatureGateService', () => {
       mockPrisma.usageLog.count.mockResolvedValue(0);
 
       const aiResult = await featureGateService.getUserUsage('user-123', UsageType.AI_ANALYSIS);
-      expect(aiResult.limit).toBe(10);
+      expect(aiResult.limit).toBe(5);
 
       const alertResult = await featureGateService.getUserUsage('user-123', UsageType.ALERT_CREATION);
       expect(alertResult.limit).toBe(5);

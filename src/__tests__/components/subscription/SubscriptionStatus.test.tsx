@@ -105,12 +105,12 @@ describe('SubscriptionStatus', () => {
           limits: {
             alerts: 5,
             watchlist: 10,
-            aiAnalysisPerMonth: 10,
+            aiAnalysisPerMonth: 5,
             botNotifications: 0,
           },
           usage: {
             aiAnalysisUsed: 3,
-            aiAnalysisLimit: 10,
+            aiAnalysisLimit: 5,
             alertsUsed: 2,
             alertsLimit: 5,
             watchlistUsed: 5,
@@ -125,9 +125,9 @@ describe('SubscriptionStatus', () => {
 
     render(<SubscriptionStatus />);
 
-    // Check AI Analysis section shows correct format: "3 / 10"
+    // Check AI Analysis section shows correct format: "3 / 5"
     expect(screen.getByText('AI Analyses')).toBeInTheDocument();
-    expect(screen.getByText('3 / 10')).toBeInTheDocument();
+    expect(screen.getByText('3 / 5')).toBeInTheDocument();
   });
 
   it('should display correct format for Watchlist with actual usage data', () => {
@@ -220,7 +220,7 @@ describe('SubscriptionStatus', () => {
     expect(screen.getByText('4 / 5')).toBeInTheDocument();
   });
 
-  it('should display "0 / 10" format when usage is zero', () => {
+  it('should display "0 / 5" and "0 / 10" format when usage is zero', () => {
     mockApi.subscription.getCurrent.useQuery.mockReturnValue({
       data: {
         success: true,
@@ -240,12 +240,12 @@ describe('SubscriptionStatus', () => {
           limits: {
             alerts: 5,
             watchlist: 10,
-            aiAnalysisPerMonth: 10,
+            aiAnalysisPerMonth: 5,
             botNotifications: 0,
           },
           usage: {
             aiAnalysisUsed: 0,
-            aiAnalysisLimit: 10,
+            aiAnalysisLimit: 5,
             alertsUsed: 0,
             alertsLimit: 5,
             watchlistUsed: 0,
@@ -260,10 +260,9 @@ describe('SubscriptionStatus', () => {
 
     render(<SubscriptionStatus />);
 
-    // Check all sections show "0 / N" format - using getAllByText since watchlist and AI analysis both have "0 / 10"
-    const zeroOfTen = screen.getAllByText('0 / 10');
-    expect(zeroOfTen).toHaveLength(2); // AI Analysis and Watchlist
-    expect(screen.getByText('0 / 5')).toBeInTheDocument(); // Alerts
+    // Check all sections show "0 / N" format
+    expect(screen.getAllByText('0 / 5')).toHaveLength(2); // AI Analysis and Alerts
+    expect(screen.getByText('0 / 10')).toBeInTheDocument(); // Watchlist
   });
 
   it('should display infinity symbol for unlimited plans', () => {

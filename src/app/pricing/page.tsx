@@ -36,7 +36,7 @@ const PRICING_TIERS: PricingTier[] = [
     interval: 'month',
     description: 'Perfect for getting started with crypto sentiment analysis',
     features: {
-      aiAnalyses: 10,
+      aiAnalyses: 5,
       watchlist: 10,
       alerts: 5,
       bots: [],
@@ -104,7 +104,7 @@ const PRICING_TIERS: PricingTier[] = [
 const FEATURES_COMPARISON = [
   {
     feature: 'AI Sentiment Analyses',
-    free: '10/month',
+    free: '5/month',
     pro: '100/month',
     business: '500/month',
     icon: <BarChart3 className="h-4 w-4" />

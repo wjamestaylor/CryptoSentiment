@@ -352,7 +352,7 @@ export class SubscriptionService {
       [SUBSCRIPTION_TIERS.FREE]: {
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0, // No bot notifications for free tier
       },
       [SUBSCRIPTION_TIERS.PRO]: {
