@@ -12,6 +12,11 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('@/hooks/use-toast')
 
+// Mock AlertSettings component
+jest.mock('@/components/profile/AlertSettings', () => ({
+  AlertSettings: () => <button data-testid="alert-settings">Settings</button>,
+}))
+
 // Mock fetch globally
 global.fetch = jest.fn()
 
@@ -244,6 +249,22 @@ describe('AlertsPage', () => {
       render(<AlertsPage />)
       expect(screen.getByText('Alert Management')).toBeInTheDocument()
       expect(screen.getByText('Set up alerts for price changes, sentiment shifts, and market events')).toBeInTheDocument()
+    })
+
+    it('renders alert settings section', () => {
+      mockUseSession.mockReturnValue({
+        data: {
+          user: { id: 'user-1', email: 'test@example.com' },
+          expires: '2024-12-31T23:59:59.999Z'
+        },
+        status: 'authenticated',
+        update: jest.fn()
+      })
+
+      render(<AlertsPage />)
+      expect(screen.getByText('Alert Settings')).toBeInTheDocument()
+      expect(screen.getByText('Alert Thresholds')).toBeInTheDocument()
+      expect(screen.getByTestId('alert-settings')).toBeInTheDocument()
     })
   })
 

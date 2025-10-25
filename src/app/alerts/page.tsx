@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { AlertType } from '@prisma/client'
 import { FeatureGate } from '@/components/feature-gating/FeatureGate'
+import { HelpTooltip } from '@/components/ui/help-tooltip'
 import { 
   Trash2, 
   Plus, 
@@ -25,8 +26,10 @@ import {
   Target,
   Edit,
   X,
+  Settings,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { AlertSettings } from '@/components/profile/AlertSettings'
 
 interface AlertCondition {
   sentimentThreshold?: number
@@ -311,7 +314,13 @@ export default function AlertsPage() {
     <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Alert Management</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold">Alert Management</h1>
+            <HelpTooltip 
+              content="Set up automated alerts for price changes, sentiment shifts, and volume spikes. You'll be notified via email when your alert conditions are met."
+              side="right"
+            />
+          </div>
           <p className="text-muted-foreground text-sm sm:text-base">
             Set up alerts for price changes, sentiment shifts, and market events
           </p>
@@ -338,6 +347,27 @@ export default function AlertsPage() {
           </FeatureGate>
         </div>
       </div>
+
+      {/* Alert Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Alert Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-1">
+              <h4 className="font-medium">Alert Thresholds</h4>
+              <p className="text-sm text-muted-foreground">
+                Configure when alerts are triggered
+              </p>
+            </div>
+            <AlertSettings />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Monitoring Status */}
       {monitoringStatus && (
