@@ -5,7 +5,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Button } from './button';
-import { ThemeToggle } from './theme-toggle';
 import { LoadingSpinner } from './loading';
 
 export function Navbar() {
@@ -17,7 +16,7 @@ export function Navbar() {
     { href: '/sentiment', label: 'AI Analysis' },
     ...(session ? [{ href: '/crypto', label: 'Crypto Manager' }] : []),
     { href: '/alerts', label: 'Alerts' },
-    ...(session ? [{ href: '/profile', label: 'Profile' }] : []),
+    ...(session ? [{ href: '/settings', label: 'Settings' }] : []),
     { href: '/pricing', label: 'Pricing' },
   ];
 
@@ -45,7 +44,6 @@ export function Navbar() {
 
           {/* Desktop Auth Section */}
           <div className="hidden md:flex items-center space-x-3">
-            <ThemeToggle />
             {status === 'loading' ? (
               <LoadingSpinner className="h-6 w-6" />
             ) : session ? (
@@ -83,8 +81,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center space-x-2">
-            <ThemeToggle />
+          <div className="md:hidden">
             <Button
               variant="ghost"
               size="icon"

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { useTrackUsage } from '@/hooks/use-track-usage';
 import { UsageType } from '@prisma/client';
+import { QuickStartGuide } from '@/components/onboarding/QuickStartGuide';
 
 export default function Dashboard() {
   const { data: session } = useSession();
@@ -256,6 +257,13 @@ export default function Dashboard() {
           )}
         </ErrorBoundary>
 
+        {/* Quick Start Guide - Show when user has no tracked cryptos */}
+        {summary.totalTracked === 0 && (
+          <div className="mb-6 md:mb-8">
+            <QuickStartGuide hasAnyData={false} />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
           {/* My Cryptocurrencies */}
           <div className="xl:col-span-2">
@@ -391,15 +399,18 @@ export default function Dashboard() {
                                 )}
                               </div>
                             </div>
-                            <Button
-                              onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
-                              variant="ghost"
-                              size="sm"
-                              disabled={removeCryptoMutation.isPending}
-                              className="p-2"
-                            >
-                              <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
-                            </Button>
+                            {!crypto.isHolding && (
+                              <Button
+                                onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={removeCryptoMutation.isPending}
+                                className="p-2"
+                                title="Remove from watchlist"
+                              >
+                                <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -420,81 +431,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions & Portfolio Summary */}
+          {/* Top Performer */}
           <div className="space-y-4 md:space-y-6">
-            {/* Portfolio Holdings Summary */}
-            {summary.totalHoldings > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Portfolio Summary</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Overview of your cryptocurrency investments
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Total Holdings</span>
-                      <span className="font-medium">{summary.totalHoldings}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Portfolio Value</span>
-                      <span className="font-medium">${summary.portfolioValue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change</span>
-                      <span className={`font-medium ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change %</span>
-                      <span className={`font-medium ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
-                      </span>
-                    </div>
-                    <Button asChild className="w-full mt-4">
-                      <a href="/crypto">View Full Portfolio</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/watchlist">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Watchlist
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/crypto">
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Manage Portfolio
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/alerts">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Set Price Alert
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/sentiment">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Sentiment Analysis
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Performer */}
             {(topPerformer || combinedWatchlist.length > 0) && (
               <Card>
                 <CardHeader>

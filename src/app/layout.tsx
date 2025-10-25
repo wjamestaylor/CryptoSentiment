@@ -6,6 +6,7 @@ import { Navbar } from "@/components/ui/navbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,7 @@ export default function RootLayout({
                   <main className="min-h-screen navbar-offset">
                     {children}
                   </main>
+                  <WelcomeModal />
                 </div>
               </ErrorBoundary>
             </TRPCProvider>

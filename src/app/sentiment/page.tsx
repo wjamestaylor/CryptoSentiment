@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { SentimentLoading } from '@/components/ui/loading';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { UsageType } from '@prisma/client';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 
 interface SentimentFactor {
   description: string;
@@ -104,7 +105,13 @@ function SentimentPageContent() {
         
         <Card className="mb-6 sm:mb-8">
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">Analyze Cryptocurrency Sentiment</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg sm:text-xl">Analyze Cryptocurrency Sentiment</CardTitle>
+              <HelpTooltip 
+                content="AI analyzes market data, news sentiment, and social trends to provide a comprehensive sentiment score for any cryptocurrency. Higher scores indicate bullish sentiment, lower scores indicate bearish sentiment."
+                side="right"
+              />
+            </div>
             <CardDescription className="text-sm sm:text-base">
               Get AI-powered sentiment analysis for any cryptocurrency
             </CardDescription>
@@ -179,21 +186,39 @@ function SentimentPageContent() {
               <div className="space-y-4 sm:space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                    <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Overall Sentiment</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium">Overall Sentiment</div>
+                      <HelpTooltip 
+                        content="The overall market sentiment classification: Bullish (positive), Bearish (negative), or Neutral (stable)."
+                        side="top"
+                      />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100 capitalize">
                       {analysis.sentiment}
                     </div>
                   </div>
                   
                   <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                    <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">Confidence</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-medium">Confidence</div>
+                      <HelpTooltip 
+                        content="How confident the AI is in its sentiment analysis. Higher confidence means more reliable predictions based on available data."
+                        side="top"
+                      />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">
                       {Math.round(analysis.confidence * 100)}%
                     </div>
                   </div>
                   
                   <div className="p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg sm:col-span-2 lg:col-span-1">
-                    <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">Score</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 font-medium">Score</div>
+                      <HelpTooltip 
+                        content="Sentiment score from 0-100. Scores above 60 indicate bullish sentiment, below 40 indicate bearish, and 40-60 indicate neutral market conditions."
+                        side="top"
+                      />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
                       {Math.round((analysis.score + 1) * 50)}/100
                     </div>

@@ -172,4 +172,118 @@ describe('Dashboard Page', () => {
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
     });
   });
+
+  describe('Held coin unfollow restriction', () => {
+    it('should not display unfollow button for held coins', () => {
+      // Mock dashboard with both held and watched coins
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 3,
+              totalWatching: 1,
+              totalHoldings: 2,
+              portfolioValue: 100000,
+              portfolioGainLoss: 5000,
+              portfolioGainLossPercentage: 5.0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [
+              {
+                id: 'eth-watch',
+                symbol: 'ETH',
+                name: 'Ethereum',
+                currentPrice: 3000,
+                priceChangePercentage24h: 2.5,
+              },
+            ],
+            holdings: [
+              {
+                id: 'btc-holding',
+                cryptoSymbol: 'BTC',
+                cryptoName: 'Bitcoin',
+                coinGeckoId: 'bitcoin',
+                holdingAmount: 1.5,
+                currentPrice: 50000,
+                currentValue: 75000,
+                priceChangePercentage24h: 3.5,
+              },
+              {
+                id: 'ada-holding',
+                cryptoSymbol: 'ADA',
+                cryptoName: 'Cardano',
+                coinGeckoId: 'cardano',
+                holdingAmount: 1000,
+                currentPrice: 0.5,
+                currentValue: 500,
+                priceChangePercentage24h: -1.0,
+              },
+            ],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Get all star buttons - there should only be one (for the watched coin)
+      const starButtons = screen.queryAllByTitle('Remove from watchlist');
+      
+      // Should only have button for watched coin (ETH), not for held coins (BTC, ADA)
+      expect(starButtons).toHaveLength(1);
+    });
+
+    it('should display unfollow button for watched-only coins', () => {
+      // Mock dashboard with only watched coins
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 2,
+              totalWatching: 2,
+              totalHoldings: 0,
+              portfolioValue: 0,
+              portfolioGainLoss: 0,
+              portfolioGainLossPercentage: 0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [
+              {
+                id: 'btc-watch',
+                symbol: 'BTC',
+                name: 'Bitcoin',
+                currentPrice: 50000,
+                priceChangePercentage24h: 3.5,
+              },
+              {
+                id: 'eth-watch',
+                symbol: 'ETH',
+                name: 'Ethereum',
+                currentPrice: 3000,
+                priceChangePercentage24h: 2.5,
+              },
+            ],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Get all star buttons - there should be two (for both watched coins)
+      const starButtons = screen.queryAllByTitle('Remove from watchlist');
+      
+      // Should have buttons for both watched coins
+      expect(starButtons).toHaveLength(2);
+    });
+  });
 });
