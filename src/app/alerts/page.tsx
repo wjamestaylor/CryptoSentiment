@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { AlertSettings } from '@/components/profile/AlertSettings'
+import { BotConnection } from '@/components/profile/BotConnection'
 
 interface AlertCondition {
   sentimentThreshold?: number
@@ -137,6 +138,16 @@ export default function AlertsPage() {
   })
 
   const alerts = alertsResponse?.alerts || []
+
+  // Get bot connection status
+  const { data: botStatus } = api.bots.getConnectionStatus.useQuery(undefined, {
+    enabled: status === 'authenticated',
+  })
+
+  const initialBotStatus = botStatus || {
+    discord: { connected: false, userId: null, notificationsEnabled: false },
+    telegram: { connected: false, userId: null, notificationsEnabled: false },
+  }
 
   // Mutations
   const createAlertMutation = api.alerts.createAlert.useMutation({
@@ -368,6 +379,9 @@ export default function AlertsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bot Connections */}
+      <BotConnection initialStatus={initialBotStatus} />
 
       {/* Monitoring Status */}
       {monitoringStatus && (
