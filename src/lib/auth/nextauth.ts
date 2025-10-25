@@ -9,6 +9,37 @@ import GoogleProvider from 'next-auth/providers/google'
 import EmailProvider from 'next-auth/providers/email'
 import { prisma } from '@/lib/db/prisma'
 
+// Validate required environment variables
+const validateEnvVariables = () => {
+  const requiredVars = {
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    EMAIL_SERVER_HOST: process.env.EMAIL_SERVER_HOST,
+    EMAIL_SERVER_PORT: process.env.EMAIL_SERVER_PORT,
+    EMAIL_SERVER_USER: process.env.EMAIL_SERVER_USER,
+    EMAIL_SERVER_PASSWORD: process.env.EMAIL_SERVER_PASSWORD,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+  };
+
+  const missing = Object.entries(requiredVars)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables for authentication: ${missing.join(', ')}\n` +
+      'Please check your .env file and ensure all required variables are set.\n' +
+      'See .env.example for the complete list of required variables.'
+    );
+  }
+};
+
+// Only validate in production or when explicitly requested
+if (process.env.NODE_ENV === 'production' || process.env.VALIDATE_ENV === 'true') {
+  validateEnvVariables();
+}
+
 declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
