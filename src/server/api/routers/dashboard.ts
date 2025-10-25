@@ -50,10 +50,11 @@ export const dashboardRouter = createTRPCRouter({
         if (portfolioHoldings.length > 0) {
           try {
             portfolioAnalytics = await portfolioService.calculatePortfolioAnalytics(portfolioHoldings);
-          } catch (portfolioError) {
-            console.warn('Portfolio analytics failed, using fallback data:', portfolioError);
-            // Continue without portfolio analytics rather than failing completely
-            portfolioAnalytics = null;
+          } catch (portfolioErr) {
+            console.warn('Portfolio analytics failed:', portfolioErr);
+            // Throw error instead of continuing with null data
+            // This prevents dashboard from showing $0 values when API fails
+            throw new Error('Failed to fetch portfolio data. Please try again.');
           }
         }
 
@@ -115,7 +116,8 @@ export const dashboardRouter = createTRPCRouter({
             }
           } catch (error) {
             console.warn('Failed to fetch watchlist prices:', error);
-            // Return watchlist without prices on API error
+            // For watchlist, we can continue with undefined prices
+            // since it's less critical than portfolio values
             watchlistWithPrices = watchlist.map(item => ({
               ...item,
               currentPrice: undefined,
