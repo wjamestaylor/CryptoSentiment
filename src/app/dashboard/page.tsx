@@ -215,7 +215,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs md:text-sm font-medium text-muted-foreground">24h Change</p>
                       <p className={`text-lg md:text-2xl font-bold truncate ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
+                        {summary.portfolioGainLoss >= 0 ? '+' : '-'}${Math.abs(summary.portfolioGainLoss).toFixed(2)}
                       </p>
                     </div>
                     {summary.portfolioGainLoss >= 0 ? (
