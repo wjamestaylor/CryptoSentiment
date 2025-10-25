@@ -14,14 +14,14 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
-describe('Profile Page Mobile - Redirect', () => {
+describe('Profile Page Redirect - Mobile', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should redirect to settings page on mobile', () => {
+  it('should redirect to /settings for backward compatibility on mobile', () => {
     render(<ProfilePage />);
-
+    
     expect(mockReplace).toHaveBeenCalledWith('/settings');
   });
 });

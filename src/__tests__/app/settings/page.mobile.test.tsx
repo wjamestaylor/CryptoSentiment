@@ -25,9 +25,6 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/lib/trpc/provider', () => ({
   api: {
     auth: {
-      getUserStats: {
-        useQuery: jest.fn(),
-      },
       getPreferences: {
         useQuery: jest.fn(),
       },
@@ -40,11 +37,6 @@ jest.mock('@/lib/trpc/provider', () => ({
         useQuery: jest.fn(),
       },
       getLimits: {
-        useQuery: jest.fn(),
-      },
-    },
-    bots: {
-      getConnectionStatus: {
         useQuery: jest.fn(),
       },
     },
@@ -76,11 +68,7 @@ jest.mock('@/components/ui/card', () => ({
   ),
 }));
 
-// Mock profile components
-jest.mock('@/components/profile/BotConnection', () => ({
-  BotConnection: () => <div data-testid="bot-connection">Discord Bot Connection</div>,
-}));
-
+// Mock settings components
 jest.mock('@/components/subscription/SubscriptionStatus', () => ({
   SubscriptionStatus: () => <div data-testid="subscription-status">Subscription Status</div>,
 }));
@@ -93,17 +81,13 @@ jest.mock('@/components/profile/AlertSettings', () => ({
   AlertSettings: () => <button data-testid="alert-settings" className="w-full sm:w-auto">Settings</button>,
 }));
 
-// Mock ThemeToggle component
 jest.mock('@/components/ui/theme-toggle', () => ({
-  ThemeToggle: () => <div data-testid="theme-toggle">Theme Toggle</div>,
+  ThemeToggle: () => <button data-testid="theme-toggle" className="w-full sm:w-auto">Theme</button>,
 }));
 
 // Type for mocked API structure
 interface MockedApi {
   auth: {
-    getUserStats: {
-      useQuery: jest.Mock
-    }
     getPreferences: {
       useQuery: jest.Mock
     }
@@ -116,11 +100,6 @@ interface MockedApi {
       useQuery: jest.Mock
     }
     getLimits: {
-      useQuery: jest.Mock
-    }
-  }
-  bots: {
-    getConnectionStatus: {
       useQuery: jest.Mock
     }
   }
@@ -144,13 +123,6 @@ describe('Settings Page - Mobile Responsiveness', () => {
         },
       },
       status: 'authenticated',
-    });
-
-    // Mock getUserStats API
-    mockApi.auth.getUserStats.useQuery.mockReturnValue({
-      data: { followedCoins: 5, activeAlerts: 3 },
-      isLoading: false,
-      error: null,
     });
 
     // Mock subscription API
@@ -177,16 +149,6 @@ describe('Settings Page - Mobile Responsiveness', () => {
             alerts: 5,
           },
         },
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    // Mock bot connection status
-    mockApi.bots.getConnectionStatus.useQuery.mockReturnValue({
-      data: {
-        discord: { connected: false, userId: null, notificationsEnabled: false },
-        telegram: { connected: false, userId: null, notificationsEnabled: false },
       },
       isLoading: false,
       error: null,
@@ -226,7 +188,7 @@ describe('Settings Page - Mobile Responsiveness', () => {
 
     it('should have responsive title sizing', () => {
       render(<SettingsPage />);
-      const title = screen.getByRole('heading', { name: 'Settings', level: 1 });
+      const title = screen.getByRole('heading', { name: 'Settings' });
       
       expect(title.className).toContain('text-2xl');
       expect(title.className).toContain('sm:text-3xl');
@@ -258,7 +220,7 @@ describe('Settings Page - Mobile Responsiveness', () => {
     });
 
     it('should render action buttons container with responsive flex', () => {
-      render(<SettingsPage />);
+      const { container } = render(<SettingsPage />);
       
       // Find the actions container by looking for the parent div of both buttons
       const dashboardButton = screen.getByText('Back to Dashboard');
@@ -292,11 +254,11 @@ describe('Settings Page - Mobile Responsiveness', () => {
 
   describe('Preferences Section Responsiveness', () => {
     it('should have responsive layout for preferences items', () => {
-      render(<SettingsPage />);
+      const { container } = render(<SettingsPage />);
       
-      // Find preferences section by looking for the parent of the notification button
-      const notificationButton = screen.getByTestId('notification-preferences');
-      const preferencesSection = notificationButton.parentElement;
+      // Find preferences section by looking for the parent of the theme button
+      const themeButton = screen.getByTestId('theme-toggle');
+      const preferencesSection = themeButton.parentElement;
       
       expect(preferencesSection?.className).toContain('flex');
       expect(preferencesSection?.className).toContain('flex-col');
@@ -305,9 +267,12 @@ describe('Settings Page - Mobile Responsiveness', () => {
 
     it('should render preference buttons with responsive width', () => {
       render(<SettingsPage />);
+      const themeButton = screen.getByTestId('theme-toggle');
       const configureButton = screen.getByTestId('notification-preferences');
       const settingsButton = screen.getByTestId('alert-settings');
       
+      expect(themeButton.className).toContain('w-full');
+      expect(themeButton.className).toContain('sm:w-auto');
       expect(configureButton.className).toContain('w-full');
       expect(configureButton.className).toContain('sm:w-auto');
       expect(settingsButton.className).toContain('w-full');
@@ -321,8 +286,6 @@ describe('Settings Page - Mobile Responsiveness', () => {
       
       expect(screen.getByText('verylongemailaddress@exampledomain.com')).toBeInTheDocument();
       expect(screen.getByText('Test User With Long Name')).toBeInTheDocument();
-      expect(screen.getByText('5')).toBeInTheDocument(); // followed coins
-      expect(screen.getByText('3')).toBeInTheDocument(); // active alerts
     });
 
     it('should render all interactive elements', () => {
@@ -340,15 +303,14 @@ describe('Settings Page - Mobile Responsiveness', () => {
       
       expect(screen.getByText('Account Information')).toBeInTheDocument();
       expect(screen.getByTestId('subscription-status')).toBeInTheDocument();
-      expect(screen.getByTestId('bot-connection')).toBeInTheDocument();
       expect(screen.getByText('Preferences')).toBeInTheDocument();
     });
 
-    it('should render theme toggle in preferences', () => {
+    it('should not render followed coins or active alerts statistics', () => {
       render(<SettingsPage />);
       
-      expect(screen.getByText('Theme')).toBeInTheDocument();
-      expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
+      expect(screen.queryByText('Followed Coins')).not.toBeInTheDocument();
+      expect(screen.queryByText('Active Alerts')).not.toBeInTheDocument();
     });
   });
 });

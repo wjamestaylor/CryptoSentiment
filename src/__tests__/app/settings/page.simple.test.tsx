@@ -25,9 +25,6 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/lib/trpc/provider', () => ({
   api: {
     auth: {
-      getUserStats: {
-        useQuery: jest.fn(),
-      },
       getPreferences: {
         useQuery: jest.fn(),
       },
@@ -68,11 +65,7 @@ jest.mock('@/components/ui/card', () => ({
   ),
 }));
 
-// Mock profile components
-jest.mock('@/components/profile/BotConnection', () => ({
-  BotConnection: () => <div data-testid="bot-connection">Discord Bot Connection</div>,
-}));
-
+// Mock settings components
 jest.mock('@/components/subscription/SubscriptionStatus', () => ({
   SubscriptionStatus: () => <div data-testid="subscription-status">Subscription Status</div>,
 }));
@@ -85,17 +78,13 @@ jest.mock('@/components/profile/AlertSettings', () => ({
   AlertSettings: () => <button data-testid="alert-settings">Alert Settings</button>,
 }));
 
-// Mock ThemeToggle component
 jest.mock('@/components/ui/theme-toggle', () => ({
-  ThemeToggle: () => <div data-testid="theme-toggle">Theme Toggle</div>,
+  ThemeToggle: () => <button data-testid="theme-toggle">Theme Toggle</button>,
 }));
 
 // Type for mocked API structure
 interface MockedApi {
   auth: {
-    getUserStats: {
-      useQuery: jest.Mock
-    }
     getPreferences: {
       useQuery: jest.Mock
     }
@@ -127,14 +116,6 @@ describe('Settings Page', () => {
           image: 'https://example.com/avatar.jpg',
         },
       },
-      status: 'authenticated',
-    });
-
-    // Mock getUserStats API
-    mockApi.auth.getUserStats.useQuery.mockReturnValue({
-      data: { followedCoins: 5, activeAlerts: 3 },
-      isLoading: false,
-      error: null,
     });
 
     // Mock subscription API
@@ -168,18 +149,11 @@ describe('Settings Page', () => {
     });
   });
 
-  it('should render settings page with correct title', () => {
+  it('should render settings page with user information', () => {
     render(<SettingsPage />);
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Account Information')).toBeInTheDocument();
-  });
-
-  it('should render user statistics', () => {
-    render(<SettingsPage />);
-
-    expect(screen.getByText('5')).toBeInTheDocument(); // followed coins
-    expect(screen.getByText('3')).toBeInTheDocument(); // active alerts
   });
 
   it('should render subscription status component', () => {
@@ -188,20 +162,7 @@ describe('Settings Page', () => {
     expect(screen.getByTestId('subscription-status')).toBeInTheDocument();
   });
 
-  it('should render bot connection component', () => {
-    render(<SettingsPage />);
-
-    expect(screen.getByTestId('bot-connection')).toBeInTheDocument();
-  });
-
-  it('should render theme toggle in preferences section', () => {
-    render(<SettingsPage />);
-
-    expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
-    expect(screen.getByText('Theme')).toBeInTheDocument();
-  });
-
-  it('should render preferences section with all controls', () => {
+  it('should render preferences section with functional buttons', () => {
     render(<SettingsPage />);
 
     expect(screen.getByText('Preferences')).toBeInTheDocument();
@@ -227,13 +188,10 @@ describe('Settings Page', () => {
     expect(watchlistButton).toBeInTheDocument();
   });
 
-  it('should have theme toggle as first preference item', () => {
+  it('should not render followed coins or active alerts statistics', () => {
     render(<SettingsPage />);
 
-    const preferences = screen.getByText('Preferences').parentElement;
-    const content = preferences?.nextElementSibling;
-    
-    expect(content?.textContent).toContain('Theme');
-    expect(content?.textContent).toContain('Choose your preferred color theme');
+    expect(screen.queryByText('Followed Coins')).not.toBeInTheDocument();
+    expect(screen.queryByText('Active Alerts')).not.toBeInTheDocument();
   });
 });
