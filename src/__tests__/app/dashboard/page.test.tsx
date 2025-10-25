@@ -171,6 +171,96 @@ describe('Dashboard Page', () => {
       // Should show loading indicators
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
     });
+
+    it('displays positive 24h change with correct format (+$amount)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 5000,
+              portfolioGainLoss: 250.50,
+              portfolioGainLossPercentage: 5.2,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: +$250.50 (not $+$250.50)
+      expect(screen.getByText('+$250.50')).toBeInTheDocument();
+    });
+
+    it('displays negative 24h change with correct format (-$amount)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 4750,
+              portfolioGainLoss: -150.25,
+              portfolioGainLossPercentage: -3.1,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: -$150.25 (not $-$150.25)
+      expect(screen.getByText('-$150.25')).toBeInTheDocument();
+    });
+
+    it('displays zero 24h change with correct format (+$0.00)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 5000,
+              portfolioGainLoss: 0,
+              portfolioGainLossPercentage: 0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: +$0.00 (zero is treated as positive)
+      expect(screen.getByText('+$0.00')).toBeInTheDocument();
+    });
   });
 
   describe('Held coin unfollow restriction', () => {
