@@ -28,6 +28,9 @@ describe('Database Operations', () => {
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -63,6 +66,9 @@ describe('Database Operations', () => {
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -92,6 +98,9 @@ describe('Database Operations', () => {
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
