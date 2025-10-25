@@ -73,8 +73,8 @@ describe('PricingPage', () => {
 
       render(<PricingPage />);
 
-      const tenPerMonthElements = screen.getAllByText('10/month');
-      expect(tenPerMonthElements.length).toBeGreaterThan(0); // Free tier
+      const fivePerMonthElements = screen.getAllByText('5/month');
+      expect(fivePerMonthElements.length).toBeGreaterThan(0); // Free tier
       const hundredPerMonthElements = screen.getAllByText('100/month');
       expect(hundredPerMonthElements.length).toBeGreaterThan(0); // Pro tier
       const fiveHundredPerMonthElements = screen.getAllByText('500/month');
