@@ -280,6 +280,8 @@ model PriceData {
 
   crypto Cryptocurrency @relation(fields: [cryptoId], references: [id])
 
+  @@unique([cryptoId, timestamp], name: "cryptoId_timestamp")
+  @@index([cryptoId, timestamp])
   @@map("price_data")
 }
 

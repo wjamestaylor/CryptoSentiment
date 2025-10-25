@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 import { PortfolioAnalyticsService } from '@/services/analytics/portfolio-analytics.service';
+import { HistoricalPriceService } from '@/services/crypto/historical-price.service';
 import { prisma } from '@/lib/db/prisma';
 
 const portfolioAnalyticsService = new PortfolioAnalyticsService(prisma);
+const historicalPriceService = new HistoricalPriceService(prisma);
 
 export const analyticsRouter = createTRPCRouter({
   // Get comprehensive analytics data for authenticated user
@@ -274,6 +276,66 @@ export const analyticsRouter = createTRPCRouter({
       } catch (error) {
         console.error('Failed to fetch usage analytics:', error);
         throw new Error(`Failed to fetch usage analytics: ${error}`);
+      }
+    }),
+
+  // Get historical price data from database
+  getStoredPriceHistory: publicProcedure
+    .input(z.object({
+      cryptoId: z.string(),
+      days: z.number().min(1).max(365).default(30),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const priceHistory = await historicalPriceService.getHistoricalData(input.cryptoId, input.days);
+        
+        return {
+          success: true,
+          data: priceHistory,
+        };
+      } catch (error) {
+        console.error('Failed to fetch stored price history:', error);
+        throw new Error(`Failed to fetch stored price history: ${error}`);
+      }
+    }),
+
+  // Populate historical data for tracked cryptocurrencies (admin/maintenance)
+  populateHistoricalData: protectedProcedure
+    .input(z.object({
+      days: z.number().min(1).max(365).default(30),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const userId = ctx.session.user.id;
+        
+        // Get tracked cryptocurrencies for this user
+        const trackedCryptos = await ctx.prisma.cryptoTracking.findMany({
+          where: { userId },
+          include: { crypto: true },
+        });
+
+        const coinGeckoIds = trackedCryptos
+          .map(t => t.crypto.coinGeckoId)
+          .filter((id): id is string => id !== null);
+
+        if (coinGeckoIds.length === 0) {
+          return {
+            success: true,
+            message: 'No tracked cryptocurrencies found',
+            count: 0,
+          };
+        }
+
+        await historicalPriceService.bulkFetchAndStore(coinGeckoIds, input.days);
+        
+        return {
+          success: true,
+          message: `Successfully populated historical data for ${coinGeckoIds.length} cryptocurrencies`,
+          count: coinGeckoIds.length,
+        };
+      } catch (error) {
+        console.error('Failed to populate historical data:', error);
+        throw new Error(`Failed to populate historical data: ${error}`);
       }
     }),
 });

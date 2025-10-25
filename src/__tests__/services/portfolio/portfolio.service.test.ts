@@ -7,20 +7,24 @@
 
 import { PortfolioService, type Holding } from '../../../services/portfolio/portfolio.service';
 import { CoinGeckoService } from '../../../services/crypto/price.service';
+import { HistoricalPriceService } from '../../../services/crypto/historical-price.service';
 
-// Mock the CoinGeckoService
+// Mock the services
 jest.mock('../../../services/crypto/price.service');
+jest.mock('../../../services/crypto/historical-price.service');
 
 const MockedCoinGeckoService = CoinGeckoService as jest.MockedClass<typeof CoinGeckoService>;
+const MockedHistoricalPriceService = HistoricalPriceService as jest.MockedClass<typeof HistoricalPriceService>;
 
 describe('PortfolioService', () => {
   let portfolioService: PortfolioService;
   let mockCoinGeckoService: jest.Mocked<CoinGeckoService>;
+  let mockHistoricalPriceService: jest.Mocked<HistoricalPriceService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Create a mock instance
+    // Create a mock instance for CoinGecko
     mockCoinGeckoService = {
       getCurrentPrices: jest.fn(),
       getTopCryptos: jest.fn(),
@@ -28,8 +32,20 @@ describe('PortfolioService', () => {
       searchCryptos: jest.fn(),
     } as unknown as jest.Mocked<CoinGeckoService>;
 
-    // Mock the constructor to return our mock instance
+    // Create a mock instance for HistoricalPrice
+    mockHistoricalPriceService = {
+      getPriceAtTime: jest.fn().mockResolvedValue(null),
+      fetchAndStoreHistory: jest.fn(),
+      getHistoricalData: jest.fn(),
+      calculatePriceChange: jest.fn(),
+      bulkFetchAndStore: jest.fn(),
+      getTrackedCryptocurrencies: jest.fn(),
+      hasRecentData: jest.fn(),
+    } as unknown as jest.Mocked<HistoricalPriceService>;
+
+    // Mock the constructors to return our mock instances
     MockedCoinGeckoService.mockImplementation(() => mockCoinGeckoService);
+    MockedHistoricalPriceService.mockImplementation(() => mockHistoricalPriceService);
     
     portfolioService = new PortfolioService();
   });
