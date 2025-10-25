@@ -6,6 +6,8 @@
  */
 
 import { CoinGeckoService, type CoinGeckoPriceData } from '../crypto/price.service';
+import { HistoricalPriceService } from '../crypto/historical-price.service';
+import { prisma } from '@/lib/db/prisma';
 
 export interface Holding {
   id: string;
@@ -68,9 +70,11 @@ export interface PortfolioAnalytics {
 
 export class PortfolioService {
   private priceService: CoinGeckoService;
+  private historicalService: HistoricalPriceService;
 
   constructor() {
     this.priceService = new CoinGeckoService();
+    this.historicalService = new HistoricalPriceService(prisma);
   }
 
   /**
@@ -139,7 +143,7 @@ export class PortfolioService {
       };
 
       // Calculate change metrics (24h, 7d, 30d)
-      const changeMetrics = this.calculateChangeMetrics(enrichedHoldings);
+      const changeMetrics = await this.calculateChangeMetrics(enrichedHoldings);
 
       // Find top and worst performers
       const sortedByPerformance = enrichedHoldings
@@ -312,33 +316,74 @@ export class PortfolioService {
   /**
    * Private helper methods
    */
-  private calculateChangeMetrics(enrichedHoldings: Array<Holding & { 
+  private async calculateChangeMetrics(enrichedHoldings: Array<Holding & { 
     currentPrice: number;
     currentValue: number; 
     priceChangePercentage24h: number;
     priceChange24h: number;
-  }>): ChangeMetrics {
-    // For now, we only have 24h data from CoinGecko
-    // TODO: Implement 7d and 30d calculations when historical data is available
-    
+  }>): Promise<ChangeMetrics> {
     const totalCurrentValue = enrichedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
+    
+    // Calculate 24h change (using CoinGecko data)
     const total24hAgoValue = enrichedHoldings.reduce((sum, h) => {
-      // Use absolute price change for accuracy (same as calculate24hChange method)
       const price24hAgo = h.currentPrice - h.priceChange24h;
       return sum + (h.holdingAmount * price24hAgo);
     }, 0);
-
     const change24h = totalCurrentValue - total24hAgoValue;
     const changePercentage24h = total24hAgoValue > 0 ? (change24h / total24hAgoValue) * 100 : 0;
+
+    // Calculate 7d and 30d changes using historical data
+    const [change7d, change30d] = await Promise.all([
+      this.calculateHistoricalChange(enrichedHoldings, 7),
+      this.calculateHistoricalChange(enrichedHoldings, 30),
+    ]);
 
     return {
       change24h,
       changePercentage24h,
-      change7d: 0, // TODO: Implement when historical data available
-      changePercentage7d: 0,
-      change30d: 0,
-      changePercentage30d: 0,
+      change7d: change7d.change,
+      changePercentage7d: change7d.percentage,
+      change30d: change30d.change,
+      changePercentage30d: change30d.percentage,
     };
+  }
+
+  /**
+   * Calculate portfolio change over a historical period using stored data
+   */
+  private async calculateHistoricalChange(
+    holdings: Array<Holding & { currentValue: number; holdingAmount: number; coinGeckoId: string | null }>,
+    days: number
+  ): Promise<{ change: number; percentage: number }> {
+    try {
+      const totalCurrentValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+      
+      // Calculate value at the past date
+      const pastValues = await Promise.all(
+        holdings.map(async (holding) => {
+          if (!holding.coinGeckoId) return 0;
+          
+          const pastDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+          const pastPrice = await this.historicalService.getPriceAtTime(holding.coinGeckoId, pastDate);
+          
+          return pastPrice ? holding.holdingAmount * pastPrice : 0;
+        })
+      );
+      
+      const totalPastValue = pastValues.reduce((sum, val) => sum + val, 0);
+      
+      if (totalPastValue === 0) {
+        return { change: 0, percentage: 0 };
+      }
+      
+      const change = totalCurrentValue - totalPastValue;
+      const percentage = (change / totalPastValue) * 100;
+      
+      return { change, percentage };
+    } catch (error) {
+      console.error(`Failed to calculate ${days}d historical change:`, error);
+      return { change: 0, percentage: 0 };
+    }
   }
 
   private getEmptyPortfolio(): PortfolioAnalytics {

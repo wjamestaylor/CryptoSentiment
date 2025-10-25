@@ -33,6 +33,7 @@
     "test:bots:alert": "npx tsx src/scripts/bot-testing.ts alert",
     "test:bots:verify": "npx tsx src/scripts/bot-testing.ts verify",
     "test:bots:comprehensive": "npx tsx src/scripts/bot-testing.ts comprehensive",
+    "populate-history": "npx tsx src/scripts/populate-historical-prices.ts",
     "postinstall": "prisma generate",
     "docker:build": "docker build -t cryptosentiment .",
     "docker:run": "docker run -p 3000:3000 cryptosentiment",
