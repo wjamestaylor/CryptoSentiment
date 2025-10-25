@@ -1,33 +1,63 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { api } from '../../config/trpc';
+import CryptoCard from '../../components/crypto/CryptoCard';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ErrorMessage from '../../components/common/ErrorMessage';
 
 export default function DashboardScreen() {
-  // Example tRPC query
-  const { data, isLoading, error } = api.crypto.getTopCryptos.useQuery({ limit: 10 });
+  const [refreshing, setRefreshing] = React.useState(false);
+  
+  const { data, isLoading, error, refetch } = api.crypto.getTopCryptos.useQuery({ 
+    limit: 50 
+  });
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage 
+        message="Failed to load market data" 
+        details={error.message}
+      />
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor="#10b981"
+        />
+      }
+    >
       <View style={styles.header}>
-        <Text style={styles.title}>Dashboard</Text>
-        <Text style={styles.subtitle}>Welcome to CryptoSentiment</Text>
+        <Text style={styles.title}>Top Cryptocurrencies</Text>
+        <Text style={styles.subtitle}>Real-time market data</Text>
       </View>
 
       <View style={styles.content}>
-        {isLoading && (
-          <Text style={styles.loadingText}>Loading market data...</Text>
-        )}
-
-        {error && (
-          <Text style={styles.errorText}>Error loading data</Text>
-        )}
-
-        {data && (
-          <View>
-            <Text style={styles.sectionTitle}>Top Cryptocurrencies</Text>
-            {/* Crypto list would go here */}
-          </View>
-        )}
+        {data?.data?.map((crypto: any) => (
+          <CryptoCard
+            key={crypto.id}
+            id={crypto.id}
+            name={crypto.name}
+            symbol={crypto.symbol}
+            price={crypto.current_price}
+            change24h={crypto.price_change_percentage_24h || 0}
+          />
+        ))}
       </View>
     </ScrollView>
   );
@@ -54,22 +84,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   content: {
-    padding: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 16,
-  },
-  loadingText: {
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  errorText: {
-    color: '#ef4444',
-    textAlign: 'center',
-    marginTop: 32,
+    padding: 16,
   },
 });
+
