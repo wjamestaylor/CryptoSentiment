@@ -73,11 +73,11 @@ jest.mock('@/components/subscription/SubscriptionStatus', () => ({
   SubscriptionStatus: () => <div data-testid="subscription-status">Subscription Status</div>,
 }));
 
-jest.mock('@/components/profile/NotificationPreferences', () => ({
+jest.mock('@/components/settings/NotificationPreferences', () => ({
   NotificationPreferences: () => <button data-testid="notification-preferences" className="w-full sm:w-auto">Configure</button>,
 }));
 
-jest.mock('@/components/profile/AlertSettings', () => ({
+jest.mock('@/components/settings/AlertSettings', () => ({
   AlertSettings: () => <button data-testid="alert-settings" className="w-full sm:w-auto">Settings</button>,
 }));
 

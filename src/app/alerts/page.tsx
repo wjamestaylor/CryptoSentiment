@@ -29,8 +29,8 @@ import {
   Settings,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import { AlertSettings } from '@/components/profile/AlertSettings'
-import { BotConnection } from '@/components/profile/BotConnection'
+import { AlertSettings } from '@/components/settings/AlertSettings'
+import { BotConnection } from '@/components/settings/BotConnection'
 
 interface AlertCondition {
   sentimentThreshold?: number

@@ -95,7 +95,7 @@ describe('SubscriptionIndicator', () => {
     expect(manageButton).toBeInTheDocument();
     
     fireEvent.click(manageButton);
-    expect(mockPush).toHaveBeenCalledWith('/profile');
+    expect(mockPush).toHaveBeenCalledWith('/settings');
   });
 
   it('shows business tier with manage button', () => {

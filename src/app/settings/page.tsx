@@ -6,8 +6,8 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubscriptionStatus } from "@/components/subscription/SubscriptionStatus";
-import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
-import { AlertSettings } from "@/components/profile/AlertSettings";
+import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
+import { AlertSettings } from "@/components/settings/AlertSettings";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function SettingsPage() {

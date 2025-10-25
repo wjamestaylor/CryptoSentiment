@@ -523,7 +523,7 @@ export class ResendEmailService {
             <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
               <p style="color: #718096; font-size: 12px; margin: 0;">
                 © 2025 CryptoSentiment. All rights reserved.<br>
-                <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
+                <a href="${process.env.NEXTAUTH_URL}/settings" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
               </p>
             </div>
           </div>
@@ -583,7 +583,7 @@ export class ResendEmailService {
             <div style="background-color: #f7fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
               <p style="color: #718096; font-size: 12px; margin: 0;">
                 © 2025 CryptoSentiment. All rights reserved.<br>
-                <a href="${process.env.NEXTAUTH_URL}/profile" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
+                <a href="${process.env.NEXTAUTH_URL}/settings" style="color: #667eea; text-decoration: none;">Manage Preferences</a>
               </p>
             </div>
           </div>
