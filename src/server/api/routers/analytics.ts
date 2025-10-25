@@ -79,18 +79,43 @@ export const analyticsRouter = createTRPCRouter({
     }),
 
   // Get price history for a specific cryptocurrency
+  // Free tier: limited to 7 days, Pro/Business: up to 365 days
   getPriceHistory: publicProcedure
     .input(z.object({
       cryptoId: z.string(),
       days: z.number().min(1).max(365).default(30),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const priceHistory = await portfolioAnalyticsService.getPriceHistory(input.cryptoId, input.days);
+        let maxDays = input.days;
+        
+        // Apply tier-based restrictions if user is authenticated
+        if (ctx.session?.user) {
+          const user = await ctx.prisma.user.findUnique({
+            where: { id: ctx.session.user.id },
+            include: { subscription: true },
+          });
+          
+          // Free tier users are limited to 7 days of historical data
+          if (!user?.subscription || user.subscription.tier === 'FREE') {
+            maxDays = Math.min(input.days, 7);
+          }
+          // Pro and Business tiers can access full historical data
+        } else {
+          // Unauthenticated users are limited to 7 days
+          maxDays = Math.min(input.days, 7);
+        }
+        
+        const priceHistory = await portfolioAnalyticsService.getPriceHistory(input.cryptoId, maxDays);
         
         return {
           success: true,
           data: priceHistory,
+          meta: {
+            requestedDays: input.days,
+            returnedDays: maxDays,
+            limitedByTier: maxDays < input.days,
+          },
         };
       } catch (error) {
         console.error('Failed to fetch price history:', error);
