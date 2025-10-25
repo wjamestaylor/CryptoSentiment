@@ -16,6 +16,7 @@
 - 🔄 **Seamless Conversion** - Easy switching between watch-only and holdings modes
 - 🔐 **Secure Authentication** - Google OAuth + Email auth with magic links via ResendEmailService
 - 📱 **Responsive Design** - Mobile-first with shadcn/ui components
+- 📲 **Mobile Apps** - Native iOS and Android apps with push notifications
 - 🚨 **Smart Alert System** - Custom notifications with email delivery and feature gating
 - 📈 **Type-Safe API** - Full-stack TypeScript with tRPC
 - 💳 **Subscription Management** - Stripe integration with usage tracking and feature restrictions
@@ -27,6 +28,7 @@
 ## 🔧 Tech Stack
 
 **Frontend:** Next.js 15, TypeScript, Tailwind CSS, shadcn/ui  
+**Mobile:** React Native, Expo, iOS & Android apps with push notifications  
 **Backend:** tRPC, Prisma, PostgreSQL, NextAuth.js  
 **AI/Data:** OpenRouter, CoinGecko API integration  
 **Analytics:** Portfolio tracking, performance metrics, SVG visualization  
@@ -34,7 +36,7 @@
 **Email:** ResendEmailService with professional templates  
 **Bots:** Discord.js, node-telegram-bot-api with comprehensive testing  
 **Testing:** Jest (936+ tests, 100% pass rate)  
-**Deployment:** Railway, Docker
+**Deployment:** Railway, Docker, Apple App Store, Google Play Store
 
 ## 🚀 Quick Start
 
@@ -66,6 +68,25 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 *For detailed setup instructions, see [Development Setup](DEVELOPMENT_SETUP.md).*
+
+## 📱 Mobile Apps
+
+CryptoSentiment is now available as native mobile apps for iOS and Android!
+
+### Features
+- 🔐 Secure Google OAuth authentication
+- 📊 Real-time cryptocurrency market data
+- 💼 Portfolio management on the go
+- 🎯 AI-powered sentiment analysis
+- 🚨 Push notifications for price alerts
+- 📈 Full feature parity with web app
+
+### Download
+- 🍎 **iOS**: Available on Apple App Store (coming soon)
+- 🤖 **Android**: Available on Google Play Store (coming soon)
+
+### Development
+See [mobile/README.md](mobile/README.md) for mobile app development setup and [mobile/DEPLOYMENT.md](mobile/DEPLOYMENT.md) for deployment instructions.
 
 ## 📱 Usage
 
