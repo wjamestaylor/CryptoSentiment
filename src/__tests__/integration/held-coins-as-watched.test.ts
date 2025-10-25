@@ -59,7 +59,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 
@@ -95,7 +95,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 
@@ -125,7 +125,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 
@@ -222,7 +222,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 
@@ -256,7 +256,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 
@@ -284,7 +284,7 @@ describe('Integration: Held Coins as Watched Coins', () => {
       mockSubscriptionService.getSubscriptionLimits.mockReturnValue({
         alerts: 5,
         watchlist: 10,
-        aiAnalysisPerMonth: 10,
+        aiAnalysisPerMonth: 5,
         botNotifications: 0,
       });
 

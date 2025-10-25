@@ -80,14 +80,14 @@ describe('Subscription Limits - End-to-End Integration', () => {
       });
     });
 
-    it('should display correct AI analysis limit (10)', async () => {
+    it('should display correct AI analysis limit (5)', async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           success: true,
           data: {
-            currentUsage: 5,
-            limit: 10, // FREE tier AI analysis limit
+            currentUsage: 3,
+            limit: 5, // FREE tier AI analysis limit
             resetDate: new Date().toISOString(),
           },
         }),
@@ -96,8 +96,8 @@ describe('Subscription Limits - End-to-End Integration', () => {
       render(<TestComponent usageType={UsageType.AI_ANALYSIS} />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('limit')).toHaveTextContent('10');
-        expect(screen.getByTestId('display')).toHaveTextContent('5/10');
+        expect(screen.getByTestId('limit')).toHaveTextContent('5');
+        expect(screen.getByTestId('display')).toHaveTextContent('3/5');
       });
     });
 

@@ -215,9 +215,9 @@ describe('/api/usage/limit', () => {
     it('should use canPerformAIAnalysis for AI_ANALYSIS', async () => {
       mockCanPerformAIAnalysis.mockResolvedValue({
         allowed: true,
-        currentUsage: 5,
-        limit: 10,
-        remaining: 5,
+        currentUsage: 3,
+        limit: 5,
+        remaining: 2,
         resetDate: new Date('2024-02-01'),
       });
 
@@ -229,7 +229,7 @@ describe('/api/usage/limit', () => {
       const data = await response.json();
 
       expect(mockCanPerformAIAnalysis).toHaveBeenCalledWith('user-123');
-      expect(data.data.limit).toBe(10); // FREE tier AI analysis limit
+      expect(data.data.limit).toBe(5); // FREE tier AI analysis limit
     });
   });
 
@@ -297,7 +297,7 @@ describe('/api/usage/limit', () => {
       const freeTierLimits = {
         watchlist: { limit: 10, currentUsage: 3 },
         alerts: { limit: 5, currentUsage: 2 },
-        aiAnalysis: { limit: 10, currentUsage: 5 },
+        aiAnalysis: { limit: 5, currentUsage: 3 },
         botNotifications: { limit: 0, currentUsage: 0 },
       };
 

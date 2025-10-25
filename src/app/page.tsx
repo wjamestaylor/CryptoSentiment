@@ -92,7 +92,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
                   <div className="font-bold text-green-600 text-lg">Free</div>
-                  <div className="text-gray-600 dark:text-gray-300">10 AI analyses</div>
+                  <div className="text-gray-600 dark:text-gray-300">5 AI analyses</div>
                   <div className="text-gray-600 dark:text-gray-300">10 watchlist coins</div>
                 </div>
                 <div className="text-center p-4 bg-blue-100 dark:bg-blue-900/20 rounded-lg border-2 border-blue-400">

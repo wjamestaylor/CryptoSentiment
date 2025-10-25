@@ -16,7 +16,7 @@ The canonical source of truth for subscription limits is:
 |---------|-------|-------|
 | Watchlist | 10 coins | Total tracked cryptocurrencies |
 | Alerts | 5 alerts | Price and sentiment alerts |
-| AI Analysis | 10 per month | Sentiment analysis requests |
+| AI Analysis | 5 per month | Sentiment analysis requests |
 | Bot Notifications | 0 | No Discord/Telegram notifications |
 
 ### PRO Tier

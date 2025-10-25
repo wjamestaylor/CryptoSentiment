@@ -216,7 +216,7 @@ Our step-by-step wizard makes alert creation easy:
 
 ### Free Tier
 **Perfect for getting started:**
-- 10 AI analyses per month
+- 5 AI analyses per month
 - 10 watchlist coins
 - 3 price alerts
 - Email notifications

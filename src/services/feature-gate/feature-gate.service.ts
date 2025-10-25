@@ -12,7 +12,7 @@ export class FeatureGateService {
   // NOTE: These should match SubscriptionService.getSubscriptionLimits()
   private static readonly USAGE_LIMITS = {
     FREE: {
-      [UsageType.AI_ANALYSIS]: 10,
+      [UsageType.AI_ANALYSIS]: 5,
       [UsageType.ALERT_CREATION]: 5,
       [UsageType.WATCHLIST_ADD]: 10,
       [UsageType.BOT_NOTIFICATION]: 0,
