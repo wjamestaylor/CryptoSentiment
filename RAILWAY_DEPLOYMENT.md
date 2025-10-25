@@ -23,7 +23,24 @@
 
 ## 🚀 **Step-by-Step Deployment**
 
-### **Step 1: Initialize Railway Project**
+### **Step 1: Set Up Google OAuth Credentials**
+
+**Before deploying**, you need to set up Google OAuth for authentication:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to **APIs & Services** → **Credentials**
+4. Click **Create Credentials** → **OAuth 2.0 Client ID**
+5. Configure the consent screen if prompted
+6. For Application type, select **Web application**
+7. Add authorized redirect URIs:
+   - Development: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://your-app.railway.app/api/auth/callback/google`
+8. Copy the **Client ID** and **Client Secret** - you'll need these for environment variables
+
+**Important**: Update the production redirect URI after deployment with your actual Railway URL.
+
+### **Step 2: Initialize Railway Project**
 
 ```bash
 # Navigate to project directory
@@ -37,7 +54,7 @@ railway init
 # Name: cryptosentiment-production
 ```
 
-### **Step 2: Set Up PostgreSQL Database**
+### **Step 3: Set Up PostgreSQL Database**
 
 ```bash
 # Add PostgreSQL service
@@ -46,7 +63,7 @@ railway add postgresql
 # This will automatically set DATABASE_URL environment variable
 ```
 
-### **Step 3: Configure Environment Variables**
+### **Step 4: Configure Environment Variables**
 
 Set these **required** environment variables in Railway dashboard:
 
@@ -55,6 +72,10 @@ Set these **required** environment variables in Railway dashboard:
 # Authentication (REQUIRED)
 NEXTAUTH_SECRET=your-super-secret-jwt-key-min-32-chars
 NEXTAUTH_URL=https://your-app.railway.app
+
+# Google OAuth (REQUIRED for Google Sign-In)
+GOOGLE_CLIENT_ID=your-google-client-id-from-console
+GOOGLE_CLIENT_SECRET=your-google-client-secret-from-console
 
 # Database (Automatically set by Railway PostgreSQL)
 DATABASE_URL=postgresql://...
@@ -86,7 +107,7 @@ DISCORD_BOT_TOKEN=your-discord-bot-token
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 ```
 
-### **Step 4: Deploy Application**
+### **Step 5: Deploy Application**
 
 ```bash
 # Deploy to Railway
@@ -96,7 +117,7 @@ railway up
 railway logs
 ```
 
-### **Step 5: Run Database Migrations**
+### **Step 6: Run Database Migrations**
 
 ```bash
 # After first deployment, run migrations
@@ -306,6 +327,24 @@ railway variables
 # Test database connection
 railway connect postgresql
 ```
+
+#### **Authentication Issues**
+```bash
+# Verify all auth environment variables are set
+railway variables | grep -E "(NEXTAUTH|GOOGLE|EMAIL)"
+
+# Common fixes:
+# 1. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set
+# 2. Verify NEXTAUTH_URL matches your Railway domain
+# 3. Check Google OAuth redirect URIs include your Railway URL
+# 4. Confirm NEXTAUTH_SECRET is at least 32 characters
+```
+
+**Google OAuth Setup:**
+- Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+- Update authorized redirect URIs to include: `https://your-app.railway.app/api/auth/callback/google`
+- Ensure OAuth consent screen is configured
+- Verify Client ID and Client Secret are correctly copied to Railway environment variables
 
 #### **Environment Variable Issues**
 ```bash
