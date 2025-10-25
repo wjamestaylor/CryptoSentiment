@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { TRPCError } from '@trpc/server';
 import crypto from 'crypto';
+import { setVerificationCode, getVerificationCode, deleteVerificationCode } from '@/lib/cache/redis';
 
 // Types for bot verification
 const botLinkingSchema = z.object({
@@ -65,13 +66,9 @@ export const botsRouter = createTRPCRouter({
       // Generate a random 8-character verification code
       const verificationCode = crypto.randomBytes(4).toString('hex').toUpperCase();
       
-      // Store verification code in cache/database (you might want to use Redis for this)
-      // For now, we'll store it in a simple in-memory cache
-      // In production, use Redis with expiration
-      // const cacheKey = `bot_verification:${ctx.session.user.id}:${input.botType}`;
-      
-      // TODO: Replace with Redis cache
-      // await redis.setex(cacheKey, 300, verificationCode); // 5 minutes expiration
+      // Store verification code in Redis with 5 minutes expiration
+      const expirationSeconds = 300;
+      await setVerificationCode(ctx.session.user.id, input.botType, verificationCode, expirationSeconds);
       
       console.log(`Generated verification code for user ${ctx.session.user.id} (${input.botType}): ${verificationCode}`);
       
@@ -80,7 +77,7 @@ export const botsRouter = createTRPCRouter({
         instructions: input.botType === 'discord' 
           ? `Go to our Discord server and use the command: \`/verify ${verificationCode}\``
           : `Start a chat with our Telegram bot (@CryptoSentimentBot) and send: \`/verify ${verificationCode}\``,
-        expiresIn: 300, // 5 minutes
+        expiresIn: expirationSeconds,
       };
     }),
 
@@ -94,18 +91,16 @@ export const botsRouter = createTRPCRouter({
       botUsername: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      // TODO: Verify the verification code from cache
-      // const cacheKey = `bot_verification:${ctx.session.user.id}:${input.botType}`;
-      // const storedCode = await redis.get(cacheKey);
-      // 
-      // if (!storedCode || storedCode !== input.verificationCode) {
-      //   throw new TRPCError({
-      //     code: 'BAD_REQUEST',
-      //     message: 'Invalid or expired verification code',
-      //   });
-      // }
+      // Verify the verification code from Redis cache
+      const storedCode = await getVerificationCode(ctx.session.user.id, input.botType);
+      
+      if (!storedCode || storedCode !== input.verificationCode) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid or expired verification code',
+        });
+      }
 
-      // For now, skip verification code check for development
       console.log(`Verifying bot linking for user ${ctx.session.user.id}: ${input.botType} - ${input.botUserId}`);
 
       // Update user with bot information
@@ -143,8 +138,8 @@ export const botsRouter = createTRPCRouter({
         },
       });
 
-      // TODO: Clear verification code from cache
-      // await redis.del(cacheKey);
+      // Clear verification code from Redis cache
+      await deleteVerificationCode(ctx.session.user.id, input.botType);
 
       return {
         success: true,
