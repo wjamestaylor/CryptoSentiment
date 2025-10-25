@@ -445,7 +445,7 @@ describe('PriceChart Component', () => {
   });
 
   describe('Chart Visual Styling', () => {
-    it('renders smooth curve chart without circle markers', () => {
+    it('renders crisp angular chart without circle markers', () => {
       const { container } = render(
         <PriceChart 
           cryptoId="bitcoin"
@@ -459,9 +459,23 @@ describe('PriceChart Component', () => {
       const svgElements = container.querySelectorAll('svg');
       expect(svgElements.length).toBeGreaterThan(0);
 
-      // Check that smooth paths exist (using Q for quadratic bezier curves)
+      // Check that crisp paths exist (using L for line segments, not Q for bezier curves)
       const paths = container.querySelectorAll('path');
       expect(paths.length).toBeGreaterThan(0);
+      
+      // Verify path uses L (line) commands, not Q (quadratic bezier) or T (smooth bezier)
+      const pricePath = Array.from(paths).find(path => {
+        const d = path.getAttribute('d');
+        return d && d.includes('M') && d.includes('L');
+      });
+      expect(pricePath).toBeDefined();
+      
+      // Ensure no bezier curves are used
+      const hasNoBezierCurves = Array.from(paths).every(path => {
+        const d = path.getAttribute('d');
+        return !d || (!d.includes(' Q ') && !d.includes(' T '));
+      });
+      expect(hasNoBezierCurves).toBe(true);
 
       // Check that NO circle elements exist (markers removed)
       const circles = container.querySelectorAll('circle');
@@ -472,7 +486,7 @@ describe('PriceChart Component', () => {
       expect(rects.length).toBeGreaterThan(0);
     });
 
-    it('renders gradient backgrounds for better aesthetics', () => {
+    it('renders professional chart styling', () => {
       const { container } = render(
         <PriceChart 
           cryptoId="bitcoin"
@@ -486,8 +500,8 @@ describe('PriceChart Component', () => {
       const gradients = container.querySelectorAll('linearGradient');
       expect(gradients.length).toBeGreaterThan(0);
 
-      // Check for gradient backgrounds on chart containers
-      const chartContainers = container.querySelectorAll('.bg-gradient-to-br');
+      // Check for card background styling on chart containers
+      const chartContainers = container.querySelectorAll('.bg-card');
       expect(chartContainers.length).toBeGreaterThan(0);
     });
 
@@ -504,9 +518,33 @@ describe('PriceChart Component', () => {
       // Check for grid lines (line elements in SVG)
       const lines = container.querySelectorAll('line');
       expect(lines.length).toBeGreaterThan(0);
+      
+      // Should have at least 6 lines (3 horizontal + 3 vertical grid lines)
+      expect(lines.length).toBeGreaterThanOrEqual(6);
     });
 
-    it('renders improved price labels with backdrop blur', () => {
+    it('renders vertical grid lines for time reference', () => {
+      const { container } = render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Check for vertical grid lines
+      const lines = container.querySelectorAll('line');
+      const verticalLines = Array.from(lines).filter(line => {
+        const x1 = line.getAttribute('x1');
+        const x2 = line.getAttribute('x2');
+        return x1 === x2; // Vertical lines have same x coordinates
+      });
+      
+      expect(verticalLines.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('renders improved price labels with borders and formatting', () => {
       render(
         <PriceChart 
           cryptoId="bitcoin"
@@ -516,8 +554,8 @@ describe('PriceChart Component', () => {
         />
       );
 
-      // Price labels should have backdrop blur styling
-      const labels = document.querySelectorAll('.backdrop-blur-sm');
+      // Price labels should have border styling
+      const labels = document.querySelectorAll('.border-border\\/50');
       expect(labels.length).toBeGreaterThan(0);
     });
   });

@@ -299,7 +299,7 @@ export function PriceChart({
                     {timeframe} day{timeframe !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="relative h-64 border rounded-lg bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 overflow-hidden shadow-sm">
+                <div className="relative h-64 border rounded-lg bg-card overflow-hidden">
                   <SimplePriceChart 
                     data={chartData.pricePoints}
                     minPrice={priceStats?.minPrice || 0}
@@ -312,7 +312,7 @@ export function PriceChart({
               {/* Volume Chart */}
               <div className="relative">
                 <div className="text-sm font-medium mb-2">Volume Trend</div>
-                <div className="relative h-16 border rounded-lg bg-gradient-to-br from-muted/20 to-muted/10 overflow-hidden shadow-sm">
+                <div className="relative h-16 border rounded-lg bg-card overflow-hidden">
                   <SimpleVolumeChart 
                     data={chartData.volumePoints}
                     maxVolume={priceStats?.maxVolume || 0}
@@ -372,42 +372,32 @@ function SimplePriceChart({
     originalY: point.y,
   }));
 
-  // Create smooth curve using cardinal spline interpolation
-  const createSmoothPath = (points: Array<{ x: number; y: number }>) => {
+  // Create crisp, angular path like professional trading charts
+  const createCrispPath = (points: Array<{ x: number; y: number }>) => {
     if (points.length < 2) return '';
     
     let path = `M ${points[0].x} ${points[0].y}`;
     
-    for (let i = 0; i < points.length - 1; i++) {
-      const current = points[i];
-      const next = points[i + 1];
-      
-      // Use quadratic bezier curves for smoother lines
-      const controlX = (current.x + next.x) / 2;
-      const controlY = (current.y + next.y) / 2;
-      
-      if (i === 0) {
-        path += ` Q ${controlX} ${current.y}, ${next.x} ${next.y}`;
-      } else {
-        path += ` T ${next.x} ${next.y}`;
-      }
+    for (let i = 1; i < points.length; i++) {
+      // Use straight lines (L command) for crisp, angular appearance
+      path += ` L ${points[i].x} ${points[i].y}`;
     }
     
     return path;
   };
 
-  const smoothPath = createSmoothPath(points);
+  const crispPath = createCrispPath(points);
   
   // Create area path for gradient fill
-  const areaPath = `${smoothPath} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+  const areaPath = `${crispPath} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
 
-  // Determine colors based on trend and theme compatibility
+  // Determine colors based on trend - using professional trading colors
   const lineColor = isPositive 
-    ? "hsl(142.1 76.2% 36.3%)" // green-600 (theme-aware)
-    : "hsl(0 84.2% 60.2%)"; // red-500 (theme-aware)
+    ? "hsl(142 71% 45%)" // Trading green
+    : "hsl(0 72% 51%)"; // Trading red
   
-  const gradientStartOpacity = 0.2;
-  const gradientEndOpacity = 0.02;
+  const gradientStartOpacity = 0.15;
+  const gradientEndOpacity = 0.01;
 
   return (
     <div className="relative w-full h-full group">
@@ -432,26 +422,17 @@ function SimplePriceChart({
               stopOpacity={gradientEndOpacity}
             />
           </linearGradient>
-          
-          {/* Glow filter for line (optional enhancement) */}
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
         </defs>
         
-        {/* Subtle horizontal grid lines */}
+        {/* Professional grid lines - horizontal */}
         <line
           x1="0"
           y1={padding}
           x2="100"
           y2={padding}
           stroke="currentColor"
-          className="text-muted-foreground/10"
-          strokeWidth="0.5"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
         <line
@@ -460,8 +441,8 @@ function SimplePriceChart({
           x2="100"
           y2={chartHeight / 2}
           stroke="currentColor"
-          className="text-muted-foreground/10"
-          strokeWidth="0.5"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
         <line
@@ -470,8 +451,40 @@ function SimplePriceChart({
           x2="100"
           y2={chartHeight - padding}
           stroke="currentColor"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        
+        {/* Vertical grid lines for time reference */}
+        <line
+          x1="25"
+          y1={padding}
+          x2="25"
+          y2={chartHeight - padding}
+          stroke="currentColor"
           className="text-muted-foreground/10"
-          strokeWidth="0.5"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="50"
+          y1={padding}
+          x2="50"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="75"
+          y1={padding}
+          x2="75"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
         
@@ -482,17 +495,16 @@ function SimplePriceChart({
           className="transition-opacity duration-300"
         />
         
-        {/* Main price line with smooth curve */}
+        {/* Main price line with crisp, angular segments */}
         <path
-          d={smoothPath}
+          d={crispPath}
           fill="none"
           stroke={lineColor}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          strokeWidth="2"
+          strokeLinecap="butt"
+          strokeLinejoin="miter"
           vectorEffect="non-scaling-stroke"
           className="transition-all duration-300"
-          style={{ filter: 'url(#glow)' }}
         />
         
         {/* Interactive overlay - invisible rectangles for tooltip triggers */}
@@ -514,12 +526,25 @@ function SimplePriceChart({
         ))}
       </svg>
       
-      {/* Price labels with better styling */}
-      <div className="absolute top-3 left-3 text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-        ${maxPrice.toLocaleString()}
+      {/* Price labels with improved styling and tick marks */}
+      <div className="absolute top-2 left-0 text-xs font-semibold text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+        ${maxPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
       </div>
-      <div className="absolute bottom-3 left-3 text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
-        ${minPrice.toLocaleString()}
+      <div className="absolute" style={{ top: `${chartHeight / 2 - 10}px`, left: '0' }}>
+        <div className="text-xs font-medium text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+          ${((maxPrice + minPrice) / 2).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </div>
+      </div>
+      <div className="absolute bottom-2 left-0 text-xs font-semibold text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+        ${minPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      </div>
+      
+      {/* Time axis labels */}
+      <div className="absolute bottom-1 left-0 text-[10px] text-muted-foreground/70">
+        {new Date(points[0].timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+      </div>
+      <div className="absolute bottom-1 right-0 text-[10px] text-muted-foreground/70">
+        {new Date(points[points.length - 1].timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
       </div>
     </div>
   );
@@ -581,11 +606,10 @@ function SimpleVolumeChart({
               key={index}
               x={x}
               y={y}
-              width={barWidth * 0.85} // 85% width for slight spacing
+              width={barWidth * 0.8} // 80% width for spacing
               height={barHeight}
               fill="url(#volumeGradient)"
-              rx="0.5" // Slight rounding on corners
-              className="hover:opacity-90 transition-opacity"
+              className="hover:opacity-80 transition-opacity"
             >
               <title>
                 {new Date(point.timestamp).toLocaleDateString()}: ${(point.y / 1e6).toFixed(1)}M
