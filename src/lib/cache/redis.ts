@@ -18,11 +18,14 @@ function getRedisClient(): Redis | null {
     return redisClient;
   }
 
-  // Skip Redis in test environment or if URL not configured
-  if (process.env.NODE_ENV === 'test' || !process.env.REDIS_URL) {
-    if (!process.env.REDIS_URL && process.env.NODE_ENV !== 'test') {
-      console.warn('REDIS_URL not configured. Redis cache disabled.');
-    }
+  // Skip Redis in test environment
+  if (process.env.NODE_ENV === 'test') {
+    return null;
+  }
+
+  // Skip Redis if URL not configured
+  if (!process.env.REDIS_URL) {
+    console.warn('REDIS_URL not configured. Redis cache disabled.');
     return null;
   }
 
@@ -34,9 +37,8 @@ function getRedisClient(): Redis | null {
         return delay;
       },
       reconnectOnError(err) {
-        const targetError = 'READONLY';
-        if (err.message.includes(targetError)) {
-          // Only reconnect when the error contains "READONLY"
+        // Only reconnect when the error contains "READONLY"
+        if (err.message.includes('READONLY')) {
           return true;
         }
         return false;
