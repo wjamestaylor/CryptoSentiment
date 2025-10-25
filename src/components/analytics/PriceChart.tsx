@@ -293,8 +293,13 @@ export function PriceChart({
             <div className="space-y-4">
               {/* Price Chart */}
               <div className="relative">
-                <div className="text-sm font-medium mb-2">Price Trend</div>
-                <div className="relative h-64 border rounded-lg bg-muted/20 overflow-hidden">
+                <div className="text-sm font-medium mb-2 flex items-center justify-between">
+                  <span>Price Trend</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    {timeframe} day{timeframe !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="relative h-64 border rounded-lg bg-gradient-to-br from-muted/30 via-muted/20 to-muted/10 overflow-hidden shadow-sm">
                   <SimplePriceChart 
                     data={chartData.pricePoints}
                     minPrice={priceStats?.minPrice || 0}
@@ -307,7 +312,7 @@ export function PriceChart({
               {/* Volume Chart */}
               <div className="relative">
                 <div className="text-sm font-medium mb-2">Volume Trend</div>
-                <div className="relative h-16 border rounded-lg bg-muted/20 overflow-hidden">
+                <div className="relative h-16 border rounded-lg bg-gradient-to-br from-muted/20 to-muted/10 overflow-hidden shadow-sm">
                   <SimpleVolumeChart 
                     data={chartData.volumePoints}
                     maxVolume={priceStats?.maxVolume || 0}
@@ -316,7 +321,7 @@ export function PriceChart({
               </div>
 
               {/* Data Points Info */}
-              <div className="text-xs text-muted-foreground text-center">
+              <div className="text-xs text-muted-foreground text-center pt-2">
                 Showing {priceStats?.dataPoints || 0} data points over {timeframe} day{timeframe !== 1 ? 's' : ''}
               </div>
             </div>
@@ -349,6 +354,7 @@ function SimplePriceChart({
 }) {
   const priceRange = maxPrice - minPrice;
   const chartHeight = 256; // 64 * 4 (h-64 in Tailwind)
+  const padding = 30; // Increased padding for better visual spacing
 
   if (data.length === 0 || priceRange === 0) {
     return (
@@ -361,81 +367,158 @@ function SimplePriceChart({
   // Convert price data to chart coordinates
   const points = data.map(point => ({
     x: point.x,
-    y: ((maxPrice - point.y) / priceRange) * (chartHeight - 40) + 20, // 20px margin
+    y: ((maxPrice - point.y) / priceRange) * (chartHeight - padding * 2) + padding,
     timestamp: point.timestamp,
+    originalY: point.y,
   }));
 
-  // Create SVG path
-  const pathData = points.reduce((path, point, index) => {
-    const command = index === 0 ? 'M' : 'L';
-    return `${path} ${command} ${point.x} ${point.y}`;
-  }, '');
+  // Create smooth curve using cardinal spline interpolation
+  const createSmoothPath = (points: Array<{ x: number; y: number }>) => {
+    if (points.length < 2) return '';
+    
+    let path = `M ${points[0].x} ${points[0].y}`;
+    
+    for (let i = 0; i < points.length - 1; i++) {
+      const current = points[i];
+      const next = points[i + 1];
+      
+      // Use quadratic bezier curves for smoother lines
+      const controlX = (current.x + next.x) / 2;
+      const controlY = (current.y + next.y) / 2;
+      
+      if (i === 0) {
+        path += ` Q ${controlX} ${current.y}, ${next.x} ${next.y}`;
+      } else {
+        path += ` T ${next.x} ${next.y}`;
+      }
+    }
+    
+    return path;
+  };
 
+  const smoothPath = createSmoothPath(points);
+  
   // Create area path for gradient fill
-  const areaPath = `${pathData} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+  const areaPath = `${smoothPath} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+
+  // Determine colors based on trend and theme compatibility
+  const lineColor = isPositive 
+    ? "hsl(142.1 76.2% 36.3%)" // green-600 (theme-aware)
+    : "hsl(0 84.2% 60.2%)"; // red-500 (theme-aware)
+  
+  const gradientStartOpacity = 0.2;
+  const gradientEndOpacity = 0.02;
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full group">
       <svg 
         className="absolute inset-0 w-full h-full" 
         viewBox={`0 0 100 ${chartHeight}`}
         preserveAspectRatio="none"
       >
         <defs>
-          <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          {/* Gradient fill for area under curve */}
+          <linearGradient id={`priceGradient-${isPositive ? 'pos' : 'neg'}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop 
               offset="0%" 
-              stopColor={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"} 
-              stopOpacity="0.3" 
+              className={isPositive ? "text-green-500" : "text-red-500"}
+              stopColor="currentColor"
+              stopOpacity={gradientStartOpacity}
             />
             <stop 
               offset="100%" 
-              stopColor={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"} 
-              stopOpacity="0.05" 
+              className={isPositive ? "text-green-500" : "text-red-500"}
+              stopColor="currentColor"
+              stopOpacity={gradientEndOpacity}
             />
           </linearGradient>
+          
+          {/* Glow filter for line (optional enhancement) */}
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
         
-        {/* Area fill */}
-        <path
-          d={areaPath}
-          fill="url(#priceGradient)"
+        {/* Subtle horizontal grid lines */}
+        <line
+          x1="0"
+          y1={padding}
+          x2="100"
+          y2={padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="0.5"
+          vectorEffect="non-scaling-stroke"
         />
-        
-        {/* Price line */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <line
+          x1="0"
+          y1={chartHeight / 2}
+          x2="100"
+          y2={chartHeight / 2}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="0.5"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="0"
+          y1={chartHeight - padding}
+          x2="100"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="0.5"
           vectorEffect="non-scaling-stroke"
         />
         
-        {/* Data points */}
+        {/* Area fill with gradient */}
+        <path
+          d={areaPath}
+          fill={`url(#priceGradient-${isPositive ? 'pos' : 'neg'})`}
+          className="transition-opacity duration-300"
+        />
+        
+        {/* Main price line with smooth curve */}
+        <path
+          d={smoothPath}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+          className="transition-all duration-300"
+          style={{ filter: 'url(#glow)' }}
+        />
+        
+        {/* Interactive overlay - invisible rectangles for tooltip triggers */}
         {points.map((point, index) => (
-          <circle
-            key={index}
-            cx={point.x}
-            cy={point.y}
-            r="2"
-            fill={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"}
-            strokeWidth="0"
-            className="opacity-60 hover:opacity-100 transition-opacity"
-          >
-            <title>
-              ${data[index].y.toLocaleString()} at {new Date(point.timestamp).toLocaleDateString()}
-            </title>
-          </circle>
+          <g key={index}>
+            <rect
+              x={point.x - 2}
+              y="0"
+              width="4"
+              height={chartHeight}
+              fill="transparent"
+              className="cursor-crosshair"
+            >
+              <title>
+                {new Date(point.timestamp).toLocaleDateString()}: ${point.originalY.toLocaleString()}
+              </title>
+            </rect>
+          </g>
         ))}
       </svg>
       
-      {/* Price labels */}
-      <div className="absolute top-2 left-2 text-xs text-muted-foreground">
+      {/* Price labels with better styling */}
+      <div className="absolute top-3 left-3 text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
         ${maxPrice.toLocaleString()}
       </div>
-      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground">
+      <div className="absolute bottom-3 left-3 text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded backdrop-blur-sm">
         ${minPrice.toLocaleString()}
       </div>
     </div>
@@ -451,6 +534,7 @@ function SimpleVolumeChart({
   maxVolume: number;
 }) {
   const chartHeight = 64;
+  const padding = 4;
   
   if (data.length === 0 || maxVolume === 0) {
     return (
@@ -469,24 +553,42 @@ function SimpleVolumeChart({
         viewBox={`0 0 100 ${chartHeight}`}
         preserveAspectRatio="none"
       >
+        <defs>
+          {/* Gradient for volume bars */}
+          <linearGradient id="volumeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop 
+              offset="0%" 
+              className="text-blue-500"
+              stopColor="currentColor"
+              stopOpacity="0.8"
+            />
+            <stop 
+              offset="100%" 
+              className="text-blue-600"
+              stopColor="currentColor"
+              stopOpacity="0.4"
+            />
+          </linearGradient>
+        </defs>
+        
         {data.map((point, index) => {
-          const barHeight = (point.y / maxVolume) * (chartHeight - 4);
+          const barHeight = (point.y / maxVolume) * (chartHeight - padding * 2);
           const x = index * barWidth;
-          const y = chartHeight - barHeight;
+          const y = chartHeight - barHeight - padding;
           
           return (
             <rect
               key={index}
               x={x}
               y={y}
-              width={barWidth * 0.8} // 80% width for spacing
+              width={barWidth * 0.85} // 85% width for slight spacing
               height={barHeight}
-              fill="rgb(99 102 241)" // indigo-500
-              opacity="0.6"
-              className="hover:opacity-100 transition-opacity"
+              fill="url(#volumeGradient)"
+              rx="0.5" // Slight rounding on corners
+              className="hover:opacity-90 transition-opacity"
             >
               <title>
-                Volume: ${(point.y / 1e6).toFixed(1)}M on {new Date(point.timestamp).toLocaleDateString()}
+                {new Date(point.timestamp).toLocaleDateString()}: ${(point.y / 1e6).toFixed(1)}M
               </title>
             </rect>
           );
