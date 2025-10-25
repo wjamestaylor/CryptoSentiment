@@ -49,10 +49,18 @@ const pathData = points.reduce((path, point, index) => {
 const createSmoothPath = (points) => {
   let path = `M ${points[0].x} ${points[0].y}`;
   for (let i = 0; i < points.length - 1; i++) {
+    const current = points[i];
+    const next = points[i + 1];
+    // Calculate control point at midpoint
     const controlX = (current.x + next.x) / 2;
     const controlY = (current.y + next.y) / 2;
-    path += ` Q ${controlX} ${current.y}, ${next.x} ${next.y}`;
-    // Subsequent points use T for smooth continuation
+    if (i === 0) {
+      // First segment uses Q (quadratic bezier)
+      path += ` Q ${controlX} ${current.y}, ${next.x} ${next.y}`;
+    } else {
+      // Subsequent segments use T (smooth continuation)
+      path += ` T ${next.x} ${next.y}`;
+    }
   }
   return path;
 };
