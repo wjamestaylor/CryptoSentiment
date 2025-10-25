@@ -15,6 +15,24 @@ export function formatCurrency(
   }).format(amount)
 }
 
+export function formatDate(
+  date: Date | string,
+  timezone: string = "UTC",
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...options,
+  };
+  return new Intl.DateTimeFormat("en-US", defaultOptions).format(dateObj);
+}
+
 export function formatNumber(number: number): string {
   return new Intl.NumberFormat("en-US").format(number)
 }
