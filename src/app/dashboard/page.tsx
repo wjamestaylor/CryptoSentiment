@@ -4,7 +4,7 @@ import { api } from '@/lib/trpc/provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DashboardStatsLoading, 
   CryptoPriceLoading 
@@ -43,12 +43,12 @@ export default function Dashboard() {
     retry: 1,
   });
 
-  // Update lastValidData when we get successful data
-  if (dashboardData?.success && dashboardData.data && !dashboardError) {
-    if (JSON.stringify(lastValidData) !== JSON.stringify(dashboardData)) {
+  // Update lastValidData when we get successful data using useEffect
+  useEffect(() => {
+    if (dashboardData?.success && dashboardData.data && !dashboardError) {
       setLastValidData(dashboardData);
     }
-  }
+  }, [dashboardData, dashboardError]);
 
   // Use last valid data if current fetch failed
   const activeData = dashboardError && lastValidData ? lastValidData : dashboardData;
