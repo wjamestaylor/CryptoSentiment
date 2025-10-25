@@ -559,4 +559,152 @@ describe('PriceChart Component', () => {
       expect(labels.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Dynamic Title and Symbol Updates', () => {
+    it('displays initial crypto name and symbol from props when multi-view is disabled', () => {
+      render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={false}
+        />
+      );
+
+      // Find heading that contains both Bitcoin and BTC
+      const heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+      expect(heading.textContent).toContain('BTC');
+    });
+
+    it('displays initial crypto name and symbol from props when multi-view is enabled', () => {
+      render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={true}
+        />
+      );
+
+      // Find heading that contains both Bitcoin and BTC
+      const heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+      expect(heading.textContent).toContain('BTC');
+    });
+
+    it('updates title and symbol when user selects a different coin in multi-view', async () => {
+      render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={true}
+        />
+      );
+
+      // Initially shows Bitcoin in heading
+      let heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+      expect(heading.textContent).toContain('BTC');
+
+      // Find and click on Ethereum coin selector button (in the coin grid, not the badge)
+      const coinButtons = screen.getAllByRole('button');
+      const ethereumButton = coinButtons.find(button => 
+        button.textContent?.includes('ETH') && 
+        button.textContent?.includes('Ethereum') &&
+        button.className.includes('p-3')
+      );
+      
+      expect(ethereumButton).toBeDefined();
+      fireEvent.click(ethereumButton!);
+
+      // Wait for the title to update to Ethereum
+      await waitFor(() => {
+        heading = screen.getByRole('heading', { name: /Ethereum/i });
+        expect(heading).toBeInTheDocument();
+        expect(heading.textContent).toContain('ETH');
+      });
+    });
+
+    it('maintains title and symbol when switching between watched and held tabs', async () => {
+      render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={true}
+        />
+      );
+
+      // Initially in watched tab showing Bitcoin in heading
+      let heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+
+      // Switch to held tab
+      const heldTab = screen.getByText(/Held \(1\)/);
+      fireEvent.click(heldTab);
+
+      await waitFor(() => {
+        // Bitcoin should still be shown in heading
+        heading = screen.getByRole('heading', { name: /Bitcoin/i });
+        expect(heading).toBeInTheDocument();
+        expect(heading.textContent).toContain('BTC');
+      });
+    });
+
+    it('falls back to props when selected coin is not found in watched/held lists', async () => {
+      // Create a scenario where initial cryptoId is not in the lists
+      render(
+        <PriceChart 
+          cryptoId="cardano"
+          cryptoName="Cardano"
+          cryptoSymbol="ADA"
+          enableMultiView={true}
+        />
+      );
+
+      // Should show the fallback from props in heading
+      const heading = screen.getByRole('heading', { name: /Cardano/i });
+      expect(heading).toBeInTheDocument();
+      expect(heading.textContent).toContain('ADA');
+    });
+
+    it('updates title when coin data loads asynchronously', async () => {
+      // Start with loading state
+      (api.crypto.getWatchedCoins.useQuery as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: true,
+      });
+
+      const { rerender } = render(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={true}
+        />
+      );
+
+      // Initially shows props in heading
+      let heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+
+      // Update to loaded state
+      (api.crypto.getWatchedCoins.useQuery as jest.Mock).mockReturnValue(mockWatchedCoins);
+      rerender(
+        <PriceChart 
+          cryptoId="bitcoin"
+          cryptoName="Bitcoin"
+          cryptoSymbol="BTC"
+          enableMultiView={true}
+        />
+      );
+
+      // Should still show Bitcoin (now from loaded data) in heading
+      heading = screen.getByRole('heading', { name: /Bitcoin/i });
+      expect(heading).toBeInTheDocument();
+      expect(heading.textContent).toContain('BTC');
+    });
+  });
 });
