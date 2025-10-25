@@ -9,6 +9,7 @@ import { subscriptionRouter } from './routers/subscription'
 import { analyticsRouter } from './routers/analytics'
 import { dashboardRouter } from './routers/dashboard'
 import { portfolioImportRouter } from './routers/portfolio-import'
+import { onboardingRouter } from './routers/onboarding'
 
 export const appRouter = createTRPCRouter({
   crypto: cryptoRouter,
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
   analytics: analyticsRouter,
   dashboard: dashboardRouter,
   portfolioImport: portfolioImportRouter,
+  onboarding: onboardingRouter,
 })
 
 export type AppRouter = typeof appRouter

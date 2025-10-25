@@ -6,7 +6,7 @@ import { Navbar } from "@/components/ui/navbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 // Load Geist fonts locally to avoid network requests during build
 // This prevents build failures in environments with restricted network access
@@ -61,7 +61,7 @@ export default function RootLayout({
                   <main className="min-h-screen navbar-offset">
                     {children}
                   </main>
-                  <WelcomeModal />
+                  <OnboardingWizard />
                 </div>
               </ErrorBoundary>
             </TRPCProvider>

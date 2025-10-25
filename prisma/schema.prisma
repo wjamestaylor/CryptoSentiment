@@ -33,6 +33,11 @@ model User {
   // User preferences
   preferences UserPreferences?
 
+  // Onboarding tracking
+  onboardingCompleted Boolean  @default(false)
+  onboardingStep      Int      @default(0)
+  onboardingCompletedAt DateTime?
+
   // Followed cryptocurrencies
   followedCoins FollowedCoin[]
 
