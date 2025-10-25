@@ -86,8 +86,8 @@ PORT=3000
 ```
 
 **⚠️ Build vs Runtime Environment Variables:**
-- **Build time**: Only `DATABASE_URL` is required for Prisma client generation. All auth-related secrets are validated at runtime, not at build.
-- **Runtime**: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` are validated when NextAuth callbacks execute (during actual authentication).
+- **Build time**: Only `DATABASE_URL` is required for Prisma client generation. All auth-related secrets are validated during authentication operations, not at build.
+- **Runtime**: `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` are validated during authentication operations (when NextAuth session and signIn callbacks execute).
 - **Tip**: Use `SKIP_ENV_VALIDATION=true` during Docker builds if you inject secrets only at runtime.
 
 #### **🔌 API Keys (Recommended)**
@@ -274,8 +274,8 @@ node -e "console.log(crypto.randomBytes(32).toString('base64'))"
 
 **Build vs Runtime:**
 - **At Build Time**: Only `DATABASE_URL` is required (for Prisma client generation). Set `SKIP_ENV_VALIDATION=true` if secrets are runtime-only.
-- **At Runtime**: Auth vars (`NEXTAUTH_*`, `GOOGLE_*`) are validated when authentication happens
-- **Email Optional**: If any email var is missing, email provider is disabled but Google OAuth works fine
+- **At Runtime**: Auth vars (`NEXTAUTH_*`, `GOOGLE_*`) are validated when authentication happens.
+- **Email Optional**: If any email var is missing, email provider is disabled but Google OAuth works fine.
 
 ---
 
