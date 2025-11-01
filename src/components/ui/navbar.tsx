@@ -7,11 +7,30 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from './button';
 import { LoadingSpinner } from './loading';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  // Helper function to get navigation link classes
+  const getNavLinkClasses = (isActive: boolean, isMobile = false) => {
+    if (isMobile) {
+      return cn(
+        'py-2 transition-colors',
+        isActive 
+          ? 'text-foreground font-semibold border-l-4 border-primary pl-3' 
+          : 'text-muted-foreground hover:text-foreground'
+      );
+    }
+    return cn(
+      'font-medium transition-colors',
+      isActive 
+        ? 'text-foreground border-b-2 border-primary' 
+        : 'text-muted-foreground hover:text-foreground'
+    );
+  };
 
   const navigationLinks = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -39,11 +58,7 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`font-medium transition-colors ${
-                    isActive 
-                      ? 'text-foreground border-b-2 border-primary' 
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={getNavLinkClasses(isActive)}
                 >
                   {link.label}
                 </Link>
@@ -116,11 +131,7 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`py-2 transition-colors ${
-                      isActive 
-                        ? 'text-foreground font-semibold border-l-4 border-primary pl-3' 
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={getNavLinkClasses(isActive, true)}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {link.label}

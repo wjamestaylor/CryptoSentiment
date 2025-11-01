@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import Constants from 'expo-constants';
 import { api } from '../../config/trpc';
 import CryptoCard from '../../components/crypto/CryptoCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -21,7 +22,7 @@ export default function DashboardScreen() {
   }, [refetch]);
 
   // Secret tap pattern to access developer/debug settings
-  const handleTitleTap = () => {
+  const handleTitleTap = React.useCallback(() => {
     const newCount = tapCount + 1;
     setTapCount(newCount);
 
@@ -38,12 +39,18 @@ export default function DashboardScreen() {
     // Show developer menu after 7 taps
     if (newCount === 7) {
       setTapCount(0);
+      
+      // Get dynamic configuration
+      const appVersion = Constants.expoConfig?.version || '1.0.0';
+      const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'Unknown';
+      const buildType = __DEV__ ? 'Debug' : 'Release';
+      
       Alert.alert(
         'Developer Menu',
         'Developer/Debug features:\n\n' +
-        '• App Version: 1.0.0\n' +
-        '• API URL: Production\n' +
-        '• Build: Release\n\n' +
+        `• App Version: ${appVersion}\n` +
+        `• API URL: ${apiUrl}\n` +
+        `• Build: ${buildType}\n\n` +
         'Note: This is a hidden menu for power users and administrators. ' +
         'Access it by tapping the title 7 times quickly.',
         [
@@ -55,7 +62,7 @@ export default function DashboardScreen() {
         ]
       );
     }
-  };
+  }, [tapCount]);
 
   // Cleanup timeout on unmount
   React.useEffect(() => {
