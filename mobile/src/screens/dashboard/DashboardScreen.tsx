@@ -6,6 +6,10 @@ import CryptoCard from '../../components/crypto/CryptoCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
+// Default fallback values for developer menu
+const DEFAULT_APP_VERSION = '1.0.0';
+const DEFAULT_API_URL = 'Unknown';
+
 export default function DashboardScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [tapCount, setTapCount] = React.useState(0);
@@ -41,8 +45,8 @@ export default function DashboardScreen() {
       setTapCount(0);
       
       // Get dynamic configuration
-      const appVersion = Constants.expoConfig?.version || '1.0.0';
-      const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'Unknown';
+      const appVersion = Constants.expoConfig?.version || DEFAULT_APP_VERSION;
+      const apiUrl = Constants.expoConfig?.extra?.apiUrl || DEFAULT_API_URL;
       const buildType = __DEV__ ? 'Debug' : 'Release';
       
       Alert.alert(
@@ -98,7 +102,12 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+        <TouchableOpacity 
+          onPress={handleTitleTap} 
+          activeOpacity={0.9}
+          accessibilityRole="header"
+          accessibilityHint="Tap 7 times quickly to access developer menu"
+        >
           <Text style={styles.title}>Top Cryptocurrencies</Text>
           <Text style={styles.subtitle}>Real-time market data</Text>
         </TouchableOpacity>

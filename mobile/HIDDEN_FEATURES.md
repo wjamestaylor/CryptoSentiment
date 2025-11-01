@@ -20,7 +20,8 @@ This document describes hidden features and easter eggs in the CryptoSentiment m
 - Location: `/mobile/src/screens/dashboard/DashboardScreen.tsx`
 - Reset timeout: 2 seconds between taps
 - Tap counter resets after inactivity
-- Uses `TouchableOpacity` with `activeOpacity={1}` to avoid visual feedback
+- Uses `TouchableOpacity` with subtle opacity (0.9) and accessibility hints
+- Accessibility: Includes `accessibilityRole="header"` and hint for screen readers
 
 ### Use Cases
 1. **QA Testing**: Quickly verify app version and configuration
