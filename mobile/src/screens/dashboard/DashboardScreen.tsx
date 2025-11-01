@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { api } from '../../config/trpc';
 import CryptoCard from '../../components/crypto/CryptoCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -7,6 +7,8 @@ import ErrorMessage from '../../components/common/ErrorMessage';
 
 export default function DashboardScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
+  const [tapCount, setTapCount] = React.useState(0);
+  const tapTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
   const { data, isLoading, error, refetch } = api.crypto.getTopCryptos.useQuery({ 
     limit: 50 
@@ -17,6 +19,52 @@ export default function DashboardScreen() {
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+
+  // Secret tap pattern to access developer/debug settings
+  const handleTitleTap = () => {
+    const newCount = tapCount + 1;
+    setTapCount(newCount);
+
+    // Clear existing timeout
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current);
+    }
+
+    // Reset tap count after 2 seconds of inactivity
+    tapTimeoutRef.current = setTimeout(() => {
+      setTapCount(0);
+    }, 2000);
+
+    // Show developer menu after 7 taps
+    if (newCount === 7) {
+      setTapCount(0);
+      Alert.alert(
+        'Developer Menu',
+        'Developer/Debug features:\n\n' +
+        '• App Version: 1.0.0\n' +
+        '• API URL: Production\n' +
+        '• Build: Release\n\n' +
+        'Note: This is a hidden menu for power users and administrators. ' +
+        'Access it by tapping the title 7 times quickly.',
+        [
+          { text: 'Close', style: 'cancel' },
+          { 
+            text: 'View Logs', 
+            onPress: () => Alert.alert('Logs', 'Log viewer would open here') 
+          },
+        ]
+      );
+    }
+  };
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -43,8 +91,10 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Top Cryptocurrencies</Text>
-        <Text style={styles.subtitle}>Real-time market data</Text>
+        <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+          <Text style={styles.title}>Top Cryptocurrencies</Text>
+          <Text style={styles.subtitle}>Real-time market data</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
