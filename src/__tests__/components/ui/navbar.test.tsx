@@ -8,6 +8,12 @@ jest.mock('next-auth/react');
 const mockUseSession = useSession as jest.Mock;
 const mockSignOut = signOut as jest.Mock;
 
+// Mock next/navigation
+const mockUsePathname = jest.fn();
+jest.mock('next/navigation', () => ({
+  usePathname: () => mockUsePathname(),
+}));
+
 // Mock next/link
 jest.mock('next/link', () => {
   interface MockLinkProps {
@@ -28,6 +34,7 @@ jest.mock('next/link', () => {
 describe('Navbar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUsePathname.mockReturnValue('/');
     // Reset window size for each test
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
@@ -468,6 +475,72 @@ describe('Navbar', () => {
       // Check for md:hidden class on mobile menu button
       const mobileToggle = screen.getByRole('button', { name: 'Toggle menu' });
       expect(mobileToggle.parentElement).toHaveClass('md:hidden');
+    });
+  });
+
+  describe('Active Menu Highlighting', () => {
+    beforeEach(() => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+      });
+    });
+
+    it('highlights dashboard menu when on dashboard page', () => {
+      mockUsePathname.mockReturnValue('/dashboard');
+      render(<Navbar />);
+
+      const dashboardLink = screen.getByRole('link', { name: 'Dashboard' });
+      expect(dashboardLink).toHaveClass('text-foreground');
+      expect(dashboardLink).toHaveClass('border-b-2');
+      expect(dashboardLink).toHaveClass('border-primary');
+    });
+
+    it('highlights sentiment menu when on sentiment page', () => {
+      mockUsePathname.mockReturnValue('/sentiment');
+      render(<Navbar />);
+
+      const sentimentLink = screen.getByRole('link', { name: 'AI Analysis' });
+      expect(sentimentLink).toHaveClass('text-foreground');
+      expect(sentimentLink).toHaveClass('border-b-2');
+      expect(sentimentLink).toHaveClass('border-primary');
+    });
+
+    it('does not highlight non-active menu items', () => {
+      mockUsePathname.mockReturnValue('/dashboard');
+      render(<Navbar />);
+
+      const alertsLink = screen.getByRole('link', { name: 'Alerts' });
+      expect(alertsLink).toHaveClass('text-muted-foreground');
+      expect(alertsLink).not.toHaveClass('border-b-2');
+    });
+
+    it('highlights active menu in mobile navigation', () => {
+      mockUsePathname.mockReturnValue('/alerts');
+      render(<Navbar />);
+
+      const toggleButton = screen.getByRole('button', { name: 'Toggle menu' });
+      fireEvent.click(toggleButton);
+
+      const mobileAlertLinks = screen.getAllByRole('link', { name: 'Alerts' });
+      const mobileAlertsLink = mobileAlertLinks[1]; // Second one is mobile
+      expect(mobileAlertsLink).toHaveClass('text-foreground');
+      expect(mobileAlertsLink).toHaveClass('font-semibold');
+      expect(mobileAlertsLink).toHaveClass('border-l-4');
+      expect(mobileAlertsLink).toHaveClass('border-primary');
+    });
+
+    it('does not highlight non-active items in mobile navigation', () => {
+      mockUsePathname.mockReturnValue('/dashboard');
+      render(<Navbar />);
+
+      const toggleButton = screen.getByRole('button', { name: 'Toggle menu' });
+      fireEvent.click(toggleButton);
+
+      const mobilePricingLinks = screen.getAllByRole('link', { name: 'Pricing' });
+      const mobilePricingLink = mobilePricingLinks[1]; // Second one is mobile
+      expect(mobilePricingLink).toHaveClass('text-muted-foreground');
+      expect(mobilePricingLink).not.toHaveClass('border-l-4');
     });
   });
 });
