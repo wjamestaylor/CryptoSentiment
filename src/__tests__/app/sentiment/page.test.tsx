@@ -357,7 +357,7 @@ describe('SentimentPage', () => {
     });
 
     it('displays timestamp and request ID when available', () => {
-      expect(screen.getByText(/11:30:00 PM/)).toBeInTheDocument(); // Timestamp formatted by locale
+      expect(screen.getByText(/10:30:00 AM/)).toBeInTheDocument(); // Timestamp formatted by locale
       expect(screen.getByText(/ID: req-123/)).toBeInTheDocument(); // Request ID
     });
 

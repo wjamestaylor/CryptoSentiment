@@ -6,6 +6,8 @@
  */
 
 import { CoinGeckoService, type CoinGeckoPriceData } from '../crypto/price.service';
+import { HistoricalPriceService } from '../crypto/historical-price.service';
+import { prisma } from '@/lib/db/prisma';
 
 export interface Holding {
   id: string;
@@ -68,9 +70,11 @@ export interface PortfolioAnalytics {
 
 export class PortfolioService {
   private priceService: CoinGeckoService;
+  private historicalService: HistoricalPriceService;
 
   constructor() {
     this.priceService = new CoinGeckoService();
+    this.historicalService = new HistoricalPriceService(prisma);
   }
 
   /**
@@ -90,12 +94,13 @@ export class PortfolioService {
       let priceData: CoinGeckoPriceData[] = [];
       
       if (coinGeckoIds.length > 0) {
-        try {
-          priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
-        } catch (priceError) {
-          console.warn('Failed to fetch current prices, using fallback data:', priceError);
-          // Return portfolio with zero current prices instead of failing completely
-          priceData = [];
+        // Don't catch errors here - let them propagate to the caller
+        // This ensures dashboard doesn't show $0 values on API failure
+        priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
+        
+        // Validate that we got price data
+        if (!priceData || priceData.length === 0) {
+          throw new Error('No price data returned from API');
         }
       }
       
@@ -138,7 +143,7 @@ export class PortfolioService {
       };
 
       // Calculate change metrics (24h, 7d, 30d)
-      const changeMetrics = this.calculateChangeMetrics(enrichedHoldings);
+      const changeMetrics = await this.calculateChangeMetrics(enrichedHoldings);
 
       // Find top and worst performers
       const sortedByPerformance = enrichedHoldings
@@ -161,9 +166,9 @@ export class PortfolioService {
     } catch (error) {
       console.error('Error calculating portfolio analytics:', error);
       
-      // Return empty portfolio instead of throwing to prevent dashboard crashes
-      console.warn('Returning empty portfolio due to API issues');
-      return this.getEmptyPortfolio();
+      // Re-throw error instead of returning empty portfolio
+      // This prevents dashboard from showing misleading $0 values
+      throw new Error(`Failed to calculate portfolio analytics: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -190,11 +195,12 @@ export class PortfolioService {
       let priceData: CoinGeckoPriceData[] = [];
       
       if (coinGeckoIds.length > 0) {
-        try {
-          priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
-        } catch (priceError) {
-          console.warn('Failed to fetch prices for portfolio summary, using zero values:', priceError);
-          // Continue with empty price data instead of failing
+        // Don't catch errors - let them propagate
+        priceData = await this.priceService.getCurrentPrices(coinGeckoIds);
+        
+        // Validate that we got price data
+        if (!priceData || priceData.length === 0) {
+          throw new Error('No price data returned from API');
         }
       }
       
@@ -222,16 +228,8 @@ export class PortfolioService {
     } catch (error) {
       console.error('Error calculating portfolio summary:', error);
       
-      // Return basic summary with invested amounts only
-      const totalInvested = holdings.reduce((sum, h) => sum + h.totalInvested, 0);
-      return {
-        totalValue: 0, // Can't calculate without prices
-        totalInvested,
-        totalGainLoss: -totalInvested, // Assume worst case if no prices available
-        totalGainLossPercentage: -100,
-        holdingsCount: holdings.length,
-        lastUpdated: new Date(),
-      };
+      // Re-throw error instead of returning fallback values
+      throw new Error(`Failed to calculate portfolio summary: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -318,33 +316,74 @@ export class PortfolioService {
   /**
    * Private helper methods
    */
-  private calculateChangeMetrics(enrichedHoldings: Array<Holding & { 
+  private async calculateChangeMetrics(enrichedHoldings: Array<Holding & { 
     currentPrice: number;
     currentValue: number; 
     priceChangePercentage24h: number;
     priceChange24h: number;
-  }>): ChangeMetrics {
-    // For now, we only have 24h data from CoinGecko
-    // TODO: Implement 7d and 30d calculations when historical data is available
-    
+  }>): Promise<ChangeMetrics> {
     const totalCurrentValue = enrichedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
+    
+    // Calculate 24h change (using CoinGecko data)
     const total24hAgoValue = enrichedHoldings.reduce((sum, h) => {
-      // Use absolute price change for accuracy (same as calculate24hChange method)
       const price24hAgo = h.currentPrice - h.priceChange24h;
       return sum + (h.holdingAmount * price24hAgo);
     }, 0);
-
     const change24h = totalCurrentValue - total24hAgoValue;
     const changePercentage24h = total24hAgoValue > 0 ? (change24h / total24hAgoValue) * 100 : 0;
+
+    // Calculate 7d and 30d changes using historical data
+    const [change7d, change30d] = await Promise.all([
+      this.calculateHistoricalChange(enrichedHoldings, 7),
+      this.calculateHistoricalChange(enrichedHoldings, 30),
+    ]);
 
     return {
       change24h,
       changePercentage24h,
-      change7d: 0, // TODO: Implement when historical data available
-      changePercentage7d: 0,
-      change30d: 0,
-      changePercentage30d: 0,
+      change7d: change7d.change,
+      changePercentage7d: change7d.percentage,
+      change30d: change30d.change,
+      changePercentage30d: change30d.percentage,
     };
+  }
+
+  /**
+   * Calculate portfolio change over a historical period using stored data
+   */
+  private async calculateHistoricalChange(
+    holdings: Array<Holding & { currentValue: number; holdingAmount: number; coinGeckoId: string | null }>,
+    days: number
+  ): Promise<{ change: number; percentage: number }> {
+    try {
+      const totalCurrentValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+      
+      // Calculate value at the past date
+      const pastValues = await Promise.all(
+        holdings.map(async (holding) => {
+          if (!holding.coinGeckoId) return 0;
+          
+          const pastDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+          const pastPrice = await this.historicalService.getPriceAtTime(holding.coinGeckoId, pastDate);
+          
+          return pastPrice ? holding.holdingAmount * pastPrice : 0;
+        })
+      );
+      
+      const totalPastValue = pastValues.reduce((sum, val) => sum + val, 0);
+      
+      if (totalPastValue === 0) {
+        return { change: 0, percentage: 0 };
+      }
+      
+      const change = totalCurrentValue - totalPastValue;
+      const percentage = (change / totalPastValue) * 100;
+      
+      return { change, percentage };
+    } catch (error) {
+      console.error(`Failed to calculate ${days}d historical change:`, error);
+      return { change: 0, percentage: 0 };
+    }
   }
 
   private getEmptyPortfolio(): PortfolioAnalytics {

@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "CryptoSentiment",
+    "slug": "cryptosentiment",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "cryptosentiment",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cryptosentiment.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app does not use the camera",
+        "NSMicrophoneUsageDescription": "This app does not use the microphone"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "package": "com.cryptosentiment.app",
+      "permissions": [
+        "INTERNET",
+        "NOTIFICATIONS"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#10b981"
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#10b981"
+    },
+    "extra": {
+      "apiUrl": "https://lavish-patience-production-f0a0.up.railway.app",
+      "googleClientId": "",
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
+  }
+}

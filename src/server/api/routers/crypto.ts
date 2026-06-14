@@ -12,12 +12,16 @@ const cryptoManagerService = new CryptoManagerService();
 export const cryptoRouter = createTRPCRouter({
   // Public endpoint to get top cryptocurrencies
   getTopCryptos: publicProcedure
-    .input(z.object({ limit: z.number().min(1).max(100).default(50) }))
+    .input(z.object({ 
+      limit: z.number().min(1).max(100).default(50),
+      currency: z.string().optional().default('usd'),
+    }))
     .query(async ({ input }) => {
       try {
+        const currency = input.currency.toLowerCase();
         // Use public CoinGecko API that doesn't require authentication
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=24h`
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=24h`
         );
         
         if (!response.ok) {
@@ -39,12 +43,16 @@ export const cryptoRouter = createTRPCRouter({
 
   // Public endpoint to get specific cryptocurrency
   getCryptoById: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ 
+      id: z.string(),
+      currency: z.string().optional().default('usd'),
+    }))
     .query(async ({ input }) => {
       try {
+        const currency = input.currency.toLowerCase();
         // Use public CoinGecko API
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${input.id}&sparkline=false&price_change_percentage=24h`
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&ids=${input.id}&sparkline=false&price_change_percentage=24h`
         );
         
         if (!response.ok) {
@@ -819,22 +827,28 @@ export const cryptoRouter = createTRPCRouter({
           throw new Error('Crypto tracking entry not found or access denied');
         }
 
+        // Prevent unfollowing held coins
+        if (tracking.holdingAmount !== null && tracking.holdingAmount > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Cannot unfollow ${tracking.crypto.symbol} because you hold it in your portfolio. Please sell your holdings first before unfollowing.`,
+          });
+        }
+
         // Delete tracking entry
         await ctx.prisma.cryptoTracking.delete({
           where: { id: input.id },
         });
 
-        const hadHoldings = tracking.holdingAmount !== null;
-        const message = hadHoldings 
-          ? `Removed ${tracking.crypto.symbol} from portfolio and watchlist`
-          : `Removed ${tracking.crypto.symbol} from watchlist`;
-
         return {
           success: true,
-          message,
-          data: { crypto: tracking.crypto, hadHoldings },
+          message: `Removed ${tracking.crypto.symbol} from watchlist`,
+          data: { crypto: tracking.crypto, hadHoldings: false },
         };
       } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         throw new Error(`Failed to remove crypto tracking: ${error}`);
       }
     }),

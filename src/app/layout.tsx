@@ -1,20 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { TRPCProvider } from "@/lib/trpc/provider";
 import { Navbar } from "@/components/ui/navbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
-const geistSans = Geist({
+// Load Geist fonts locally to avoid network requests during build
+// This prevents build failures in environments with restricted network access
+const geistSans = localFont({
+  src: [
+    {
+      path: "../fonts/Geist-Variable.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-sans",
-  subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: [
+    {
+      path: "../fonts/GeistMono-Variable.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -46,6 +61,7 @@ export default function RootLayout({
                   <main className="min-h-screen navbar-offset">
                     {children}
                   </main>
+                  <OnboardingWizard />
                 </div>
               </ErrorBoundary>
             </TRPCProvider>

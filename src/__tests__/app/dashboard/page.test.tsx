@@ -171,5 +171,209 @@ describe('Dashboard Page', () => {
       // Should show loading indicators
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
     });
+
+    it('displays positive 24h change with correct format (+$amount)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 5000,
+              portfolioGainLoss: 250.50,
+              portfolioGainLossPercentage: 5.2,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: +$250.50 (not $+$250.50)
+      expect(screen.getByText('+$250.50')).toBeInTheDocument();
+    });
+
+    it('displays negative 24h change with correct format (-$amount)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 4750,
+              portfolioGainLoss: -150.25,
+              portfolioGainLossPercentage: -3.1,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: -$150.25 (not $-$150.25)
+      expect(screen.getByText('-$150.25')).toBeInTheDocument();
+    });
+
+    it('displays zero 24h change with correct format (+$0.00)', () => {
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 5,
+              totalWatching: 3,
+              totalHoldings: 2,
+              portfolioValue: 5000,
+              portfolioGainLoss: 0,
+              portfolioGainLossPercentage: 0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Check for correct format: +$0.00 (zero is treated as positive)
+      expect(screen.getByText('+$0.00')).toBeInTheDocument();
+    });
+  });
+
+  describe('Held coin unfollow restriction', () => {
+    it('should not display unfollow button for held coins', () => {
+      // Mock dashboard with both held and watched coins
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 3,
+              totalWatching: 1,
+              totalHoldings: 2,
+              portfolioValue: 100000,
+              portfolioGainLoss: 5000,
+              portfolioGainLossPercentage: 5.0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [
+              {
+                id: 'eth-watch',
+                symbol: 'ETH',
+                name: 'Ethereum',
+                currentPrice: 3000,
+                priceChangePercentage24h: 2.5,
+              },
+            ],
+            holdings: [
+              {
+                id: 'btc-holding',
+                cryptoSymbol: 'BTC',
+                cryptoName: 'Bitcoin',
+                coinGeckoId: 'bitcoin',
+                holdingAmount: 1.5,
+                currentPrice: 50000,
+                currentValue: 75000,
+                priceChangePercentage24h: 3.5,
+              },
+              {
+                id: 'ada-holding',
+                cryptoSymbol: 'ADA',
+                cryptoName: 'Cardano',
+                coinGeckoId: 'cardano',
+                holdingAmount: 1000,
+                currentPrice: 0.5,
+                currentValue: 500,
+                priceChangePercentage24h: -1.0,
+              },
+            ],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Get all star buttons - there should only be one (for the watched coin)
+      const starButtons = screen.queryAllByTitle('Remove from watchlist');
+      
+      // Should only have button for watched coin (ETH), not for held coins (BTC, ADA)
+      expect(starButtons).toHaveLength(1);
+    });
+
+    it('should display unfollow button for watched-only coins', () => {
+      // Mock dashboard with only watched coins
+      (api.dashboard.getDashboardData.useQuery as jest.Mock).mockReturnValue({
+        data: {
+          success: true,
+          data: {
+            summary: {
+              totalTracked: 2,
+              totalWatching: 2,
+              totalHoldings: 0,
+              portfolioValue: 0,
+              portfolioGainLoss: 0,
+              portfolioGainLossPercentage: 0,
+              lastUpdated: new Date(),
+            },
+            watchlist: [
+              {
+                id: 'btc-watch',
+                symbol: 'BTC',
+                name: 'Bitcoin',
+                currentPrice: 50000,
+                priceChangePercentage24h: 3.5,
+              },
+              {
+                id: 'eth-watch',
+                symbol: 'ETH',
+                name: 'Ethereum',
+                currentPrice: 3000,
+                priceChangePercentage24h: 2.5,
+              },
+            ],
+            holdings: [],
+            topPerformer: null,
+          },
+        },
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<Dashboard />);
+
+      // Get all star buttons - there should be two (for both watched coins)
+      const starButtons = screen.queryAllByTitle('Remove from watchlist');
+      
+      // Should have buttons for both watched coins
+      expect(starButtons).toHaveLength(2);
+    });
   });
 });

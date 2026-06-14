@@ -21,13 +21,15 @@ import {
   DollarSign,
   Edit,
   Bell,
-  BellPlus
+  BellPlus,
+  Upload
 } from 'lucide-react';
 import Image from 'next/image';
 import { FeatureGate } from '@/components/feature-gating/FeatureGate';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { useTrackUsage } from '@/hooks/use-track-usage';
 import { UsageType } from '@prisma/client';
+import { PortfolioImportDialog } from './PortfolioImportDialog';
 
 // Types for enhanced tracking with live prices
 interface EnhancedCryptoTracking {
@@ -80,6 +82,7 @@ export function CryptoManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -145,6 +148,7 @@ export function CryptoManager() {
     onSuccess: () => {
       refetchTracking();
       setEditingId(null);
+      resetForm();
       toast({
         title: "Success",
         description: "Tracking updated successfully",
@@ -193,6 +197,8 @@ export function CryptoManager() {
     setShowAddForm(false);
     setIsSearching(false);
     setSearchQuery('');
+    setEditingId(null);
+    setTrackingType('WATCH_ONLY');
   };
 
   const handleAddFromSearch = (crypto: SearchCrypto) => {
@@ -734,10 +740,22 @@ export function CryptoManager() {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Add Cryptocurrency</CardTitle>
-                <CardDescription>
-                  Add a cryptocurrency to your watchlist or portfolio
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Add Cryptocurrency</CardTitle>
+                    <CardDescription>
+                      Add a cryptocurrency to your watchlist or portfolio
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowImportDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Import Portfolio</span>
+                  </Button>
+                </div>
               </CardHeader>
             <CardContent className="space-y-4">
               {/* Search Interface */}
@@ -966,6 +984,7 @@ export function CryptoManager() {
                   
                   // Handle different tracking types
                   if (trackingType === 'ADD_HOLDING') {
+                    // Validate required fields
                     if (!formData.holdingAmount || !formData.purchasePrice) {
                       toast({
                         title: "Error",
@@ -975,11 +994,33 @@ export function CryptoManager() {
                       return;
                     }
                     
+                    // Parse and validate numeric values
+                    const holdingAmount = parseFloat(formData.holdingAmount);
+                    const purchasePrice = parseFloat(formData.purchasePrice);
+                    
+                    if (isNaN(holdingAmount) || holdingAmount <= 0) {
+                      toast({
+                        title: "Error",
+                        description: "Please enter a valid holding amount greater than 0",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    if (isNaN(purchasePrice) || purchasePrice <= 0) {
+                      toast({
+                        title: "Error",
+                        description: "Please enter a valid purchase price greater than 0",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
                     updateTrackingMutation.mutate({
                       id: editingId,
                       trackingType: 'ADD_HOLDING',
-                      holdingAmount: parseFloat(formData.holdingAmount),
-                      purchasePrice: parseFloat(formData.purchasePrice),
+                      holdingAmount,
+                      purchasePrice,
                       purchaseDate: new Date(formData.purchaseDate),
                       notes: formData.notes || undefined,
                       tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
@@ -992,7 +1033,7 @@ export function CryptoManager() {
                       holdingAmount: undefined,
                       purchasePrice: undefined,
                       purchaseDate: new Date(formData.purchaseDate),
-                      notes: 'Converting to watch only',
+                      notes: formData.notes || 'Converting to watch only',
                       tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
                     });
                   }
@@ -1112,6 +1153,15 @@ export function CryptoManager() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Portfolio Import Dialog */}
+      <PortfolioImportDialog 
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        onImportComplete={() => {
+          refetchTracking();
+        }}
+      />
     </div>
   );
 }

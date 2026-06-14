@@ -7,20 +7,24 @@
 
 import { PortfolioService, type Holding } from '../../../services/portfolio/portfolio.service';
 import { CoinGeckoService } from '../../../services/crypto/price.service';
+import { HistoricalPriceService } from '../../../services/crypto/historical-price.service';
 
-// Mock the CoinGeckoService
+// Mock the services
 jest.mock('../../../services/crypto/price.service');
+jest.mock('../../../services/crypto/historical-price.service');
 
 const MockedCoinGeckoService = CoinGeckoService as jest.MockedClass<typeof CoinGeckoService>;
+const MockedHistoricalPriceService = HistoricalPriceService as jest.MockedClass<typeof HistoricalPriceService>;
 
 describe('PortfolioService', () => {
   let portfolioService: PortfolioService;
   let mockCoinGeckoService: jest.Mocked<CoinGeckoService>;
+  let mockHistoricalPriceService: jest.Mocked<HistoricalPriceService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Create a mock instance
+    // Create a mock instance for CoinGecko
     mockCoinGeckoService = {
       getCurrentPrices: jest.fn(),
       getTopCryptos: jest.fn(),
@@ -28,8 +32,20 @@ describe('PortfolioService', () => {
       searchCryptos: jest.fn(),
     } as unknown as jest.Mocked<CoinGeckoService>;
 
-    // Mock the constructor to return our mock instance
+    // Create a mock instance for HistoricalPrice
+    mockHistoricalPriceService = {
+      getPriceAtTime: jest.fn().mockResolvedValue(null),
+      fetchAndStoreHistory: jest.fn(),
+      getHistoricalData: jest.fn(),
+      calculatePriceChange: jest.fn(),
+      bulkFetchAndStore: jest.fn(),
+      getTrackedCryptocurrencies: jest.fn(),
+      hasRecentData: jest.fn(),
+    } as unknown as jest.Mocked<HistoricalPriceService>;
+
+    // Mock the constructors to return our mock instances
     MockedCoinGeckoService.mockImplementation(() => mockCoinGeckoService);
+    MockedHistoricalPriceService.mockImplementation(() => mockHistoricalPriceService);
     
     portfolioService = new PortfolioService();
   });
@@ -127,7 +143,7 @@ describe('PortfolioService', () => {
       expect(result.topPerformer?.gainLossPercentage).toBe(50);
     });
 
-    it('should handle API errors gracefully', async () => {
+    it('should throw errors when API fails', async () => {
       const mockHoldings: Holding[] = [
         {
           id: '1',
@@ -145,16 +161,12 @@ describe('PortfolioService', () => {
 
       mockCoinGeckoService.getCurrentPrices.mockRejectedValue(new Error('API Error'));
 
-      // The service should handle API errors gracefully by returning default values
-      const result = await portfolioService.calculatePortfolioAnalytics(mockHoldings);
-      
-      // Should return portfolio with zero prices instead of throwing
-      expect(result.holdings[0].currentPrice).toBe(0);
-      expect(result.holdings[0].currentValue).toBe(0);
-      expect(result.summary.totalValue).toBe(0);
+      // The service should now throw errors instead of returning zero values
+      await expect(portfolioService.calculatePortfolioAnalytics(mockHoldings))
+        .rejects.toThrow('Failed to calculate portfolio analytics: API Error');
     });
 
-    it('should handle missing price data correctly', async () => {
+    it('should throw error when price data is missing', async () => {
       const mockHoldings: Holding[] = [
         {
           id: '1',
@@ -173,12 +185,9 @@ describe('PortfolioService', () => {
       // Return empty price data
       mockCoinGeckoService.getCurrentPrices.mockResolvedValue([]);
 
-      const result = await portfolioService.calculatePortfolioAnalytics(mockHoldings);
-
-      expect(result.summary.totalValue).toBe(0); // No price data = 0 value
-      expect(result.summary.totalInvested).toBe(100); // Investment amount stays
-      expect(result.summary.totalGainLoss).toBe(-100); // Loss of full investment
-      expect(result.holdings[0].currentValue).toBe(0);
+      // Should throw error instead of returning zero values
+      await expect(portfolioService.calculatePortfolioAnalytics(mockHoldings))
+        .rejects.toThrow('Failed to calculate portfolio analytics: No price data returned from API');
     });
   });
 
@@ -361,14 +370,11 @@ describe('PortfolioService', () => {
 
       mockCoinGeckoService.getCurrentPrices.mockRejectedValue(new Error('Network error'));
 
-      // The service should handle network errors gracefully by returning default values
-      const result = await portfolioService.calculatePortfolioAnalytics(mockHoldings);
-      
-      // Should return portfolio with zero prices instead of throwing
-      expect(result.holdings[0].currentPrice).toBe(0);
-      expect(result.holdings[0].currentValue).toBe(0);
-      expect(result.summary.totalValue).toBe(0);
+      // The service should now throw errors instead of returning zero values
+      await expect(portfolioService.calculatePortfolioAnalytics(mockHoldings))
+        .rejects.toThrow('Failed to calculate portfolio analytics: Network error');
 
+      // calculate24hChange should still handle errors gracefully
       const changeResult = await portfolioService.calculate24hChange(mockHoldings);
       expect(changeResult).toEqual({ change: 0, percentage: 0 });
     });

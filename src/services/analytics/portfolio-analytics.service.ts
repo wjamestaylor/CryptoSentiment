@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { HistoricalPriceService } from '../crypto/historical-price.service';
 
 interface CryptoPriceData {
   id: string;
@@ -96,7 +97,11 @@ export interface PerformanceMetrics {
 }
 
 export class PortfolioAnalyticsService {
-  constructor(private prisma: PrismaClient) {}
+  private historicalPriceService: HistoricalPriceService;
+
+  constructor(private prisma: PrismaClient) {
+    this.historicalPriceService = new HistoricalPriceService(prisma);
+  }
 
   /**
    * Get comprehensive analytics data for a user
@@ -386,21 +391,42 @@ export class PortfolioAnalyticsService {
 
   /**
    * Get price history for a cryptocurrency
+   * First tries to get from database, falls back to API if needed
    */
   async getPriceHistory(cryptoId: string, days: number = 30): Promise<PriceHistory[]> {
     try {
-      // Use the shared CoinGecko service instance with rate limiting
+      // Check if we have recent data in the database
+      const hasData = await this.historicalPriceService.hasRecentData(cryptoId, 24);
+      
+      if (hasData) {
+        // Use stored data
+        const storedData = await this.historicalPriceService.getHistoricalData(cryptoId, days);
+        
+        if (storedData.length > 0) {
+          return storedData.map(point => ({
+            timestamp: point.timestamp.toISOString(),
+            price: point.price,
+            marketCap: point.marketCap,
+            volume: point.volume24h,
+          }));
+        }
+      }
+      
+      // Fallback to API if no stored data or data is stale
       const { coinGeckoService } = await import('../crypto/price.service');
       
-      // Create the endpoint for price history
       const endpoint = `/coins/${cryptoId}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
       
-      // Use the service's rate-limited request method
       const data = await coinGeckoService.request<{
         prices: [number, number][];
         market_caps: [number, number][];
         total_volumes: [number, number][];
       }>(endpoint);
+      
+      // Store the fetched data in background (fire and forget)
+      this.historicalPriceService.fetchAndStoreHistory(cryptoId, days).catch(error => {
+        console.warn('Failed to store fetched price history:', error);
+      });
       
       return data.prices.map((price: [number, number], index: number) => ({
         timestamp: new Date(price[0]).toISOString(),

@@ -17,7 +17,7 @@ interface PricingTier {
   features: {
     aiAnalyses: number | 'unlimited';
     watchlist: number | 'unlimited';
-    alerts: number;
+    alerts: number | 'unlimited';
     bots: string[];
     historical: string;
     support: string;
@@ -36,9 +36,9 @@ const PRICING_TIERS: PricingTier[] = [
     interval: 'month',
     description: 'Perfect for getting started with crypto sentiment analysis',
     features: {
-      aiAnalyses: 10,
+      aiAnalyses: 5,
       watchlist: 10,
-      alerts: 3,
+      alerts: 5,
       bots: [],
       historical: 'None',
       support: 'Community',
@@ -59,8 +59,8 @@ const PRICING_TIERS: PricingTier[] = [
     description: 'Everything you need for serious crypto trading',
     features: {
       aiAnalyses: 100,
-      watchlist: 50,
-      alerts: 15,
+      watchlist: 100,
+      alerts: 50,
       bots: ['Discord OR Telegram'],
       historical: '7 days',
       support: 'Email support',
@@ -82,9 +82,9 @@ const PRICING_TIERS: PricingTier[] = [
     interval: 'month',
     description: 'Advanced tools for teams and power users',
     features: {
-      aiAnalyses: 500,
+      aiAnalyses: 1000,
       watchlist: 'unlimited',
-      alerts: 50,
+      alerts: 'unlimited',
       bots: ['Discord AND Telegram'],
       historical: '30 days',
       support: 'Priority support',
@@ -104,7 +104,7 @@ const PRICING_TIERS: PricingTier[] = [
 const FEATURES_COMPARISON = [
   {
     feature: 'AI Sentiment Analyses',
-    free: '10/month',
+    free: '5/month',
     pro: '100/month',
     business: '500/month',
     icon: <BarChart3 className="h-4 w-4" />
@@ -260,7 +260,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20 -mt-[4.5rem] pt-[4.5rem]">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-16">

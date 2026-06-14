@@ -26,7 +26,7 @@
 This document outlines the technical implementation of the CryptoSentiment subscription system based on the pricing strategy defined in `/docs/PRICING_STRATEGY.md`.
 
 **Pricing Tiers:**
-- **Free**: $0 - 10 AI analyses, 10 watchlist, 3 alerts
+- **Free**: $0 - 5 AI analyses, 10 watchlist, 3 alerts
 - **Pro**: $9/month - 100 AI analyses, 50 watchlist, 15 alerts, 1 bot
 - **Business**: $29/month - 500 AI analyses, unlimited watchlist, 50 alerts, both bots
 

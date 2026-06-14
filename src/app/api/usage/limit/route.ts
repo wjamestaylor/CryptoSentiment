@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
-import { FeatureGateService } from '@/services/feature-gate/feature-gate.service';
+import { FeatureGateService } from '@/services/feature-gating/feature-gate.service';
 import { UsageType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
@@ -38,14 +38,32 @@ export async function GET(request: NextRequest) {
 
     // Get usage information
     const featureGateService = new FeatureGateService();
-    const usageInfo = await featureGateService.getUserUsage(session.user.id, usageType);
+    
+    // Use specialized methods for different usage types
+    let usageCheck;
+    switch (usageType) {
+      case UsageType.WATCHLIST_ADD:
+        usageCheck = await featureGateService.canAddToWatchlist(session.user.id);
+        break;
+      case UsageType.ALERT_CREATION:
+        usageCheck = await featureGateService.canCreateAlert(session.user.id);
+        break;
+      case UsageType.AI_ANALYSIS:
+        usageCheck = await featureGateService.canPerformAIAnalysis(session.user.id);
+        break;
+      case UsageType.BOT_NOTIFICATION:
+        usageCheck = await featureGateService.canUseBotNotification(session.user.id);
+        break;
+      default:
+        usageCheck = await featureGateService.checkUsageLimit(session.user.id, usageType);
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        currentUsage: usageInfo.currentUsage,
-        limit: usageInfo.limit,
-        resetDate: usageInfo.resetDate.toISOString(),
+        currentUsage: usageCheck.currentUsage,
+        limit: usageCheck.limit,
+        resetDate: usageCheck.resetDate?.toISOString() || new Date().toISOString(),
       },
     });
   } catch (error) {

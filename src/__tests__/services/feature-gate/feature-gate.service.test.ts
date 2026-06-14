@@ -153,7 +153,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(7); // Over limit
+      mockPrisma.usageLog.count.mockResolvedValue(6); // Over limit of 5
 
       const result = await featureGateService.canPerformAIAnalysis('user-123');
 
@@ -226,7 +226,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(100); // Under limit of 500
+      mockPrisma.usageLog.count.mockResolvedValue(25); // Under limit of 50
 
       const result = await featureGateService.canCreateAlert('user-123');
 
@@ -240,7 +240,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(10); // At limit
+      mockPrisma.usageLog.count.mockResolvedValue(5); // At limit
 
       const result = await featureGateService.canCreateAlert('user-123');
 
@@ -256,7 +256,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(500); // Under limit of 10000
+      mockPrisma.usageLog.count.mockResolvedValue(500); // Under limit (unlimited for BUSINESS)
 
       const result = await featureGateService.canAddToWatchlist('user-123');
 
@@ -270,7 +270,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(50); // At limit
+      mockPrisma.usageLog.count.mockResolvedValue(10); // At limit
 
       const result = await featureGateService.canAddToWatchlist('user-123');
 
@@ -286,7 +286,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(100); // Under limit of 500
+      mockPrisma.usageLog.count.mockResolvedValue(25); // Under limit of 50
 
       const result = await featureGateService.canReceiveBotNotification('user-123');
 
@@ -300,7 +300,7 @@ describe('FeatureGateService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
-      mockPrisma.usageLog.count.mockResolvedValue(10); // At limit
+      mockPrisma.usageLog.count.mockResolvedValue(0); // At limit (FREE tier has 0 bot notifications)
 
       const result = await featureGateService.canReceiveBotNotification('user-123');
 
@@ -329,7 +329,7 @@ describe('FeatureGateService', () => {
       expect(result).toEqual({
         [UsageType.ALERT_CREATION]: {
           currentUsage: 100,
-          limit: 500,
+          limit: 50,
           resetDate: expect.any(Date),
         },
         [UsageType.AI_ANALYSIS]: {
@@ -339,12 +339,12 @@ describe('FeatureGateService', () => {
         },
         [UsageType.WATCHLIST_ADD]: {
           currentUsage: 300,
-          limit: 1000,
+          limit: 100,
           resetDate: expect.any(Date),
         },
         [UsageType.BOT_NOTIFICATION]: {
           currentUsage: 50,
-          limit: 500,
+          limit: 50,
           resetDate: expect.any(Date),
         },
       });
@@ -383,13 +383,13 @@ describe('FeatureGateService', () => {
 
       expect(result[UsageType.WATCHLIST_ADD]).toEqual({
         currentUsage: 100,
-        limit: 1000,
+        limit: 100,
         resetDate: expect.any(Date),
       });
 
       expect(result[UsageType.BOT_NOTIFICATION]).toEqual({
         currentUsage: 50,
-        limit: 500,
+        limit: 50,
         resetDate: expect.any(Date),
       });
     });
@@ -425,13 +425,13 @@ describe('FeatureGateService', () => {
       expect(aiResult.limit).toBe(5);
 
       const alertResult = await featureGateService.getUserUsage('user-123', UsageType.ALERT_CREATION);
-      expect(alertResult.limit).toBe(10);
+      expect(alertResult.limit).toBe(5);
 
       const watchlistResult = await featureGateService.getUserUsage('user-123', UsageType.WATCHLIST_ADD);
-      expect(watchlistResult.limit).toBe(50);
+      expect(watchlistResult.limit).toBe(10);
 
       const botResult = await featureGateService.getUserUsage('user-123', UsageType.BOT_NOTIFICATION);
-      expect(botResult.limit).toBe(10);
+      expect(botResult.limit).toBe(0);
     });
 
     it('should have correct PRO tier limits', async () => {
@@ -447,13 +447,13 @@ describe('FeatureGateService', () => {
       expect(aiResult.limit).toBe(100);
 
       const alertResult = await featureGateService.getUserUsage('user-123', UsageType.ALERT_CREATION);
-      expect(alertResult.limit).toBe(500);
+      expect(alertResult.limit).toBe(50);
 
       const watchlistResult = await featureGateService.getUserUsage('user-123', UsageType.WATCHLIST_ADD);
-      expect(watchlistResult.limit).toBe(1000);
+      expect(watchlistResult.limit).toBe(100);
 
       const botResult = await featureGateService.getUserUsage('user-123', UsageType.BOT_NOTIFICATION);
-      expect(botResult.limit).toBe(500);
+      expect(botResult.limit).toBe(50);
     });
 
     it('should have correct BUSINESS tier limits', async () => {
@@ -469,13 +469,13 @@ describe('FeatureGateService', () => {
       expect(aiResult.limit).toBe(1000);
 
       const alertResult = await featureGateService.getUserUsage('user-123', UsageType.ALERT_CREATION);
-      expect(alertResult.limit).toBe(5000);
+      expect(alertResult.limit).toBe(-1); // unlimited
 
       const watchlistResult = await featureGateService.getUserUsage('user-123', UsageType.WATCHLIST_ADD);
-      expect(watchlistResult.limit).toBe(10000);
+      expect(watchlistResult.limit).toBe(-1); // unlimited
 
       const botResult = await featureGateService.getUserUsage('user-123', UsageType.BOT_NOTIFICATION);
-      expect(botResult.limit).toBe(5000);
+      expect(botResult.limit).toBe(-1); // unlimited
     });
   });
 });

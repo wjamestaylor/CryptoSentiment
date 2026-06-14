@@ -4,7 +4,7 @@ import { api } from '@/lib/trpc/provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DashboardStatsLoading, 
   CryptoPriceLoading 
@@ -17,11 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { useUsageLimit } from '@/hooks/use-usage-limit';
 import { useTrackUsage } from '@/hooks/use-track-usage';
 import { UsageType } from '@prisma/client';
+import { QuickStartGuide } from '@/components/onboarding/QuickStartGuide';
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  const [lastValidData, setLastValidData] = useState<typeof dashboardData | null>(null);
   
   // Feature gating integration
   const watchlistUsage = useUsageLimit(UsageType.WATCHLIST_ADD);
@@ -37,10 +39,22 @@ export default function Dashboard() {
   } = api.dashboard.getDashboardData.useQuery(undefined, {
     enabled: !!session?.user,
     refetchInterval: 30000, // Refresh every 30 seconds
+    // Retry only once on failure to avoid rapid retries
+    retry: 1,
   });
 
+  // Update lastValidData when we get successful data using useEffect
+  useEffect(() => {
+    if (dashboardData?.success && dashboardData.data && !dashboardError) {
+      setLastValidData(dashboardData);
+    }
+  }, [dashboardData, dashboardError]);
+
+  // Use last valid data if current fetch failed
+  const activeData = dashboardError && lastValidData ? lastValidData : dashboardData;
+
   // Extract data from unified response
-  const summary = dashboardData?.data?.summary || {
+  const summary = activeData?.data?.summary || {
     totalTracked: 0,
     totalWatching: 0,
     totalHoldings: 0,
@@ -51,8 +65,8 @@ export default function Dashboard() {
   };
 
   // Combine watchlist and holdings for unified display
-  const watchlistOnly = dashboardData?.data?.watchlist || [];
-  const holdings = dashboardData?.data?.holdings || [];
+  const watchlistOnly = activeData?.data?.watchlist || [];
+  const holdings = activeData?.data?.holdings || [];
   
   // Convert holdings to watchlist format and combine
   const holdingsAsWatchlist = holdings.map(holding => ({
@@ -89,7 +103,7 @@ export default function Dashboard() {
     ...watchlistOnly.map(item => ({ ...item, isHolding: false as const }))
   ];
   
-  const topPerformer = dashboardData?.data?.topPerformer;
+  const topPerformer = activeData?.data?.topPerformer;
 
   // Mutations - Updated to use unified tracking system
   const removeCryptoMutation = api.crypto.removeCryptoTracking.useMutation({
@@ -123,15 +137,23 @@ export default function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetchDashboard();
+      const result = await refetchDashboard();
+      
+      // Only show success if we actually got data
+      if (result.data?.success) {
+        toast({
+          title: "Refreshed",
+          description: "Dashboard data updated successfully",
+        });
+      } else {
+        throw new Error('Failed to refresh data');
+      }
+    } catch (_error) {
+      // Log error for debugging while showing user-friendly message
+      console.error('Dashboard refresh failed:', _error);
       toast({
-        title: "Refreshed",
-        description: "Dashboard data updated successfully",
-      });
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to refresh dashboard data",
+        title: "Refresh Failed",
+        description: "Unable to update dashboard. Showing last known data.",
         variant: "destructive",
       });
     } finally {
@@ -155,6 +177,18 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="max-w-7xl mx-auto">
+        {/* Error Banner - Show when using stale data */}
+        {dashboardError && lastValidData && (
+          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <p className="text-sm">
+                Unable to fetch latest data. Showing last known values from {new Date(summary.lastUpdated).toLocaleTimeString()}.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-6 md:mb-8">
           <div>
@@ -214,7 +248,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs md:text-sm font-medium text-muted-foreground">24h Change</p>
                       <p className={`text-lg md:text-2xl font-bold truncate ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
+                        {summary.portfolioGainLoss >= 0 ? '+' : '-'}${Math.abs(summary.portfolioGainLoss).toFixed(2)}
                       </p>
                     </div>
                     {summary.portfolioGainLoss >= 0 ? (
@@ -255,6 +289,13 @@ export default function Dashboard() {
             </div>
           )}
         </ErrorBoundary>
+
+        {/* Quick Start Guide - Show when user has no tracked cryptos */}
+        {summary.totalTracked === 0 && (
+          <div className="mb-6 md:mb-8">
+            <QuickStartGuide hasAnyData={false} />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
           {/* My Cryptocurrencies */}
@@ -391,15 +432,18 @@ export default function Dashboard() {
                                 )}
                               </div>
                             </div>
-                            <Button
-                              onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
-                              variant="ghost"
-                              size="sm"
-                              disabled={removeCryptoMutation.isPending}
-                              className="p-2"
-                            >
-                              <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
-                            </Button>
+                            {!crypto.isHolding && (
+                              <Button
+                                onClick={() => handleUnfollow(crypto.id, crypto.symbol)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={removeCryptoMutation.isPending}
+                                className="p-2"
+                                title="Remove from watchlist"
+                              >
+                                <Star className="h-3 w-3 md:h-4 md:w-4 fill-current" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -420,81 +464,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions & Portfolio Summary */}
+          {/* Top Performer */}
           <div className="space-y-4 md:space-y-6">
-            {/* Portfolio Holdings Summary */}
-            {summary.totalHoldings > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Portfolio Summary</CardTitle>
-                  <CardDescription className="text-sm md:text-base">
-                    Overview of your cryptocurrency investments
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Total Holdings</span>
-                      <span className="font-medium">{summary.totalHoldings}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Portfolio Value</span>
-                      <span className="font-medium">${summary.portfolioValue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change</span>
-                      <span className={`font-medium ${summary.portfolioGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLoss >= 0 ? '+' : ''}${summary.portfolioGainLoss.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">24h Change %</span>
-                      <span className={`font-medium ${summary.portfolioGainLossPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {summary.portfolioGainLossPercentage >= 0 ? '+' : ''}{summary.portfolioGainLossPercentage.toFixed(2)}%
-                      </span>
-                    </div>
-                    <Button asChild className="w-full mt-4">
-                      <a href="/crypto">View Full Portfolio</a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/watchlist">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Watchlist
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/crypto">
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Manage Portfolio
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/alerts">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Set Price Alert
-                  </a>
-                </Button>
-                <Button asChild className="w-full" variant="outline">
-                  <a href="/sentiment">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Sentiment Analysis
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Top Performer */}
             {(topPerformer || combinedWatchlist.length > 0) && (
               <Card>
                 <CardHeader>
@@ -571,24 +542,14 @@ export default function Dashboard() {
         {/* Price Chart for Top Crypto */}
         {(topPerformer || combinedWatchlist.length > 0) && (
           <div className="mt-6 md:mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Price Chart</CardTitle>
-                <CardDescription className="text-sm md:text-base">
-                  Switch between watched and held coins to view detailed price analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 md:p-6">
-                <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
-                  <PriceChart 
-                    cryptoId={topPerformer?.coinGeckoId || combinedWatchlist[0]?.coinGeckoId || combinedWatchlist[0]?.id || 'bitcoin'}
-                    cryptoName={topPerformer?.cryptoName || combinedWatchlist[0]?.name}
-                    cryptoSymbol={topPerformer?.cryptoSymbol || combinedWatchlist[0]?.symbol}
-                    enableMultiView={true}
-                  />
-                </ErrorBoundary>
-              </CardContent>
-            </Card>
+            <ErrorBoundary fallback={({ resetError }) => <ApiErrorFallback resetError={resetError} />}>
+              <PriceChart 
+                cryptoId={topPerformer?.coinGeckoId || combinedWatchlist[0]?.coinGeckoId || combinedWatchlist[0]?.id || 'bitcoin'}
+                cryptoName={topPerformer?.cryptoName || combinedWatchlist[0]?.name}
+                cryptoSymbol={topPerformer?.cryptoSymbol || combinedWatchlist[0]?.symbol}
+                enableMultiView={true}
+              />
+            </ErrorBoundary>
           </div>
         )}
       </div>

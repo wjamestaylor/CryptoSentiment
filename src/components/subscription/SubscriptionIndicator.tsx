@@ -95,7 +95,7 @@ export function SubscriptionIndicator() {
         </Button>
       ) : (
         <Button 
-          onClick={() => router.push('/profile')}
+          onClick={() => router.push('/settings')}
           variant="ghost"
           size="sm"
           className="h-6 px-2 text-xs hover:bg-primary/10"

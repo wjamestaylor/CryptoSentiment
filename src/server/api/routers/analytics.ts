@@ -1,9 +1,40 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/api/trpc';
 import { PortfolioAnalyticsService } from '@/services/analytics/portfolio-analytics.service';
+import { HistoricalPriceService } from '@/services/crypto/historical-price.service';
 import { prisma } from '@/lib/db/prisma';
+import { SubscriptionTier } from '@prisma/client';
 
 const portfolioAnalyticsService = new PortfolioAnalyticsService(prisma);
+const historicalPriceService = new HistoricalPriceService(prisma);
+
+// Simple in-memory cache for subscription tiers (expires after 5 minutes)
+const tierCache = new Map<string, { tier: SubscriptionTier; expires: number }>();
+const TIER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getUserTier(userId: string): Promise<SubscriptionTier> {
+  // Check cache first
+  const cached = tierCache.get(userId);
+  if (cached && cached.expires > Date.now()) {
+    return cached.tier;
+  }
+
+  // Fetch from database
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { subscription: { select: { tier: true } } },
+  });
+
+  const tier = user?.subscription?.tier || SubscriptionTier.FREE;
+  
+  // Update cache
+  tierCache.set(userId, {
+    tier,
+    expires: Date.now() + TIER_CACHE_TTL,
+  });
+
+  return tier;
+}
 
 export const analyticsRouter = createTRPCRouter({
   // Get comprehensive analytics data for authenticated user
@@ -77,18 +108,40 @@ export const analyticsRouter = createTRPCRouter({
     }),
 
   // Get price history for a specific cryptocurrency
+  // Free tier: limited to 7 days, Pro/Business: up to 365 days
   getPriceHistory: publicProcedure
     .input(z.object({
       cryptoId: z.string(),
       days: z.number().min(1).max(365).default(30),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const priceHistory = await portfolioAnalyticsService.getPriceHistory(input.cryptoId, input.days);
+        let maxDays = input.days;
+        
+        // Apply tier-based restrictions if user is authenticated
+        if (ctx.session?.user) {
+          const tier = await getUserTier(ctx.session.user.id);
+          
+          // Free tier users are limited to 7 days of historical data
+          if (tier === SubscriptionTier.FREE) {
+            maxDays = Math.min(input.days, 7);
+          }
+          // Pro and Business tiers can access full historical data
+        } else {
+          // Unauthenticated users are limited to 7 days
+          maxDays = Math.min(input.days, 7);
+        }
+        
+        const priceHistory = await portfolioAnalyticsService.getPriceHistory(input.cryptoId, maxDays);
         
         return {
           success: true,
           data: priceHistory,
+          meta: {
+            requestedDays: input.days,
+            returnedDays: maxDays,
+            limitedByTier: maxDays < input.days,
+          },
         };
       } catch (error) {
         console.error('Failed to fetch price history:', error);
@@ -274,6 +327,66 @@ export const analyticsRouter = createTRPCRouter({
       } catch (error) {
         console.error('Failed to fetch usage analytics:', error);
         throw new Error(`Failed to fetch usage analytics: ${error}`);
+      }
+    }),
+
+  // Get historical price data from database
+  getStoredPriceHistory: publicProcedure
+    .input(z.object({
+      cryptoId: z.string(),
+      days: z.number().min(1).max(365).default(30),
+    }))
+    .query(async ({ input }) => {
+      try {
+        const priceHistory = await historicalPriceService.getHistoricalData(input.cryptoId, input.days);
+        
+        return {
+          success: true,
+          data: priceHistory,
+        };
+      } catch (error) {
+        console.error('Failed to fetch stored price history:', error);
+        throw new Error(`Failed to fetch stored price history: ${error}`);
+      }
+    }),
+
+  // Populate historical data for tracked cryptocurrencies (admin/maintenance)
+  populateHistoricalData: protectedProcedure
+    .input(z.object({
+      days: z.number().min(1).max(365).default(30),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const userId = ctx.session.user.id;
+        
+        // Get tracked cryptocurrencies for this user
+        const trackedCryptos = await ctx.prisma.cryptoTracking.findMany({
+          where: { userId },
+          include: { crypto: true },
+        });
+
+        const coinGeckoIds = trackedCryptos
+          .map(t => t.crypto.coinGeckoId)
+          .filter((id): id is string => id !== null);
+
+        if (coinGeckoIds.length === 0) {
+          return {
+            success: true,
+            message: 'No tracked cryptocurrencies found',
+            count: 0,
+          };
+        }
+
+        await historicalPriceService.bulkFetchAndStore(coinGeckoIds, input.days);
+        
+        return {
+          success: true,
+          message: `Successfully populated historical data for ${coinGeckoIds.length} cryptocurrencies`,
+          count: coinGeckoIds.length,
+        };
+      } catch (error) {
+        console.error('Failed to populate historical data:', error);
+        throw new Error(`Failed to populate historical data: ${error}`);
       }
     }),
 });

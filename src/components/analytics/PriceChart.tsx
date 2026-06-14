@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { api } from '@/lib/trpc/provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,9 @@ export function PriceChart({
   const [timeframe, setTimeframe] = useState<number>(30);
   const [viewMode, setViewMode] = useState<'watched' | 'held'>('watched');
   const [selectedCryptoId, setSelectedCryptoId] = useState<string>(cryptoId);
+  // Track selected coin's name and symbol for dynamic title updates
+  const [selectedCryptoName, setSelectedCryptoName] = useState<string | undefined>(cryptoName);
+  const [selectedCryptoSymbol, setSelectedCryptoSymbol] = useState<string | undefined>(cryptoSymbol);
 
   // Fetch watched coins (only when multi-view is enabled)
   const { 
@@ -66,6 +69,33 @@ export function PriceChart({
   });
 
   const isLoading = isLoadingPrice || (enableMultiView && (isLoadingWatched || isLoadingHeld));
+
+  // Update selected coin's name and symbol when selection changes
+  useEffect(() => {
+    if (!enableMultiView) {
+      // If multi-view is not enabled, use the props
+      setSelectedCryptoName(cryptoName);
+      setSelectedCryptoSymbol(cryptoSymbol);
+      return;
+    }
+
+    // Find the selected coin in watched or held coins
+    const allCoins = [
+      ...(watchedCoins?.data || []),
+      ...(heldCoins?.data || []),
+    ];
+    
+    const selectedCoin = allCoins.find(coin => coin.coinGeckoId === selectedCryptoId);
+    
+    if (selectedCoin) {
+      setSelectedCryptoName(selectedCoin.name);
+      setSelectedCryptoSymbol(selectedCoin.symbol);
+    } else {
+      // Fallback to props if selected coin is not found
+      setSelectedCryptoName(cryptoName);
+      setSelectedCryptoSymbol(cryptoSymbol);
+    }
+  }, [selectedCryptoId, watchedCoins?.data, heldCoins?.data, enableMultiView, cryptoName, cryptoSymbol]);
 
   // Calculate price statistics
   const priceStats = useMemo(() => {
@@ -144,22 +174,22 @@ export function PriceChart({
     <ErrorBoundary>
       <Card className={className}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                {cryptoName || 'Price Chart'}
-                {cryptoSymbol && (
-                  <Badge variant="outline">{cryptoSymbol.toUpperCase()}</Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 flex-wrap">
+                <BarChart3 className="h-5 w-5 flex-shrink-0" />
+                <span className="truncate">{selectedCryptoName || 'Price Chart'}</span>
+                {selectedCryptoSymbol && (
+                  <Badge variant="outline">{selectedCryptoSymbol.toUpperCase()}</Badge>
                 )}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Price history and market data analysis
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Select value={timeframe.toString()} onValueChange={(value) => setTimeframe(Number(value))}>
-                <SelectTrigger className="w-24">
+                <SelectTrigger className="w-20 sm:w-24">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -175,6 +205,7 @@ export function PriceChart({
                 variant="outline" 
                 size="sm"
                 disabled={isLoading}
+                className="flex-shrink-0"
               >
                 {isLoadingPrice ? (
                   <LoadingSpinner className="h-4 w-4" />
@@ -292,8 +323,13 @@ export function PriceChart({
             <div className="space-y-4">
               {/* Price Chart */}
               <div className="relative">
-                <div className="text-sm font-medium mb-2">Price Trend</div>
-                <div className="relative h-64 border rounded-lg bg-muted/20 overflow-hidden">
+                <div className="text-sm font-medium mb-2 flex items-center justify-between">
+                  <span>Price Trend</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    {timeframe} day{timeframe !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="relative h-64 border rounded-lg bg-card overflow-hidden">
                   <SimplePriceChart 
                     data={chartData.pricePoints}
                     minPrice={priceStats?.minPrice || 0}
@@ -306,7 +342,7 @@ export function PriceChart({
               {/* Volume Chart */}
               <div className="relative">
                 <div className="text-sm font-medium mb-2">Volume Trend</div>
-                <div className="relative h-16 border rounded-lg bg-muted/20 overflow-hidden">
+                <div className="relative h-16 border rounded-lg bg-card overflow-hidden">
                   <SimpleVolumeChart 
                     data={chartData.volumePoints}
                     maxVolume={priceStats?.maxVolume || 0}
@@ -315,7 +351,7 @@ export function PriceChart({
               </div>
 
               {/* Data Points Info */}
-              <div className="text-xs text-muted-foreground text-center">
+              <div className="text-xs text-muted-foreground text-center pt-2">
                 Showing {priceStats?.dataPoints || 0} data points over {timeframe} day{timeframe !== 1 ? 's' : ''}
               </div>
             </div>
@@ -348,6 +384,7 @@ function SimplePriceChart({
 }) {
   const priceRange = maxPrice - minPrice;
   const chartHeight = 256; // 64 * 4 (h-64 in Tailwind)
+  const padding = 30; // Increased padding for better visual spacing
 
   if (data.length === 0 || priceRange === 0) {
     return (
@@ -360,82 +397,184 @@ function SimplePriceChart({
   // Convert price data to chart coordinates
   const points = data.map(point => ({
     x: point.x,
-    y: ((maxPrice - point.y) / priceRange) * (chartHeight - 40) + 20, // 20px margin
+    y: ((maxPrice - point.y) / priceRange) * (chartHeight - padding * 2) + padding,
     timestamp: point.timestamp,
+    originalY: point.y,
   }));
 
-  // Create SVG path
-  const pathData = points.reduce((path, point, index) => {
-    const command = index === 0 ? 'M' : 'L';
-    return `${path} ${command} ${point.x} ${point.y}`;
-  }, '');
+  // Create crisp, angular path like professional trading charts
+  const createCrispPath = (points: Array<{ x: number; y: number }>) => {
+    if (points.length < 2) return '';
+    
+    let path = `M ${points[0].x} ${points[0].y}`;
+    
+    for (let i = 1; i < points.length; i++) {
+      // Use straight lines (L command) for crisp, angular appearance
+      path += ` L ${points[i].x} ${points[i].y}`;
+    }
+    
+    return path;
+  };
 
+  const crispPath = createCrispPath(points);
+  
   // Create area path for gradient fill
-  const areaPath = `${pathData} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+  const areaPath = `${crispPath} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z`;
+
+  // Determine colors based on trend - using professional trading colors
+  const lineColor = isPositive 
+    ? "hsl(142 71% 45%)" // Trading green
+    : "hsl(0 72% 51%)"; // Trading red
+  
+  const gradientStartOpacity = 0.15;
+  const gradientEndOpacity = 0.01;
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full group">
       <svg 
         className="absolute inset-0 w-full h-full" 
         viewBox={`0 0 100 ${chartHeight}`}
         preserveAspectRatio="none"
       >
         <defs>
-          <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          {/* Gradient fill for area under curve */}
+          <linearGradient id={`priceGradient-${isPositive ? 'pos' : 'neg'}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop 
               offset="0%" 
-              stopColor={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"} 
-              stopOpacity="0.3" 
+              className={isPositive ? "text-green-500" : "text-red-500"}
+              stopColor="currentColor"
+              stopOpacity={gradientStartOpacity}
             />
             <stop 
               offset="100%" 
-              stopColor={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"} 
-              stopOpacity="0.05" 
+              className={isPositive ? "text-green-500" : "text-red-500"}
+              stopColor="currentColor"
+              stopOpacity={gradientEndOpacity}
             />
           </linearGradient>
         </defs>
         
-        {/* Area fill */}
-        <path
-          d={areaPath}
-          fill="url(#priceGradient)"
+        {/* Professional grid lines - horizontal */}
+        <line
+          x1="0"
+          y1={padding}
+          x2="100"
+          y2={padding}
+          stroke="currentColor"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
         />
-        
-        {/* Price line */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <line
+          x1="0"
+          y1={chartHeight / 2}
+          x2="100"
+          y2={chartHeight / 2}
+          stroke="currentColor"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="0"
+          y1={chartHeight - padding}
+          x2="100"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/20"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
         
-        {/* Data points */}
+        {/* Vertical grid lines for time reference */}
+        <line
+          x1="25"
+          y1={padding}
+          x2="25"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="50"
+          y1={padding}
+          x2="50"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1="75"
+          y1={padding}
+          x2="75"
+          y2={chartHeight - padding}
+          stroke="currentColor"
+          className="text-muted-foreground/10"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+        
+        {/* Area fill with gradient */}
+        <path
+          d={areaPath}
+          fill={`url(#priceGradient-${isPositive ? 'pos' : 'neg'})`}
+          className="transition-opacity duration-300"
+        />
+        
+        {/* Main price line with crisp, angular segments */}
+        <path
+          d={crispPath}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="2"
+          strokeLinecap="butt"
+          strokeLinejoin="miter"
+          vectorEffect="non-scaling-stroke"
+          className="transition-all duration-300"
+        />
+        
+        {/* Interactive overlay - invisible rectangles for tooltip triggers */}
         {points.map((point, index) => (
-          <circle
-            key={index}
-            cx={point.x}
-            cy={point.y}
-            r="2"
-            fill={isPositive ? "rgb(34 197 94)" : "rgb(239 68 68)"}
-            strokeWidth="0"
-            className="opacity-60 hover:opacity-100 transition-opacity"
-          >
-            <title>
-              ${data[index].y.toLocaleString()} at {new Date(point.timestamp).toLocaleDateString()}
-            </title>
-          </circle>
+          <g key={index}>
+            <rect
+              x={point.x - 2}
+              y="0"
+              width="4"
+              height={chartHeight}
+              fill="transparent"
+              className="cursor-crosshair"
+            >
+              <title>
+                {new Date(point.timestamp).toLocaleDateString()}: ${point.originalY.toLocaleString()}
+              </title>
+            </rect>
+          </g>
         ))}
       </svg>
       
-      {/* Price labels */}
-      <div className="absolute top-2 left-2 text-xs text-muted-foreground">
-        ${maxPrice.toLocaleString()}
+      {/* Price labels with improved styling and tick marks */}
+      <div className="absolute top-2 left-0 text-xs font-semibold text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+        ${maxPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
       </div>
-      <div className="absolute bottom-2 left-2 text-xs text-muted-foreground">
-        ${minPrice.toLocaleString()}
+      <div className="absolute" style={{ top: `${chartHeight / 2 - 10}px`, left: '0' }}>
+        <div className="text-xs font-medium text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+          ${((maxPrice + minPrice) / 2).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        </div>
+      </div>
+      <div className="absolute bottom-2 left-0 text-xs font-semibold text-muted-foreground bg-background/90 px-2 py-0.5 rounded border border-border/50">
+        ${minPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      </div>
+      
+      {/* Time axis labels */}
+      <div className="absolute bottom-1 left-0 text-[10px] text-muted-foreground/70">
+        {new Date(points[0].timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+      </div>
+      <div className="absolute bottom-1 right-0 text-[10px] text-muted-foreground/70">
+        {new Date(points[points.length - 1].timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
       </div>
     </div>
   );
@@ -450,6 +589,7 @@ function SimpleVolumeChart({
   maxVolume: number;
 }) {
   const chartHeight = 64;
+  const padding = 4;
   
   if (data.length === 0 || maxVolume === 0) {
     return (
@@ -468,10 +608,28 @@ function SimpleVolumeChart({
         viewBox={`0 0 100 ${chartHeight}`}
         preserveAspectRatio="none"
       >
+        <defs>
+          {/* Gradient for volume bars */}
+          <linearGradient id="volumeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop 
+              offset="0%" 
+              className="text-blue-500"
+              stopColor="currentColor"
+              stopOpacity="0.8"
+            />
+            <stop 
+              offset="100%" 
+              className="text-blue-600"
+              stopColor="currentColor"
+              stopOpacity="0.4"
+            />
+          </linearGradient>
+        </defs>
+        
         {data.map((point, index) => {
-          const barHeight = (point.y / maxVolume) * (chartHeight - 4);
+          const barHeight = (point.y / maxVolume) * (chartHeight - padding * 2);
           const x = index * barWidth;
-          const y = chartHeight - barHeight;
+          const y = chartHeight - barHeight - padding;
           
           return (
             <rect
@@ -480,12 +638,11 @@ function SimpleVolumeChart({
               y={y}
               width={barWidth * 0.8} // 80% width for spacing
               height={barHeight}
-              fill="rgb(99 102 241)" // indigo-500
-              opacity="0.6"
-              className="hover:opacity-100 transition-opacity"
+              fill="url(#volumeGradient)"
+              className="hover:opacity-80 transition-opacity"
             >
               <title>
-                Volume: ${(point.y / 1e6).toFixed(1)}M on {new Date(point.timestamp).toLocaleDateString()}
+                {new Date(point.timestamp).toLocaleDateString()}: ${(point.y / 1e6).toFixed(1)}M
               </title>
             </rect>
           );

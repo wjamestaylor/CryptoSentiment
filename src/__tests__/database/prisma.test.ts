@@ -1,4 +1,4 @@
-import { PrismaClient, AlertType } from '@prisma/client';
+import { PrismaClient, AlertType, UserRole } from '@prisma/client';
 import { mockDeep, mockReset } from 'jest-mock-extended';
 
 // Create a deep mock of PrismaClient
@@ -23,11 +23,15 @@ describe('Database Operations', () => {
         emailVerified: null,
         username: null,
         image: null,
+        role: UserRole.USER,
         subscriptionId: null,
         discordUserId: null,
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -58,11 +62,15 @@ describe('Database Operations', () => {
         emailVerified: null,
         username: null,
         image: null,
+        role: UserRole.USER,
         subscriptionId: null,
         discordUserId: null,
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -87,11 +95,15 @@ describe('Database Operations', () => {
         emailVerified: null,
         username: null,
         image: null,
+        role: UserRole.USER,
         subscriptionId: null,
         discordUserId: null,
         discordVerified: false,
         telegramUserId: null,
         telegramVerified: false,
+        onboardingCompleted: false,
+        onboardingStep: 0,
+        onboardingCompletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
